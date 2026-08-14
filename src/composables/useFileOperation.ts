@@ -56,9 +56,31 @@ export function useFileOperation() {
     }
   }
 
+  async function saveFileAs() {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    const { writeTextFile } = await import('@tauri-apps/plugin-fs')
+
+    const path = await save({
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    })
+
+    if (path) {
+      const content = store.content
+      await writeTextFile(path, content)
+      const name = path.split(/[/\\]/).pop() ?? 'Untitled'
+      store.setCurrentFile({
+        id: '',
+        path,
+        content,
+        name,
+        saved: true,
+      })
+    }
+  }
+
   function newFile() {
     store.newFile()
   }
 
-  return { openFile, saveFile, newFile }
+  return { openFile, saveFile, saveFileAs, newFile }
 }

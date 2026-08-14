@@ -11,34 +11,17 @@
     <FileTabs v-if="store.tabs.length > 1" />
 
     <div class="app__body">
-      <div class="app__main">
-        <div
-          v-if="store.viewMode !== 'preview' && store.activeId"
-          class="app__editor"
-          :class="{ 'app__editor--full': store.viewMode === 'edit' }"
-        >
-          <VditorEditor :key="store.activeId" container-id="vditor-editor" />
-        </div>
-
-        <div
-          v-if="store.viewMode !== 'edit' && store.activeId"
-          class="app__preview"
-          :class="{ 'app__preview--full': store.viewMode === 'preview' }"
-        >
-          <PreviewPane />
-        </div>
-
-        <div v-if="!store.activeId" class="app__empty">
-          <div class="app__empty-hint">
-            <span class="app__empty-icon">M</span>
-            <p>MarkdownView</p>
-            <p class="app__empty-sub">Drag & drop a file or click Open</p>
-          </div>
-        </div>
+      <OutlinePane v-if="store.showOutline && store.activeId" />
+      <div v-if="store.activeId" class="app__editor">
+        <VditorEditor :key="store.activeId" container-id="vditor-editor" />
       </div>
 
-      <div v-if="store.showOutline && store.activeId" class="app__outline">
-        <OutlinePane />
+      <div v-if="!store.activeId" class="app__empty">
+        <div class="app__empty-hint">
+          <span class="app__empty-icon">M</span>
+          <p>MarkdownView</p>
+          <p class="app__empty-sub">Drag & drop a file or click Open</p>
+        </div>
       </div>
     </div>
 
@@ -58,7 +41,6 @@ import { useDragDrop } from './composables/useDragDrop'
 import AppBar from './components/AppBar.vue'
 import FileTabs from './components/FileTabs.vue'
 import VditorEditor from './components/VditorEditor.vue'
-import PreviewPane from './components/PreviewPane.vue'
 import OutlinePane from './components/OutlinePane.vue'
 
 const store = useMarkdownStore()
@@ -79,7 +61,9 @@ function setupCloseConfirmation() {
   import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
     const win = getCurrentWindow()
     win.onCloseRequested(async (event) => {
+      event.preventDefault()
       if (!store.hasUnsaved()) {
+        win.destroy()
         return
       }
       const { ask } = await import('@tauri-apps/plugin-dialog')
@@ -87,12 +71,11 @@ function setupCloseConfirmation() {
         title: 'Unsaved Changes',
         kind: 'warning',
       })
-      if (!confirmed) {
-        event.preventDefault()
+      if (confirmed) {
+        win.destroy()
       }
     })
   }).catch(() => {
-    // Not running in Tauri, skip
   })
 }
 
@@ -117,34 +100,9 @@ onBeforeUnmount(() => {
     overflow: hidden;
   }
 
-  &__main {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-  }
-
   &__editor {
     flex: 1;
     min-width: 0;
-    border-right: 1px solid var(--border-color);
-
-    &--full {
-      border-right: none;
-    }
-  }
-
-  &__preview {
-    flex: 1;
-    min-width: 0;
-
-    &--full {
-      flex: 1;
-    }
-  }
-
-  &__outline {
-    width: 220px;
-    flex-shrink: 0;
   }
 
   &__empty {

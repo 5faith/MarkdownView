@@ -1,5 +1,3 @@
-export type ViewMode = 'split' | 'edit' | 'preview'
-
 export type Theme = 'light' | 'dark'
 
 export interface MarkdownFile {

@@ -7,10 +7,6 @@
       </span>
     </div>
 
-    <div class="app-bar__center">
-      <ModeTab />
-    </div>
-
     <div class="app-bar__right">
       <button class="app-bar__btn" @click="fileOps.newFile" title="New">
         <span>📄</span>
@@ -21,7 +17,9 @@
       <button class="app-bar__btn" @click="fileOps.saveFile" title="Save">
         <span>💾</span>
       </button>
-      <div class="app-bar__separator" />
+      <button class="app-bar__btn" @click="fileOps.saveFileAs" title="Save As">
+        <span>📋</span>
+      </button>
       <button
         class="app-bar__btn"
         :class="{ 'app-bar__btn--active': store.showOutline }"
@@ -40,7 +38,6 @@
 <script setup lang="ts">
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { useFileOperation } from '../composables/useFileOperation'
-import ModeTab from './ModeTab.vue'
 
 const store = useMarkdownStore()
 const fileOps = useFileOperation()
@@ -59,7 +56,6 @@ const fileOps = useFileOperation()
   -webkit-app-region: drag;
 
   &__left,
-  &__center,
   &__right {
     display: flex;
     align-items: center;
@@ -107,12 +103,6 @@ const fileOps = useFileOperation()
       color: var(--accent-color);
       background: var(--bg-active);
     }
-  }
-
-  &__separator {
-    width: 1px;
-    height: 16px;
-    background: var(--border-color);
   }
 }
 </style>

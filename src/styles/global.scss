@@ -58,20 +58,3 @@ body,
     background: var(--text-secondary);
   }
 }
-
-.vditor-toolbar--hide,
-.vditor-toolbar {
-  display: none !important;
-}
-
-.vditor-sv .vditor-toolbar {
-  display: none !important;
-}
-
-.vditor-sv__preview {
-  display: none !important;
-}
-
-.vditor-content {
-  border: none !important;
-}

@@ -4,45 +4,71 @@
       <span class="outline-pane__title">Outline</span>
     </div>
     <div class="outline-pane__body">
-      <div v-if="outline.length === 0" class="outline-pane__empty">
+      <div v-if="tree.length === 0" class="outline-pane__empty">
         No headings found
       </div>
-      <div
-        v-for="(item, index) in outline"
-        :key="index"
-        class="outline-pane__item"
-        :class="`outline-pane__item--h${item.level}`"
-        :style="{ paddingLeft: `${(item.level - 1) * 16 + 8}px` }"
-        @click="scrollToHeading(item.slug)"
-      >
-        {{ item.text }}
-      </div>
+      <OutlineNode
+        v-for="node in tree"
+        :key="node.slug"
+        :node="node"
+        @navigate="onNavigate"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useOutline } from '../composables/useOutline'
+import { computed } from 'vue'
+import { useMarkdownStore } from '../stores/useMarkdownStore'
+import OutlineNode from './OutlineNode.vue'
 
-const { outline } = useOutline()
+export interface OutlineItem {
+  level: number
+  text: string
+  slug: string
+  children: OutlineItem[]
+}
 
-function scrollToHeading(slug: string) {
-  const previewEl = document.querySelector('.preview-pane__content')
-  if (!previewEl) return
+const store = useMarkdownStore()
 
-  const heading = previewEl.querySelector(`[id="${CSS.escape(slug)}"]`)
-  if (heading) {
-    heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    return
-  }
+const tree = computed<OutlineItem[]>(() => {
+  const lines = store.content.split('\n')
+  const items: { level: number; text: string; slug: string }[] = []
 
-  const allHeadings = previewEl.querySelectorAll('h1, h2, h3, h4, h5, h6')
-  for (const el of allHeadings) {
-    if (slugify(el.textContent?.trim() ?? '') === slug) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
+  for (const line of lines) {
+    const match = line.match(/^(#{1,6})\s+(.+)$/)
+    if (match) {
+      const level = match[1]!.length
+      const text = match[2]!.trim()
+      const slug = slugify(text)
+      items.push({ level, text, slug })
     }
   }
+
+  return buildTree(items)
+})
+
+function buildTree(items: { level: number; text: string; slug: string }[]): OutlineItem[] {
+  const root: OutlineItem[] = []
+  const stack: OutlineItem[] = []
+
+  for (const item of items) {
+    const node: OutlineItem = { ...item, children: [] }
+
+    while (stack.length > 0 && stack[stack.length - 1]!.level >= item.level) {
+      stack.pop()
+    }
+
+    if (stack.length === 0) {
+      root.push(node)
+    } else {
+      stack[stack.length - 1]!.children.push(node)
+    }
+
+    stack.push(node)
+  }
+
+  return root
 }
 
 function slugify(text: string): string {
@@ -51,16 +77,36 @@ function slugify(text: string): string {
     .replace(/[^\w\u4e00-\u9fff]+/g, '-')
     .replace(/^-|-$/g, '')
 }
+
+function onNavigate(slug: string) {
+  const vditorEl = document.getElementById('vditor-editor')
+  if (!vditorEl) return
+
+  const heading = vditorEl.querySelector(`[id="${CSS.escape(slug)}"]`)
+  if (heading) {
+    heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+
+  const allHeadings = vditorEl.querySelectorAll('h1, h2, h3, h4, h5, h6')
+  for (const el of allHeadings) {
+    if (slugify(el.textContent?.trim() ?? '') === slug) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
+  }
+}
 </script>
 
 <style scoped lang="scss">
 .outline-pane {
-  width: 100%;
+  width: 220px;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
-  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  flex-shrink: 0;
 
   &__header {
     padding: 8px 12px;
@@ -86,46 +132,6 @@ function slugify(text: string): string {
     font-size: 12px;
     color: var(--text-secondary);
     text-align: center;
-  }
-
-  &__item {
-    padding: 4px 12px;
-    font-size: 13px;
-    color: var(--text-primary);
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: background 0.15s;
-    border-radius: 4px;
-    margin: 1px 4px;
-
-    &:hover {
-      background: var(--bg-hover);
-    }
-
-    &--h1 {
-      font-weight: 700;
-      font-size: 14px;
-    }
-
-    &--h2 {
-      font-weight: 600;
-      font-size: 13px;
-    }
-
-    &--h3 {
-      font-weight: 500;
-      font-size: 13px;
-    }
-
-    &--h4,
-    &--h5,
-    &--h6 {
-      font-weight: 400;
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
   }
 }
 </style>

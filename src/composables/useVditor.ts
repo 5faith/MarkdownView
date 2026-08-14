@@ -15,17 +15,20 @@ export function useVditor(containerId: string) {
 
     editor.value = new Vditor(containerId, {
       height: '100%',
-      mode: 'ir',
-      outline: { enable: false, position: 'right' },
-      toolbar: [],
-      toolbarConfig: { hide: true },
+      mode: 'sv',
+      outline: {
+        enable: false,
+        position: 'left',
+      },
+      preview: {
+        mode: 'both',
+      },
+      counter: {
+        enable: true,
+        type: 'text',
+      },
       value: store.content,
       theme: store.theme === 'dark' ? 'dark' : 'classic',
-      preview: {
-        theme: { current: store.theme === 'dark' ? 'dark' : 'light' },
-        markdown: { toc: true },
-        mode: 'editor',
-      },
       input: (value: string) => {
         if (!externalUpdate) {
           store.setContent(value)
