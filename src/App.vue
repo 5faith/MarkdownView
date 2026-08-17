@@ -3,9 +3,6 @@
     class="app"
     :data-theme="store.theme"
     :class="{ 'app--dragging': dragDrop.isDragging.value }"
-    @dragover="dragDrop.onDragOver"
-    @dragleave="dragDrop.onDragLeave"
-    @drop="dragDrop.onDrop"
   >
     <AppBar />
     <FileTabs v-if="store.tabs.length > 1" />
@@ -20,15 +17,24 @@
         <div class="app__empty-hint">
           <span class="app__empty-icon">M</span>
           <p>MarkdownView</p>
-          <p class="app__empty-sub">Drag & drop a file or click Open</p>
+          <p class="app__empty-sub">Drag & drop a file here or click Open</p>
+          <p class="app__empty-formats">Supported: .md .markdown .txt .mdown .mkd</p>
         </div>
       </div>
     </div>
 
     <div v-if="dragDrop.isDragging.value" class="app__drag-overlay">
       <div class="app__drag-hint">
-        <span class="app__drag-icon">📄</span>
-        <span>Drop Markdown file here</span>
+        <span class="app__drag-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="12" y1="18" x2="12" y2="12" />
+            <line x1="9" y1="15" x2="15" y2="15" />
+          </svg>
+        </span>
+        <span>Drop file here</span>
+        <span class="app__drag-sub">.md .markdown .txt .mdown .mkd</span>
       </div>
     </div>
   </div>
@@ -50,6 +56,7 @@ const { setup: setupCloseConfirmation } = useCloseConfirmation(store)
 
 onMounted(async () => {
   store.initDefault()
+  await dragDrop.setup()
   await setupCloseConfirmation()
 })
 </script>
@@ -107,6 +114,12 @@ onMounted(async () => {
     opacity: 0.6;
   }
 
+  &__empty-formats {
+    font-size: 11px;
+    opacity: 0.4;
+    margin-top: -4px;
+  }
+
   &__drag-overlay {
     position: absolute;
     inset: 0;
@@ -134,6 +147,13 @@ onMounted(async () => {
 
   &__drag-icon {
     font-size: 48px;
+    color: var(--accent-color);
+  }
+
+  &__drag-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 400;
   }
 }
 </style>
