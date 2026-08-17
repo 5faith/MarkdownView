@@ -15,6 +15,8 @@
     "fs:allow-exists",
     "fs:read-all",
     "fs:write-all",
+    "process:default",
+    "process:allow-exit",
     {
       "identifier": "fs:scope",
       "allow": [

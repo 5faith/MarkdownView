@@ -35,9 +35,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from 'vue'
+import { onMounted } from 'vue'
 import { useMarkdownStore } from './stores/useMarkdownStore'
 import { useDragDrop } from './composables/useDragDrop'
+import { useCloseConfirmation } from './composables/useCloseConfirmation'
 import AppBar from './components/AppBar.vue'
 import FileTabs from './components/FileTabs.vue'
 import VditorEditor from './components/VditorEditor.vue'
@@ -45,44 +46,11 @@ import OutlinePane from './components/OutlinePane.vue'
 
 const store = useMarkdownStore()
 const dragDrop = useDragDrop()
+const { setup: setupCloseConfirmation } = useCloseConfirmation(store)
 
-onMounted(() => {
+onMounted(async () => {
   store.initDefault()
-})
-
-async function handleBeforeClose(e: Event) {
-  if (!store.hasUnsaved()) return
-  e.preventDefault()
-}
-
-function setupCloseConfirmation() {
-  window.addEventListener('beforeunload', handleBeforeClose)
-
-  import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
-    const win = getCurrentWindow()
-    win.onCloseRequested(async (event) => {
-      event.preventDefault()
-      if (!store.hasUnsaved()) {
-        win.destroy()
-        return
-      }
-      const { ask } = await import('@tauri-apps/plugin-dialog')
-      const confirmed = await ask('You have unsaved files. Are you sure you want to quit?', {
-        title: 'Unsaved Changes',
-        kind: 'warning',
-      })
-      if (confirmed) {
-        win.destroy()
-      }
-    })
-  }).catch(() => {
-  })
-}
-
-setupCloseConfirmation()
-
-onBeforeUnmount(() => {
-  window.removeEventListener('beforeunload', handleBeforeClose)
+  await setupCloseConfirmation()
 })
 </script>
 
