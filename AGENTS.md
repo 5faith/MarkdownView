@@ -25,9 +25,9 @@ No test suite, linter, or formatter is configured.
 ## Structure
 
 - `src/` — Vue frontend (components, composables, stores, styles, types)
-- `src-tauri/` — Rust backend (Tauri plugins: `dialog`, `fs`)
-- Key components: `VditorEditor`, `PreviewPane`, `OutlinePane`, `AppBar`
-- Key composables: `useVditor`, `useFileOperation`, `useOutline`, `useDragDrop`
+- `src-tauri/` — Rust backend (Tauri plugins: `dialog`, `fs`, `process`)
+- Key components: `VditorEditor`, `OutlinePane`, `AppBar`, `ConfirmDialog`
+- Key composables: `useVditor`, `useFileOperation`, `useDragDrop`, `useCloseConfirmation`
 - Store: `useMarkdownStore` (Pinia)
 - Path alias: `@/` → `./src/*`
 
