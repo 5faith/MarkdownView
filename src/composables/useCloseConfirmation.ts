@@ -1,7 +1,7 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { ask } from '@tauri-apps/plugin-dialog'
 import { exit } from '@tauri-apps/plugin-process'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import { showConfirm } from './showConfirm'
 
 type Store = ReturnType<typeof useMarkdownStore>
 
@@ -15,10 +15,12 @@ export function useCloseConfirmation(store: Store) {
       }
 
       event.preventDefault()
-      const confirmed = await ask(
-        'You have unsaved files. Are you sure you want to quit?',
-        { title: 'Unsaved Changes', kind: 'warning' },
-      )
+      const confirmed = await showConfirm({
+        title: 'Unsaved Changes',
+        message: 'You have unsaved files. Are you sure you want to quit?',
+        confirmLabel: 'Quit',
+        cancelLabel: 'Stay',
+      })
       if (confirmed) {
         await exit(0)
       }
