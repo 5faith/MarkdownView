@@ -23,6 +23,11 @@
       </div>
     </div>
 
+    <div v-if="store.loading" class="app__loading">
+      <div class="app__loading-spinner"></div>
+      <span>Exporting PDF...</span>
+    </div>
+
     <div v-if="dragDrop.isDragging.value" class="app__drag-overlay">
       <div class="app__drag-hint">
         <span class="app__drag-icon">
@@ -155,5 +160,34 @@ onMounted(async () => {
     color: var(--text-secondary);
     font-weight: 400;
   }
+
+  &__loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 2000;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    backdrop-filter: blur(2px);
+  }
+
+  &__loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

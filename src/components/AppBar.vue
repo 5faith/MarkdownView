@@ -20,6 +20,9 @@
       <button class="app-bar__btn" @click="fileOps.saveFileAs" title="Save As">
         <span>📋</span>
       </button>
+      <button class="app-bar__btn" @click="exportPdf" title="Export PDF">
+        <span>📤</span>
+      </button>
       <button
         class="app-bar__btn"
         :class="{ 'app-bar__btn--active': store.showOutline }"
@@ -38,9 +41,11 @@
 <script setup lang="ts">
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { useFileOperation } from '../composables/useFileOperation'
+import { useExport } from '../composables/useExport'
 
 const store = useMarkdownStore()
 const fileOps = useFileOperation()
+const { exportPdf } = useExport()
 </script>
 
 <style scoped lang="scss">
@@ -102,6 +107,46 @@ const fileOps = useFileOperation()
     &--active {
       color: var(--accent-color);
       background: var(--bg-active);
+    }
+  }
+
+  &__export {
+    position: relative;
+  }
+
+  &__export-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    z-index: 1000;
+    min-width: 120px;
+  }
+
+  &__export-menu-inner {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+  }
+
+  &__export-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+    text-align: left;
+    transition: background 0.15s;
+
+    &:hover {
+      background: var(--bg-hover);
     }
   }
 }
