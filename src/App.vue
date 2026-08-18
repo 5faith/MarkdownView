@@ -164,7 +164,7 @@ onMounted(async () => {
   &__loading {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.35);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -172,9 +172,8 @@ onMounted(async () => {
     gap: 16px;
     z-index: 2000;
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
-    backdrop-filter: blur(2px);
   }
 
   &__loading-spinner {

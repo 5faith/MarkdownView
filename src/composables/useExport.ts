@@ -87,53 +87,59 @@ export function useExport() {
     const html = getPreviewHtml()
     if (!html) return
 
-    const container = document.createElement('div')
-    container.setAttribute('style', buildContainerStyle())
-    container.innerHTML = `<div style="${buildContentStyle()}">${html}</div>`
-    document.body.appendChild(container)
+    store.loading = true
 
-    await new Promise((r) => setTimeout(r, 100))
+    try {
+      const container = document.createElement('div')
+      container.setAttribute('style', buildContainerStyle())
+      container.innerHTML = `<div style="${buildContentStyle()}">${html}</div>`
+      document.body.appendChild(container)
 
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      width: 794,
-      windowWidth: 794,
-    })
+      await new Promise((r) => setTimeout(r, 100))
 
-    document.body.removeChild(container)
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 794,
+        windowWidth: 794,
+      })
 
-    const imgWidth = 210
-    const pageHeight = 297
-    const imgHeight = (canvas.height * imgWidth) / canvas.width
-    const pdf = new jsPDF('p', 'mm', 'a4')
+      document.body.removeChild(container)
 
-    let heightLeft = imgHeight
-    let position = 0
+      const imgWidth = 210
+      const pageHeight = 297
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      const pdf = new jsPDF('p', 'mm', 'a4')
 
-    const imgData = canvas.toDataURL('image/png')
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-    heightLeft -= pageHeight
+      let heightLeft = imgHeight
+      let position = 0
 
-    while (heightLeft > 0) {
-      position = -(imgHeight - heightLeft)
-      pdf.addPage()
+      const imgData = canvas.toDataURL('image/png')
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
       heightLeft -= pageHeight
-    }
 
-    const baseName = store.fileName.replace(/\.[^.]+$/, '') || 'Untitled'
+      while (heightLeft > 0) {
+        position = -(imgHeight - heightLeft)
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+      }
 
-    const path = await save({
-      defaultPath: `${baseName}.pdf`,
-      filters: [{ name: 'PDF', extensions: ['pdf'] }],
-    })
+      const baseName = store.fileName.replace(/\.[^.]+$/, '') || 'Untitled'
 
-    if (path) {
-      const buffer = pdf.output('arraybuffer')
-      await writeFile(path, new Uint8Array(buffer))
+      const path = await save({
+        defaultPath: `${baseName}.pdf`,
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      })
+
+      if (path) {
+        const buffer = pdf.output('arraybuffer')
+        await writeFile(path, new Uint8Array(buffer))
+      }
+    } finally {
+      store.loading = false
     }
   }
 
