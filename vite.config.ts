@@ -13,8 +13,7 @@ function vditorPatch(): Plugin {
       if (!code.includes('unpkg.com/vditor')) return
       let result = code
       result = result.replace(/"https?:\/\/unpkg\.com\/vditor@[^"]*"\.concat\("[^"]*"\)/g, '"/vditor"')
-      result = result.replace(/"https?:\/\/unpkg\.com\/vditor\/[^"]*"/g, '"/vditor"')
-      result = result.replace(/https?:\/\/unpkg\.com\/vditor[^'")\s]*/g, '/vditor')
+      result = result.replace(/https?:\/\/unpkg\.com\/vditor[^'")\s\\]*/g, '/vditor')
       return result
     },
   }

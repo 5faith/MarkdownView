@@ -20,8 +20,7 @@ for (const file of patchFiles) {
   let content = fs.readFileSync(filePath, 'utf8')
   let replaced = content
   replaced = replaced.replace(/"https?:\/\/unpkg\.com\/vditor@[^"]*"\.concat\("[^"]*"\)/g, '"/vditor"')
-  replaced = replaced.replace(/"https?:\/\/unpkg\.com\/vditor\/[^"]*"/g, '"/vditor"')
-  replaced = replaced.replace(/https?:\/\/unpkg\.com\/vditor[^'")\s]*/g, '/vditor')
+  replaced = replaced.replace(/https?:\/\/unpkg\.com\/vditor[^'")\s\\]*/g, '/vditor')
   if (content !== replaced) {
     fs.writeFileSync(filePath, replaced)
     console.log(`Patched ${file}`)
