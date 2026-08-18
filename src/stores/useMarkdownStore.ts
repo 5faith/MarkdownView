@@ -102,9 +102,17 @@ export const useMarkdownStore = defineStore('markdown', () => {
   }
 
   function initDefault() {
+    const hasLaunched = localStorage.getItem('markdownview-launched')
     if (tabs.value.length === 0) {
-      addTab({ content: DEFAULT_CONTENT, name: 'Untitled', saved: true })
+      if (!hasLaunched) {
+        addTab({ content: DEFAULT_CONTENT, name: 'Untitled', saved: true })
+        localStorage.setItem('markdownview-launched', '1')
+      }
     }
+  }
+
+  function loadDefaultContent() {
+    addTab({ content: DEFAULT_CONTENT, name: 'Untitled', saved: true })
   }
 
   return {
@@ -128,5 +136,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
     markSaved,
     newFile,
     initDefault,
+    loadDefaultContent,
   }
 })

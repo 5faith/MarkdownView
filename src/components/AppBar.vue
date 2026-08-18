@@ -8,6 +8,9 @@
     </div>
 
     <div class="app-bar__right">
+      <button class="app-bar__btn" @click="store.loadDefaultContent" title="Load template">
+        <span>ℹ</span>
+      </button>
       <button class="app-bar__btn" @click="fileOps.newFile" title="New">
         <span>📄</span>
       </button>
