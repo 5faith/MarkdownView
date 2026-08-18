@@ -29,6 +29,7 @@ export function useVditor(containerId: string) {
       },
       value: store.content,
       theme: store.theme === 'dark' ? 'dark' : 'classic',
+      cdn: '/vditor',
       input: (value: string) => {
         if (!externalUpdate) {
           store.setContent(value)

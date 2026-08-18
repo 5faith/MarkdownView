@@ -80,6 +80,9 @@ dist/
 .vite/
 *.tsbuildinfo
 
+# Copied vditor assets
+public/vditor
+
 # Vue build artifacts
 *.vue.js
 

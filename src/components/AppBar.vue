@@ -54,7 +54,7 @@ async function handleExportPdf() {
 
   try {
     const markdown = editor.getValue()
-    const cdn = (editor as any).options?.cdn || 'https://unpkg.com/vditor'
+    const cdn = '/vditor'
 
     const iframe = document.createElement('iframe')
     iframe.id = 'vditorExportIframe'
