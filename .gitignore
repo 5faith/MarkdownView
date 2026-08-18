@@ -62,7 +62,6 @@ dev.log
 
 .worktrees/
 test-results
-assets
 
 
 .opencode
