@@ -8,33 +8,33 @@
     </div>
 
     <div class="app-bar__right">
-      <button class="app-bar__btn" @click="store.loadDefaultContent" title="Load template">
+      <button class="app-bar__btn" @click="store.loadDefaultContent" title="Load template (Ctrl+Shift+T)">
         <span>ℹ</span>
       </button>
-      <button class="app-bar__btn" @click="fileOps.newFile" title="New">
+      <button class="app-bar__btn" @click="fileOps.newFile" title="New (Ctrl+N)">
         <span>📄</span>
       </button>
-      <button class="app-bar__btn" @click="fileOps.openFile" title="Open">
+      <button class="app-bar__btn" @click="fileOps.openFile" title="Open (Ctrl+O)">
         <span>📂</span>
       </button>
-      <button class="app-bar__btn" @click="fileOps.saveFile" title="Save">
+      <button class="app-bar__btn" @click="fileOps.saveFile" title="Save (Ctrl+S)">
         <span>💾</span>
       </button>
-      <button class="app-bar__btn" @click="fileOps.saveFileAs" title="Save As">
+      <button class="app-bar__btn" @click="fileOps.saveFileAs" title="Save As (Ctrl+Shift+S)">
         <span>📋</span>
       </button>
-      <button class="app-bar__btn" @click="handleExportPdf" title="Export PDF">
+      <button class="app-bar__btn" @click="handleExportPdf" title="Export PDF (Ctrl+P)">
         <span>📤</span>
       </button>
       <button
         class="app-bar__btn"
         :class="{ 'app-bar__btn--active': store.showOutline }"
         @click="store.toggleOutline"
-        title="Toggle outline"
+        title="Toggle outline (Ctrl+B)"
       >
         <span>☰</span>
       </button>
-      <button class="app-bar__btn" @click="store.toggleTheme" :title="`Switch to ${store.theme === 'light' ? 'dark' : 'light'} mode`">
+      <button class="app-bar__btn" @click="store.toggleTheme" :title="`Switch to ${store.theme === 'light' ? 'dark' : 'light'} mode (Ctrl+Shift+D)`">
         <span>{{ store.theme === 'light' ? '🌙' : '☀️' }}</span>
       </button>
     </div>

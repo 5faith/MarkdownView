@@ -50,6 +50,7 @@ import { onMounted } from 'vue'
 import { useMarkdownStore } from './stores/useMarkdownStore'
 import { useDragDrop } from './composables/useDragDrop'
 import { useCloseConfirmation } from './composables/useCloseConfirmation'
+import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
 import AppBar from './components/AppBar.vue'
 import FileTabs from './components/FileTabs.vue'
 import VditorEditor from './components/VditorEditor.vue'
@@ -58,6 +59,7 @@ import OutlinePane from './components/OutlinePane.vue'
 const store = useMarkdownStore()
 const dragDrop = useDragDrop()
 const { setup: setupCloseConfirmation } = useCloseConfirmation(store)
+useKeyboardShortcuts()
 
 onMounted(async () => {
   store.initDefault()
