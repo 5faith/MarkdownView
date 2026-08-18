@@ -3,12 +3,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { watch, onMounted } from 'vue'
 import { useVditor } from '../composables/useVditor'
+import { currentEditor } from '../shared/editor'
 
 const props = defineProps<{ containerId: string }>()
 
-const { createEditor } = useVditor(props.containerId)
+const { createEditor, editor } = useVditor(props.containerId)
+
+watch(editor, (val) => {
+  currentEditor.value = val
+}, { immediate: true })
 
 onMounted(() => {
   createEditor()

@@ -1,14 +1,13 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { MarkdownFile, Theme } from '../types'
 import DEFAULT_CONTENT from '../assets/TEMPLATE.md?raw'
+import type { MarkdownFile, Theme } from '../types'
 
 let fileCounter = 0
 function createId(): string {
   fileCounter += 1
   return `file-${Date.now()}-${fileCounter}`
 }
-
 
 export const useMarkdownStore = defineStore('markdown', () => {
   const tabs = ref<MarkdownFile[]>([])

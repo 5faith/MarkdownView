@@ -20,7 +20,7 @@
       <button class="app-bar__btn" @click="fileOps.saveFileAs" title="Save As">
         <span>📋</span>
       </button>
-      <button class="app-bar__btn" @click="exportPdf" title="Export PDF">
+      <button class="app-bar__btn" @click="handleExportPdf" title="Export PDF">
         <span>📤</span>
       </button>
       <button
@@ -41,11 +41,76 @@
 <script setup lang="ts">
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { useFileOperation } from '../composables/useFileOperation'
-import { useExport } from '../composables/useExport'
+import { currentEditor } from '../shared/editor'
 
 const store = useMarkdownStore()
 const fileOps = useFileOperation()
-const { exportPdf } = useExport()
+
+async function handleExportPdf() {
+  const editor = currentEditor.value
+  if (!editor) return
+
+  store.loading = true
+
+  try {
+    const markdown = editor.getValue()
+    const cdn = (editor as any).options?.cdn || 'https://unpkg.com/vditor'
+
+    const iframe = document.createElement('iframe')
+    iframe.id = 'vditorExportIframe'
+    iframe.style.cssText = 'position:fixed;left:-9999px;width:800px;height:600px;'
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentDocument!
+    doc.open()
+    doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="${cdn}/dist/index.css"/>
+  <style>
+    @page { margin: 0; }
+    @media print { body { padding: 0 !important; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <div id="preview" style="width: 800px; margin: 0 auto; padding: 40px;"></div>
+  <script src="${cdn}/dist/method.min.js"><\/script>
+  <script>
+    window.addEventListener("message", (e) => {
+      if (!e.data) return;
+      Vditor.preview(document.getElementById('preview'), e.data, {
+        cdn: "${cdn}",
+        markdown: { callout: {}, theme: "classic" },
+        hljs: { style: "github" }
+      });
+      setTimeout(() => { window.print(); window.parent.postMessage('__pdfDone__', '*'); }, 3000);
+    }, false);
+  <\/script>
+</body>
+</html>`)
+    doc.close()
+
+    await new Promise<void>((resolve) => {
+      const handler = (e: MessageEvent) => {
+        if (e.data === '__pdfDone__') {
+          window.removeEventListener('message', handler)
+          resolve()
+        }
+      }
+      window.addEventListener('message', handler)
+
+      setTimeout(() => {
+        iframe.contentWindow!.postMessage(markdown, '*')
+      }, 200)
+    })
+
+    iframe.remove()
+  } catch {
+  } finally {
+    store.loading = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
