@@ -3,19 +3,37 @@ import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 
+async function loadIcons(cdn: string, icon: string) {
+  if (document.getElementById('vditorIconScript')) return
+  try {
+    const resp = await fetch(`${cdn}/dist/js/icons/${icon}.js`)
+    if (!resp.ok) return
+    const text = await resp.text()
+    const el = document.createElement('script')
+    el.id = 'vditorIconScript'
+    el.text = text
+    document.head.appendChild(el)
+  } catch {
+    // silent
+  }
+}
+
 export function useVditor(containerId: string) {
   const store = useMarkdownStore()
   const editor = ref<Vditor | null>(null)
   let externalUpdate = false
 
-  function createEditor() {
+  async function createEditor() {
     if (editor.value) {
       editor.value.destroy()
     }
 
+    await loadIcons('/vditor', 'material')
+
     editor.value = new Vditor(containerId, {
       height: '100%',
       mode: 'sv',
+      icon: 'material',
       outline: {
         enable: false,
         position: 'left',

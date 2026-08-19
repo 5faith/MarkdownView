@@ -18,7 +18,9 @@
           <span class="app__empty-icon">M</span>
           <p>MarkdownView</p>
           <p class="app__empty-sub">Drag & drop a file here or click Open</p>
-          <p class="app__empty-formats">Supported: .md .markdown .txt .mdown .mkd</p>
+          <p class="app__empty-formats">
+            Supported: .md .markdown .txt .mdown .mkd
+          </p>
         </div>
       </div>
     </div>
@@ -31,8 +33,19 @@
     <div v-if="dragDrop.isDragging.value" class="app__drag-overlay">
       <div class="app__drag-hint">
         <span class="app__drag-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+            />
             <polyline points="14 2 14 8 20 8" />
             <line x1="12" y1="18" x2="12" y2="12" />
             <line x1="9" y1="15" x2="15" y2="15" />
@@ -47,14 +60,14 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useMarkdownStore } from './stores/useMarkdownStore'
-import { useDragDrop } from './composables/useDragDrop'
-import { useCloseConfirmation } from './composables/useCloseConfirmation'
-import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
 import AppBar from './components/AppBar.vue'
 import FileTabs from './components/FileTabs.vue'
-import VditorEditor from './components/VditorEditor.vue'
 import OutlinePane from './components/OutlinePane.vue'
+import VditorEditor from './components/VditorEditor.vue'
+import { useCloseConfirmation } from './composables/useCloseConfirmation'
+import { useDragDrop } from './composables/useDragDrop'
+import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
+import { useMarkdownStore } from './stores/useMarkdownStore'
 
 const store = useMarkdownStore()
 const dragDrop = useDragDrop()
@@ -189,6 +202,8 @@ onMounted(async () => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

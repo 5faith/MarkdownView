@@ -9,7 +9,9 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "postinstall": "node scripts/patch-vditor.cjs"
+    "postinstall": "node scripts/patch-vditor.cjs",
+    "clean": "node -e \"require('fs').readdirSync('src',{recursive:true}).filter(f=>f.endsWith('.js')||f.endsWith('.vue.js')).forEach(f=>require('fs').unlinkSync('src/'+f))\"",
+    "predev": "node -e \"try{require('fs').readdirSync('src',{recursive:true}).filter(f=>f.endsWith('.js')||f.endsWith('.vue.js')).forEach(f=>require('fs').unlinkSync('src/'+f))}catch(e){}\""
   },
   "dependencies": {
     "@tauri-apps/api": "^2.5.0",
