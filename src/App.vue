@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onBeforeUnmount } from 'vue'
 import AppBar from './components/AppBar.vue'
 import FileTabs from './components/FileTabs.vue'
 import OutlinePane from './components/OutlinePane.vue'
@@ -68,16 +68,54 @@ import { useCloseConfirmation } from './composables/useCloseConfirmation'
 import { useDragDrop } from './composables/useDragDrop'
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
 import { useMarkdownStore } from './stores/useMarkdownStore'
+import type { MarkdownFile } from './types'
 
 const store = useMarkdownStore()
 const dragDrop = useDragDrop()
 const { setup: setupCloseConfirmation } = useCloseConfirmation(store)
 useKeyboardShortcuts()
 
+let unlistenFileOpen: (() => void) | null = null
+
+async function openFilesFromPaths(paths: string[]) {
+  const { readTextFile } = await import('@tauri-apps/plugin-fs')
+  for (const filePath of paths) {
+    try {
+      const text = await readTextFile(filePath)
+      const name = filePath.split(/[/\\]/).pop() ?? 'Untitled'
+      const file: MarkdownFile = {
+        id: '',
+        path: filePath,
+        content: text,
+        name,
+        saved: true,
+      }
+      store.setCurrentFile(file)
+    } catch {
+    }
+  }
+}
+
 onMounted(async () => {
   store.initDefault()
   await dragDrop.setup()
   await setupCloseConfirmation()
+
+  const { invoke } = await import('@tauri-apps/api/core')
+  const { listen } = await import('@tauri-apps/api/event')
+
+  const fileArgs: string[] = await invoke('get_file_args')
+  if (fileArgs.length > 0) {
+    await openFilesFromPaths(fileArgs)
+  }
+
+  unlistenFileOpen = await listen<string[]>('file-open', async (event) => {
+    await openFilesFromPaths(event.payload)
+  })
+})
+
+onBeforeUnmount(() => {
+  unlistenFileOpen?.()
 })
 </script>
 
