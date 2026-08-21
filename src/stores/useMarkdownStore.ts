@@ -57,6 +57,18 @@ export const useMarkdownStore = defineStore('markdown', () => {
     }
   }
 
+  function closeOtherTabs(id: string): void {
+    const keep = tabs.value.find((t) => t.id === id)
+    if (!keep) return
+    tabs.value = [keep]
+    activeId.value = id
+  }
+
+  function closeAllTabs(): void {
+    tabs.value = []
+    activeId.value = ''
+  }
+
   function switchTab(id: string) {
     activeId.value = id
   }
@@ -147,6 +159,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     hasUnsaved,
     addTab,
     closeTab,
+    closeOtherTabs,
+    closeAllTabs,
     switchTab,
     setContent,
     toggleTheme,

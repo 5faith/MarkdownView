@@ -1,7 +1,6 @@
 <template>
   <div
     class="app"
-    :data-theme="store.theme"
     :class="{ 'app--dragging': dragDrop.isDragging.value }"
   >
     <AppBar />
@@ -61,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount } from 'vue'
+import { computed, onMounted, onBeforeUnmount, watchEffect } from 'vue'
 import AppBar from './components/AppBar.vue'
 import FileTabs from './components/FileTabs.vue'
 import FileTree from './components/FileTree.vue'
@@ -76,6 +75,10 @@ import { isMarkdownFile } from './utils/fileType'
 import type { MarkdownFile } from './types'
 
 const store = useMarkdownStore()
+
+watchEffect(() => {
+  document.documentElement.dataset.theme = store.theme
+})
 
 const activeIsMarkdown = computed(() => {
   return store.activeFile?.name ? isMarkdownFile(store.activeFile.name) : true

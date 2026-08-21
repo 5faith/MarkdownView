@@ -47,6 +47,6 @@ No test suite, linter, or formatter is configured.
 
 ## Version tracking
 
-1. For each requirement, generate two documents: `{yyyyMMdd}-{requirement-name}.md` (requirement plan) and `{yyyyMMdd}-{requirement-name}-需求modification.md` (modification record).
+1. For each requirement, generate two documents: `{yyyyMMdd}-{requirement-name}-plan.md` (requirement plan) and `{yyyyMMdd}-{requirement-name}-modification.md` (modification record).
 2. Place documents directly in `version/` directory.
 3. Archiving only occurs when a specific requirement named `xxx` is explicitly requested.

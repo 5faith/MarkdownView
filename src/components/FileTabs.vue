@@ -7,6 +7,7 @@
         class="file-tabs__item"
         :class="{ 'file-tabs__item--active': tab.id === store.activeId }"
         @click="store.switchTab(tab.id)"
+        @contextmenu.prevent="onContextMenu($event, tab.id)"
       >
         <span class="file-tabs__icon">
           <FileIcon :name="tab.name" :size="14" />
@@ -24,21 +25,116 @@
       </div>
     </div>
   </div>
+
+  <TabContextMenu
+    :visible="menuVisible"
+    :x="menuX"
+    :y="menuY"
+    :can-close-others="store.tabs.length > 1"
+    :can-close-all="store.tabs.length > 0"
+    @close="handleMenuClose"
+    @close-others="handleMenuCloseOthers"
+    @close-all="handleMenuCloseAll"
+    @close-menu="closeMenu"
+  />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import { showConfirm } from '../composables/showConfirm'
 import FileIcon from './FileIcon.vue'
+import TabContextMenu from './TabContextMenu.vue'
 
 const store = useMarkdownStore()
 
-function handleClose(id: string) {
+const menuVisible = ref(false)
+const menuX = ref(0)
+const menuY = ref(0)
+const menuTargetId = ref('')
+
+function onContextMenu(e: MouseEvent, id: string) {
+  closeMenu()
+  menuTargetId.value = id
+  menuX.value = e.clientX
+  menuY.value = e.clientY
+  menuVisible.value = true
+  document.addEventListener('mousedown', onOutsideClick)
+  document.addEventListener('keydown', onEscape)
+}
+
+function closeMenu() {
+  menuVisible.value = false
+  menuTargetId.value = ''
+  document.removeEventListener('mousedown', onOutsideClick)
+  document.removeEventListener('keydown', onEscape)
+}
+
+function onOutsideClick(e: MouseEvent) {
+  const menu = document.querySelector('.tab-context-menu')
+  if (menu && !menu.contains(e.target as Node)) {
+    closeMenu()
+  }
+}
+
+function onEscape(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    closeMenu()
+  }
+}
+
+async function handleClose(id: string) {
   const tab = store.tabs.find((t) => t.id === id)
   if (tab && !tab.saved) {
-    const confirmed = window.confirm(`"${tab.name}" has unsaved changes. Close without saving?`)
+    const confirmed = await showConfirm({
+      title: 'Unsaved Changes',
+      message: `"${tab.name}" has unsaved changes. Are you sure you want to close it?`,
+      confirmLabel: 'Quit',
+      cancelLabel: 'Stay',
+    })
     if (!confirmed) return
   }
   store.closeTab(id)
+}
+
+async function handleMenuClose() {
+  const id = menuTargetId.value
+  closeMenu()
+  if (id) await handleClose(id)
+}
+
+async function handleMenuCloseOthers() {
+  const id = menuTargetId.value
+  const otherUnsaved = store.tabs.filter(
+    (t) => t.id !== id && !t.saved,
+  )
+  closeMenu()
+  if (otherUnsaved.length > 0) {
+    const names = otherUnsaved.map((t) => t.name).join(', ')
+    const confirmed = await showConfirm({
+      title: 'Unsaved Changes',
+      message: `${names} has unsaved changes. Are you sure you want to close other tabs?`,
+      confirmLabel: 'Quit',
+      cancelLabel: 'Stay',
+    })
+    if (!confirmed) return
+  }
+  store.closeOtherTabs(id)
+}
+
+async function handleMenuCloseAll() {
+  const unsaved = store.tabs.filter((t) => !t.saved)
+  closeMenu()
+  if (unsaved.length > 0) {
+    const confirmed = await showConfirm({
+      title: 'Unsaved Changes',
+      message: 'You have unsaved files. Are you sure you want to close all tabs?',
+      confirmLabel: 'Quit',
+      cancelLabel: 'Stay',
+    })
+    if (!confirmed) return
+  }
+  store.closeAllTabs()
 }
 </script>
 
