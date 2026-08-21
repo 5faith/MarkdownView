@@ -9,19 +9,18 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
 <!-- CODEGRAPH_END -->
 
+## Table of Contents
+
+- [Project](#project)
+- [Structure](#structure)
+- [Commands](#commands)
+- [Gotchas](#gotchas)
+- [Code Conventions](#code-conventions)
+- [Version Tracking](#version-tracking)
+
 ## Project
 
 Desktop Markdown editor: **Tauri 2** (Rust) + **Vue 3** (Composition API, `<script setup>`) + **Vditor** (Markdown editor component) + **Pinia** state management. Package manager is **pnpm**.
-
-## Commands
-
-- `pnpm tauri dev` — full app (Tauri + Vite frontend on port 14200)
-- `pnpm dev` — frontend only (Vite dev server, port 14200)
-- `pnpm build` — typecheck (`vue-tsc -b`) then Vite production build to `dist/`
-- `pnpm tauri build` — full Tauri desktop build
-- `pnpm clean` — removes stale generated `.js` files from `src/`
-
-No test suite, linter, or formatter is configured.
 
 ## Structure
 
@@ -56,6 +55,16 @@ version/                      # Requirement plans & modification records
 
 - Path alias: `@/` → `./src/*`
 - Tauri capabilities: any new Tauri API used in JS requires a matching permission entry in `capabilities/default.json`
+
+## Commands
+
+- `pnpm tauri dev` — full app (Tauri + Vite frontend on port 14200)
+- `pnpm dev` — frontend only (Vite dev server, port 14200)
+- `pnpm build` — typecheck (`vue-tsc -b`) then Vite production build to `dist/`
+- `pnpm tauri build` — full Tauri desktop build
+- `pnpm clean` — removes stale generated `.js` files from `src/`
+
+No test suite, linter, or formatter is configured.
 
 ## Gotchas
 
@@ -94,7 +103,7 @@ version/                      # Requirement plans & modification records
 - **Traits**: `use tauri::Manager` for window/app access. `use tauri::Emitter` imported locally where needed.
 - **Permissions**: Any new Tauri API used in JS requires a matching permission entry in `src-tauri/capabilities/default.json`.
 
-## Version tracking
+## Version Tracking
 
 1. For each requirement, generate two documents: `{yyyyMMdd}-{requirement-name}-plan.md` (requirement plan) and `{yyyyMMdd}-{requirement-name}-modification.md` (modification record).
 2. Place documents directly in `version/` directory.
