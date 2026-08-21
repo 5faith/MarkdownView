@@ -12,7 +12,10 @@
         ▶
       </span>
       <span v-else class="tree-node__arrow-placeholder"></span>
-      <span class="tree-node__icon">{{ props.node.type === 'directory' ? (expanded ? '📂' : '📁') : getFileIcon(props.node.name) }}</span>
+      <span class="tree-node__icon">
+        <template v-if="props.node.type === 'directory'">{{ expanded ? '📂' : '📁' }}</template>
+        <FileIcon v-else :name="props.node.name" :size="14" />
+      </span>
       <span class="tree-node__name">{{ props.node.name }}</span>
     </div>
     <div v-if="expanded && props.node.type === 'directory'" class="tree-node__children">
@@ -41,6 +44,7 @@
 import { ref } from 'vue'
 import { readDir } from '@tauri-apps/plugin-fs'
 import type { FileTreeNode as FileTreeNodeType } from '../types'
+import FileIcon from './FileIcon.vue'
 
 const props = defineProps<{
   node: FileTreeNodeType
@@ -55,40 +59,6 @@ const emit = defineEmits<{
 const expanded = ref(false)
 const loading = ref(false)
 const children = ref<FileTreeNodeType[]>([])
-
-function getFileIcon(name: string): string {
-  const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  const iconMap: Record<string, string> = {
-    md: '📝',
-    markdown: '📝',
-    txt: '📄',
-    ts: '🔷',
-    js: '🟨',
-    vue: '💚',
-    json: '📦',
-    css: '🎨',
-    scss: '🎨',
-    html: '🌐',
-    py: '🐍',
-    rs: '🦀',
-    go: '🔵',
-    java: '☕',
-    cpp: '⚙️',
-    c: '⚙️',
-    h: '⚙️',
-    sh: '🖥️',
-    yaml: '⚙️',
-    yml: '⚙️',
-    toml: '⚙️',
-    xml: '📄',
-    png: '🖼️',
-    jpg: '🖼️',
-    jpeg: '🖼️',
-    gif: '🖼️',
-    svg: '🖼️',
-  }
-  return iconMap[ext] ?? '📄'
-}
 
 async function handleClick() {
   if (props.node.type === 'directory') {
@@ -169,8 +139,13 @@ async function handleClick() {
   }
 
   &__icon {
-    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
     flex-shrink: 0;
+    line-height: 0;
   }
 
   &__name {

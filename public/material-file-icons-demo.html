@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Material File Icons Demo</title>
+<style>
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-hover: rgba(0,0,0,0.06);
+    --bg-active: rgba(0,0,0,0.1);
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --border-color: #e0e0e0;
+    --accent-color: #3b82f6;
+  }
+  [data-theme="dark"] {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-hover: rgba(255,255,255,0.08);
+    --bg-active: rgba(255,255,255,0.12);
+    --text-primary: #e0e0e0;
+    --text-secondary: #999999;
+    --border-color: #2a2a4a;
+    --accent-color: #60a5fa;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+  }
+  .app { display:flex; height:100vh; flex-direction:column; }
+  .app-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    height:40px; padding:0 12px;
+    background: var(--bg-secondary);
+    border-bottom:1px solid var(--border-color);
+    user-select:none;
+  }
+  .app-bar__left, .app-bar__right { display:flex; align-items:center; gap:8px; }
+  .app-bar__title { font-size:13px; color:var(--text-primary); font-weight:500; }
+  .theme-toggle {
+    cursor:pointer; font-size:12px; padding:4px 10px;
+    border:none; border-radius:4px;
+    background:var(--bg-hover); color:var(--text-primary);
+  }
+  .app__body { flex:1; display:flex; overflow:hidden; }
+
+  .file-tree {
+    width:240px; min-width:240px; display:flex; flex-direction:column;
+    background:var(--bg-secondary); border-right:1px solid var(--border-color);
+    user-select:none;
+  }
+  .file-tree__header {
+    display:flex; align-items:center; gap:6px;
+    height:32px; padding:0 10px;
+    border-bottom:1px solid var(--border-color);
+  }
+  .file-tree__header-label { font-size:11px; font-weight:600; color:var(--text-secondary); letter-spacing:0.5px; }
+  .file-tree__header-name { font-size:11px; color:var(--text-secondary); opacity:0.6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .file-tree__body { flex:1; overflow-y:auto; }
+
+  .tree-node__row {
+    display:flex; align-items:center; gap:4px;
+    height:26px; padding-right:8px;
+    cursor:pointer; font-size:13px; color:var(--text-primary);
+    transition: background 0.1s; white-space:nowrap;
+  }
+  .tree-node__row:hover { background:var(--bg-hover); }
+  .tree-node__row--active { background:var(--bg-active); color:var(--accent-color); }
+  .tree-node__arrow {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:14px; height:14px; font-size:8px;
+    transition: transform 0.15s; flex-shrink:0;
+  }
+  .tree-node__arrow--open { transform:rotate(90deg); }
+  .tree-node__arrow-placeholder { width:14px; flex-shrink:0; }
+  .tree-node__icon {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:14px; height:14px; flex-shrink:0; line-height:0;
+  }
+  .tree-node__icon svg { width:14px; height:14px; }
+  .tree-node__icon--folder { font-size:14px; width:auto; height:auto; }
+  .tree-node__name { overflow:hidden; text-overflow:ellipsis; }
+  .child-hidden { display:none; }
+
+  .file-tabs {
+    display:flex; align-items:center;
+    height:32px; background:var(--bg-primary);
+    border-bottom:1px solid var(--border-color);
+    overflow-x:auto; overflow-y:hidden; flex-shrink:0;
+  }
+  .file-tabs::-webkit-scrollbar { height:0; }
+  .file-tabs__list { display:flex; height:100%; }
+  .file-tabs__item {
+    display:flex; align-items:center; gap:6px;
+    padding:0 12px; height:100%;
+    font-size:12px; color:var(--text-secondary);
+    cursor:pointer; border-right:1px solid var(--border-color);
+    white-space:nowrap; user-select:none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .file-tabs__item:hover { background:var(--bg-hover); }
+  .file-tabs__item--active { color:var(--text-primary); background:var(--bg-secondary); border-bottom:2px solid var(--accent-color); }
+  .file-tabs__icon { display:inline-flex; align-items:center; line-height:0; }
+  .file-tabs__icon svg { width:14px; height:14px; }
+  .file-tabs__name { max-width:120px; overflow:hidden; text-overflow:ellipsis; }
+
+  .content { flex:1; display:flex; flex-direction:column; padding:20px; gap:20px; overflow-y:auto; }
+  .section-title { font-size:14px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; padding-bottom:8px; border-bottom:1px solid var(--border-color); }
+  .icon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
+  .icon-card {
+    display:flex; align-items:center; gap:8px;
+    padding:8px 10px; border-radius:6px;
+    background:var(--bg-secondary); border:1px solid var(--border-color);
+    transition: border-color 0.15s;
+  }
+  .icon-card:hover { border-color:var(--accent-color); }
+  .icon-card svg { width:20px; height:20px; flex-shrink:0; }
+  .icon-card__info { overflow:hidden; }
+  .icon-card__name { font-size:12px; color:var(--text-primary); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .icon-card__ext { font-size:11px; color:var(--text-secondary); }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="app-bar">
+    <div class="app-bar__left">
+      <span style="width:22px;height:22px;border-radius:4px;background:var(--accent-color);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;">M</span>
+      <span class="app-bar__title">Material File Icons Demo</span>
+    </div>
+    <div class="app-bar__right">
+      <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+  </div>
+  <div class="file-tabs"><div class="file-tabs__list" id="tabs"></div></div>
+  <div class="app__body">
+    <div class="file-tree">
+      <div class="file-tree__header">
+        <span class="file-tree__header-label">EXPLORER</span>
+        <span class="file-tree__header-name">markdown-view</span>
+      </div>
+      <div class="file-tree__body" id="tree"></div>
+    </div>
+    <div class="content" id="content">
+      <div class="section-title">All Available Icons (material-file-icons)</div>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+  </div>
+</div>
+<script type="module">
+import { getIcon, getAllIcons } from 'material-file-icons';
+
+const treeData = [
+  { name:'src', type:'directory', children:[
+    { name:'components', type:'directory', children:[
+      { name:'AppBar.vue', type:'file' },
+      { name:'FileTree.vue', type:'file' },
+      { name:'FileTreeNode.vue', type:'file' },
+      { name:'FileTabs.vue', type:'file' },
+      { name:'VditorEditor.vue', type:'file' },
+      { name:'OutlinePane.vue', type:'file' },
+    ]},
+    { name:'composables', type:'directory', children:[
+      { name:'useFileOperation.ts', type:'file' },
+      { name:'useDragDrop.ts', type:'file' },
+      { name:'useKeyboardShortcuts.ts', type:'file' },
+      { name:'useCloseConfirmation.ts', type:'file' },
+    ]},
+    { name:'stores', type:'directory', children:[
+      { name:'useMarkdownStore.ts', type:'file' },
+    ]},
+    { name:'utils', type:'directory', children:[
+      { name:'fileType.ts', type:'file' },
+    ]},
+    { name:'styles', type:'directory', children:[
+      { name:'global.scss', type:'file' },
+    ]},
+    { name:'types', type:'directory', children:[
+      { name:'index.ts', type:'file' },
+    ]},
+    { name:'App.vue', type:'file' },
+    { name:'main.ts', type:'file' },
+  ]},
+  { name:'src-tauri', type:'directory', children:[
+    { name:'Cargo.toml', type:'file' },
+    { name:'tauri.conf.json', type:'file' },
+    { name:'src', type:'directory', children:[
+      { name:'lib.rs', type:'file' },
+      { name:'main.rs', type:'file' },
+    ]},
+  ]},
+  { name:'package.json', type:'file' },
+  { name:'tsconfig.json', type:'file' },
+  { name:'vite.config.ts', type:'file' },
+  { name:'index.html', type:'file' },
+  { name:'README.md', type:'file' },
+];
+
+function iconSvg(name) { try { return getIcon(name).svg; } catch { return ''; } }
+
+function renderTree(nodes, depth=0) {
+  let h = '';
+  for (const n of nodes) {
+    const pad = depth*12+8;
+    if (n.type==='directory') {
+      h += `<div class="tree-node__row" style="padding-left:${pad}px" onclick="this.querySelector('.tree-node__arrow').classList.toggle('tree-node__arrow--open');this.nextElementSibling.classList.toggle('child-hidden')">
+        <span class="tree-node__arrow">&#x25B6;</span>
+        <span class="tree-node__icon tree-node__icon--folder">&#x1F4C1;</span>
+        <span class="tree-node__name">${n.name}</span></div>
+        <div class="tree-node__children">${renderTree(n.children||[],depth+1)}</div>`;
+    } else {
+      const svg = iconSvg(n.name);
+      h += `<div class="tree-node__row${n.name==='useMarkdownStore.ts'?' tree-node__row--active':''}" style="padding-left:${pad}px">
+        <span class="tree-node__arrow-placeholder"></span>
+        <span class="tree-node__icon">${svg||'<span style="font-size:14px">&#x1F4C4;</span>'}</span>
+        <span class="tree-node__name">${n.name}</span></div>`;
+    }
+  }
+  return h;
+}
+document.getElementById('tree').innerHTML = renderTree(treeData);
+
+const tabFiles = ['useMarkdownStore.ts','FileTreeNode.vue','AppBar.vue','global.scss','README.md','package.json'];
+document.getElementById('tabs').innerHTML = tabFiles.map((n,i)=>
+  `<div class="file-tabs__item${i===0?' file-tabs__item--active':''}">
+    <span class="file-tabs__icon">${iconSvg(n)||'&#x1F4C4;'}</span>
+    <span class="file-tabs__name">${n}</span></div>`).join('');
+
+const allIcons = getAllIcons();
+document.getElementById('iconGrid').innerHTML = allIcons.map(icon=>{
+  const exts = (icon.extensions||[]).slice(0,3).map(e=>'.'+e).join(', ');
+  return `<div class="icon-card">${icon.svg}<div class="icon-card__info">
+    <div class="icon-card__name">${icon.name}</div>
+    <div class="icon-card__ext">${exts||(icon.files||[]).slice(0,1).join(', ')}</div></div></div>`;
+}).join('');
+</script>
+<script>
+function toggleTheme(){var e=document.getElementById('app');e.setAttribute('data-theme',e.getAttribute('data-theme')==='dark'?'':'dark');}
+</script>
+</body>
+</html>

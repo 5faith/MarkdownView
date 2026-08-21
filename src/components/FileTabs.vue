@@ -8,6 +8,9 @@
         :class="{ 'file-tabs__item--active': tab.id === store.activeId }"
         @click="store.switchTab(tab.id)"
       >
+        <span class="file-tabs__icon">
+          <FileIcon :name="tab.name" :size="14" />
+        </span>
         <span class="file-tabs__name">
           {{ tab.name }}{{ tab.saved ? '' : ' *' }}
         </span>
@@ -25,6 +28,7 @@
 
 <script setup lang="ts">
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import FileIcon from './FileIcon.vue'
 
 const store = useMarkdownStore()
 
@@ -81,6 +85,12 @@ function handleClose(id: string) {
       background: var(--bg-secondary);
       border-bottom: 2px solid var(--accent-color);
     }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
   }
 
   &__name {
