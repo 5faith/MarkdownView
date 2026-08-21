@@ -25,15 +25,37 @@ No test suite, linter, or formatter is configured.
 
 ## Structure
 
-- `src/` — Vue frontend (components, composables, stores, styles, types)
-- `src-tauri/` — Rust backend (Tauri plugins: `dialog`, `fs`, `process`, `single-instance`)
-- `src-tauri/capabilities/default.json` — Tauri permissions for all windows (`"windows": ["*"]`); must include any new Tauri API used (e.g. `core:window:allow-destroy`, `core:webview:allow-create-webview-window`)
-- `public/vditor/dist` — copied + patched Vditor assets (gitignored, auto-generated)
-- `scripts/patch-vditor.cjs` — copies vditor from `node_modules` to `public/` and rewrites unpkg CDN URLs to local `/vditor`
-- Key components: `VditorEditor`, `CodeMirrorEditor`, `OutlinePane`, `AppBar`, `ConfirmDialog`, `FileTabs`, `TabContextMenu`, `FileTree`, `FileTreeNode`
-- Key composables: `useVditor`, `useFileOperation`, `useDragDrop`, `useCloseConfirmation`, `useKeyboardShortcuts`
-- Store: `useMarkdownStore` (Pinia) — single store managing tabs, theme, outline, content, workspace
+```
+src/                          # Vue frontend
+├── App.vue                   # Root component
+├── main.ts                   # Entry point
+├── vite-env.d.ts             # Vite type shims
+├── assets/                   # Static assets (TEMPLATE.md, images)
+├── components/               # Vue components (PascalCase, one per file)
+├── composables/              # Composables (useXxx.ts) + plain helpers (showConfirm.ts)
+├── shared/                   # Shared singletons (editor.ts)
+├── stores/                   # Pinia stores (useMarkdownStore.ts)
+├── styles/                   # Global SCSS (global.scss)
+├── types/                    # Shared TypeScript interfaces (index.ts)
+└── utils/                    # Pure utility functions (fileType.ts)
+
+src-tauri/                    # Rust backend
+├── src/
+│   ├── main.rs               # Minimal entry (calls lib::run())
+│   └── lib.rs                # All logic: builder, plugins, commands
+├── capabilities/
+│   └── default.json          # Tauri permissions ("windows": ["*"])
+├── tauri.conf.json           # App config, window size, file associations
+├── Cargo.toml
+└── icons/                    # App icons (.png, .icns, .ico)
+
+public/vditor/dist/           # Copied + patched Vditor assets (gitignored)
+scripts/patch-vditor.cjs      # Copies vditor from node_modules, rewrites CDN URLs
+version/                      # Requirement plans & modification records
+```
+
 - Path alias: `@/` → `./src/*`
+- Tauri capabilities: any new Tauri API used in JS requires a matching permission entry in `capabilities/default.json`
 
 ## Gotchas
 
