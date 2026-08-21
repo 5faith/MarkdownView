@@ -7,3 +7,9 @@ export interface MarkdownFile {
   name: string
   saved: boolean
 }
+
+export interface FileTreeNode {
+  name: string
+  path: string
+  type: 'file' | 'directory'
+}

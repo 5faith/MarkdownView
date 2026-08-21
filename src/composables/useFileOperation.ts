@@ -10,7 +10,7 @@ export function useFileOperation() {
 
     const selected = await open({
       multiple: false,
-      filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'txt'] }],
+      filters: [{ name: 'All Files', extensions: ['*'] }],
     })
 
     if (selected && typeof selected === 'string') {
@@ -82,5 +82,18 @@ export function useFileOperation() {
     store.newFile()
   }
 
-  return { openFile, saveFile, saveFileAs, newFile }
+  async function openFolder() {
+    const { open } = await import('@tauri-apps/plugin-dialog')
+
+    const selected = await open({
+      directory: true,
+      multiple: false,
+    })
+
+    if (selected && typeof selected === 'string') {
+      store.setWorkspace(selected)
+    }
+  }
+
+  return { openFile, saveFile, saveFileAs, newFile, openFolder }
 }

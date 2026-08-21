@@ -32,7 +32,7 @@ export function useVditor(containerId: string) {
 
     editor.value = new Vditor(containerId, {
       height: '100%',
-      mode: 'sv',
+      mode: 'ir',
       icon: 'material',
       outline: {
         enable: false,

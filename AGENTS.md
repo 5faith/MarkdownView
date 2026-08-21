@@ -44,3 +44,9 @@ No test suite, linter, or formatter is configured.
 - `index.html` uses `lang="zh-CN"`.
 - `pnpm-workspace.yaml` declares `packages: [.]` — this is NOT a monorepo, just pnpm workspace config for the root package.
 - Release workflow: push a `v*.*.*` tag to trigger the GitHub Actions build-and-release CI (builds for Windows, macOS arm64/x64, Ubuntu). See `command.md` for the tag push command.
+
+## Version tracking
+
+1. For each requirement, generate two documents: `{yyyyMMdd}-{requirement-name}.md` (requirement plan) and `{yyyyMMdd}-{requirement-name}-需求modification.md` (modification record).
+2. Place documents directly in `version/` directory.
+3. Archiving only occurs when a specific requirement named `xxx` is explicitly requested.

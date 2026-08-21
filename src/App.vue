@@ -8,9 +8,11 @@
     <FileTabs v-if="store.tabs.length > 1" />
 
     <div class="app__body">
-      <OutlinePane v-if="store.showOutline && store.activeId" />
+      <FileTree v-if="store.showFileTree" />
+      <OutlinePane v-if="store.showOutline && store.activeId && activeIsMarkdown" />
       <div v-if="store.activeId" class="app__editor">
-        <VditorEditor :key="store.activeId" container-id="vditor-editor" />
+        <VditorEditor v-if="activeIsMarkdown" :key="store.activeId" container-id="vditor-editor" />
+        <CodeMirrorEditor v-else :key="store.activeId" v-model="cmContent" :file-name="store.activeFile?.name ?? ''" />
       </div>
 
       <div v-if="!store.activeId" class="app__empty">
@@ -59,18 +61,30 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from 'vue'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
 import AppBar from './components/AppBar.vue'
 import FileTabs from './components/FileTabs.vue'
+import FileTree from './components/FileTree.vue'
 import OutlinePane from './components/OutlinePane.vue'
 import VditorEditor from './components/VditorEditor.vue'
+import CodeMirrorEditor from './components/CodeMirrorEditor.vue'
 import { useCloseConfirmation } from './composables/useCloseConfirmation'
 import { useDragDrop } from './composables/useDragDrop'
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
 import { useMarkdownStore } from './stores/useMarkdownStore'
+import { isMarkdownFile } from './utils/fileType'
 import type { MarkdownFile } from './types'
 
 const store = useMarkdownStore()
+
+const activeIsMarkdown = computed(() => {
+  return store.activeFile?.name ? isMarkdownFile(store.activeFile.name) : true
+})
+
+const cmContent = computed({
+  get: () => store.content,
+  set: (value: string) => store.setContent(value),
+})
 const dragDrop = useDragDrop()
 const { setup: setupCloseConfirmation } = useCloseConfirmation(store)
 useKeyboardShortcuts()

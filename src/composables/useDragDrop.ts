@@ -1,5 +1,6 @@
 import { ref, onBeforeUnmount } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import { isMarkdownFile } from '../utils/fileType'
 import type { MarkdownFile } from '../types'
 
 export function useDragDrop() {
@@ -53,11 +54,6 @@ export function useDragDrop() {
         isDragging.value = false
       }
     })
-  }
-
-  function isMarkdownFile(name: string): boolean {
-    const ext = name.split('.').pop()?.toLowerCase() ?? ''
-    return ['md', 'markdown', 'txt', 'mdown', 'mkd'].includes(ext)
   }
 
   onBeforeUnmount(() => {

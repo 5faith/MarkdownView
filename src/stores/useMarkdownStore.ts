@@ -15,6 +15,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const theme = ref<Theme>('light')
   const showOutline = ref(true)
   const loading = ref(false)
+  const workspacePath = ref<string>('')
+  const showFileTree = ref(false)
 
   const activeFile = computed(
     () => tabs.value.find((t) => t.id === activeId.value) ?? null,
@@ -115,6 +117,21 @@ export const useMarkdownStore = defineStore('markdown', () => {
     addTab({ content: DEFAULT_CONTENT, name: 'Untitled', saved: true })
   }
 
+  function setWorkspace(path: string) {
+    workspacePath.value = path
+    showFileTree.value = true
+  }
+
+  function clearWorkspace() {
+    workspacePath.value = ''
+    showFileTree.value = false
+  }
+
+  function toggleFileTree() {
+    if (!workspacePath.value) return
+    showFileTree.value = !showFileTree.value
+  }
+
   return {
     tabs,
     activeId,
@@ -123,6 +140,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     theme,
     showOutline,
     loading,
+    workspacePath,
+    showFileTree,
     fileName,
     isSaved,
     hasUnsaved,
@@ -137,5 +156,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     newFile,
     initDefault,
     loadDefaultContent,
+    setWorkspace,
+    clearWorkspace,
+    toggleFileTree,
   }
 })

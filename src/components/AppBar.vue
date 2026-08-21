@@ -14,9 +14,25 @@
       <button class="app-bar__btn" @click="fileOps.newFile" title="New (Ctrl+N)">
         <span>📄</span>
       </button>
-      <button class="app-bar__btn" @click="fileOps.openFile" title="Open (Ctrl+O)">
-        <span>📂</span>
-      </button>
+
+      <div class="app-bar__dropdown" ref="dropdownRef">
+        <button class="app-bar__btn" @click="toggleDropdown" title="Open (Ctrl+O)">
+          <span>📂</span>
+        </button>
+        <div v-if="showDropdown" class="app-bar__dropdown-menu">
+          <button class="app-bar__dropdown-item" @click="handleOpenFile">
+            <span>📄</span>
+            <span>Open File</span>
+            <span class="app-bar__dropdown-shortcut">Ctrl+O</span>
+          </button>
+          <button class="app-bar__dropdown-item" @click="handleOpenFolder">
+            <span>📁</span>
+            <span>Open Folder</span>
+            <span class="app-bar__dropdown-shortcut">Ctrl+Shift+O</span>
+          </button>
+        </div>
+      </div>
+
       <button class="app-bar__btn" @click="fileOps.saveFile" title="Save (Ctrl+S)">
         <span>💾</span>
       </button>
@@ -25,6 +41,15 @@
       </button>
       <button class="app-bar__btn" @click="handleExportPdf" title="Export PDF (Ctrl+P)">
         <span>📤</span>
+      </button>
+      <button
+        v-if="store.workspacePath"
+        class="app-bar__btn"
+        :class="{ 'app-bar__btn--active': store.showFileTree }"
+        @click="store.toggleFileTree"
+        title="Toggle file explorer"
+      >
+        <span>📁</span>
       </button>
       <button
         class="app-bar__btn"
@@ -42,12 +67,48 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { useFileOperation } from '../composables/useFileOperation'
 import { currentEditor } from '../shared/editor'
 
 const store = useMarkdownStore()
 const fileOps = useFileOperation()
+
+const showDropdown = ref(false)
+const dropdownRef = ref<HTMLElement | null>(null)
+
+function toggleDropdown() {
+  showDropdown.value = !showDropdown.value
+}
+
+function closeDropdown() {
+  showDropdown.value = false
+}
+
+function handleClickOutside(e: MouseEvent) {
+  if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) {
+    closeDropdown()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside, true)
+})
+
+async function handleOpenFile() {
+  closeDropdown()
+  await fileOps.openFile()
+}
+
+async function handleOpenFolder() {
+  closeDropdown()
+  await fileOps.openFolder()
+}
 
 async function handleExportPdf() {
   const editor = currentEditor.value
@@ -178,20 +239,17 @@ async function handleExportPdf() {
     }
   }
 
-  &__export {
+  &__dropdown {
     position: relative;
   }
 
-  &__export-menu {
+  &__dropdown-menu {
     position: absolute;
     top: 100%;
-    right: 0;
+    left: 0;
     margin-top: 4px;
     z-index: 1000;
-    min-width: 120px;
-  }
-
-  &__export-menu-inner {
+    min-width: 180px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
@@ -199,7 +257,7 @@ async function handleExportPdf() {
     overflow: hidden;
   }
 
-  &__export-item {
+  &__dropdown-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -211,11 +269,19 @@ async function handleExportPdf() {
     font-size: 13px;
     color: var(--text-primary);
     text-align: left;
+    white-space: nowrap;
     transition: background 0.15s;
 
     &:hover {
       background: var(--bg-hover);
     }
+  }
+
+  &__dropdown-shortcut {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-secondary);
+    opacity: 0.6;
   }
 }
 </style>

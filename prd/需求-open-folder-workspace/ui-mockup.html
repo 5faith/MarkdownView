@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open Folder as Workspace — UI Mockup</title>
+<style>
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-code: #f0f0f0;
+    --bg-hover: rgba(0, 0, 0, 0.06);
+    --bg-active: rgba(0, 0, 0, 0.1);
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --border-color: #e0e0e0;
+    --accent-color: #3b82f6;
+  }
+  [data-theme='dark'] {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-code: #0f3460;
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --bg-active: rgba(255, 255, 255, 0.12);
+    --text-primary: #e0e0e0;
+    --text-secondary: #999999;
+    --border-color: #2a2a4a;
+    --accent-color: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); }
+
+  /* ── Layout ── */
+  .app { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  .app-bar { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 12px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); user-select: none; -webkit-app-region: drag; }
+  .app-bar__left, .app-bar__right { display: flex; align-items: center; gap: 8px; }
+  .app-bar__logo { width: 22px; height: 22px; border-radius: 4px; background: var(--accent-color); color: #fff; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .app-bar__title { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+  .app-bar__btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: 4px; background: transparent; cursor: pointer; font-size: 14px; transition: background 0.15s; -webkit-app-region: no-drag; }
+  .app-bar__btn:hover { background: var(--bg-hover); }
+  .app-bar__btn--active { color: var(--accent-color); background: var(--bg-active); }
+
+  /* ── Dropdown ── */
+  .dropdown { position: relative; -webkit-app-region: no-drag; }
+  .dropdown__menu { position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 1000; min-width: 220px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); overflow: hidden; display: none; }
+  .dropdown__menu.show { display: block; }
+  .dropdown__item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 14px; border: none; background: transparent; cursor: pointer; font-size: 13px; color: var(--text-primary); text-align: left; transition: background 0.12s; }
+  .dropdown__item:hover { background: var(--bg-hover); }
+  .dropdown__item-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+  .dropdown__item-label { flex: 1; }
+  .dropdown__item-shortcut { font-size: 11px; color: var(--text-secondary); opacity: 0.6; }
+  .dropdown__sep { height: 1px; background: var(--border-color); margin: 4px 0; }
+
+  /* ── File Tree ── */
+  .file-tree { width: 240px; height: 100%; display: flex; flex-direction: column; background: var(--bg-secondary); border-right: 1px solid var(--border-color); flex-shrink: 0; }
+  .file-tree__header { padding: 10px 12px 8px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+  .file-tree__header-left { min-width: 0; }
+  .file-tree__title { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 3px; }
+  .file-tree__root { font-size: 12px; font-weight: 600; color: var(--text-primary); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-tree__body { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .file-tree__close { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: none; border-radius: 3px; background: transparent; cursor: pointer; font-size: 12px; color: var(--text-secondary); flex-shrink: 0; }
+  .file-tree__close:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .file-tree__empty { padding: 20px 12px; font-size: 12px; color: var(--text-secondary); text-align: center; }
+
+  .tree-node__row { display: flex; align-items: center; gap: 4px; height: 26px; padding-right: 8px; cursor: pointer; font-size: 12.5px; color: var(--text-primary); white-space: nowrap; transition: background 0.1s; }
+  .tree-node__row:hover { background: var(--bg-hover); }
+  .tree-node__row--active { background: var(--bg-active); font-weight: 500; }
+  .tree-node__arrow { width: 14px; text-align: center; font-size: 10px; color: var(--text-secondary); flex-shrink: 0; }
+  .tree-node__arrow--hidden { visibility: hidden; }
+  .tree-node__icon { flex-shrink: 0; font-size: 13px; }
+  .tree-node__name { overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Outline Pane ── */
+  .outline-pane { width: 200px; height: 100%; display: flex; flex-direction: column; background: var(--bg-secondary); border-right: 1px solid var(--border-color); flex-shrink: 0; }
+  .outline-pane__header { padding: 10px 12px; border-bottom: 1px solid var(--border-color); }
+  .outline-pane__title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .outline-pane__body { flex: 1; overflow-y: auto; padding: 6px 0; }
+  .outline-item { display: block; padding: 4px 12px; font-size: 12px; color: var(--text-secondary); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .outline-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .outline-item--l1 { padding-left: 12px; font-weight: 600; color: var(--text-primary); }
+  .outline-item--l2 { padding-left: 24px; }
+  .outline-item--l3 { padding-left: 36px; }
+
+  /* ── Editor ── */
+  .editor-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .editor-mock { flex: 1; padding: 24px 32px; font-size: 14px; line-height: 1.7; overflow-y: auto; color: var(--text-primary); }
+  .editor-mock h1 { font-size: 22px; margin-bottom: 12px; }
+  .editor-mock h2 { font-size: 18px; margin: 18px 0 8px; }
+  .editor-mock p { margin-bottom: 10px; }
+  .editor-mock code { background: var(--bg-code); padding: 2px 6px; border-radius: 3px; font-size: 13px; }
+  .editor-mock pre { background: var(--bg-code); padding: 14px 16px; border-radius: 6px; margin: 12px 0; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+  .editor-mock .word-count { font-size: 11px; color: var(--text-secondary); text-align: right; padding: 4px 0; border-top: 1px solid var(--border-color); }
+
+  /* ── Demo Switcher ── */
+  .demo-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #1e293b; color: #94a3b8; font-size: 12px; border-bottom: 1px solid #334155; }
+  .demo-bar__title { font-weight: 700; color: #e2e8f0; font-size: 13px; margin-right: 8px; }
+  .demo-bar__btn { padding: 5px 14px; border: 1px solid #475569; border-radius: 5px; background: transparent; color: #cbd5e1; cursor: pointer; font-size: 12px; transition: all 0.15s; }
+  .demo-bar__btn:hover { background: #334155; color: #fff; }
+  .demo-bar__btn--active { background: var(--accent-color); border-color: var(--accent-color); color: #fff; }
+  .demo-bar__sep { width: 1px; height: 20px; background: #334155; }
+
+  /* ── File Tabs ── */
+  .file-tabs { display: flex; align-items: center; height: 32px; background: var(--bg-primary); border-bottom: 1px solid var(--border-color); overflow-x: auto; flex-shrink: 0; }
+  .file-tabs::-webkit-scrollbar { height: 0; }
+  .file-tabs__item { display: flex; align-items: center; gap: 6px; padding: 0 14px; height: 100%; font-size: 12px; color: var(--text-secondary); cursor: pointer; border-right: 1px solid var(--border-color); white-space: nowrap; user-select: none; transition: background 0.15s, color 0.15s; }
+  .file-tabs__item:hover { background: var(--bg-hover); }
+  .file-tabs__item--active { color: var(--text-primary); background: var(--bg-secondary); border-bottom: 2px solid var(--accent-color); }
+  .file-tabs__close { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: none; border-radius: 3px; background: transparent; color: var(--text-secondary); font-size: 11px; cursor: pointer; }
+  .file-tabs__close:hover { background: rgba(255,0,0,0.15); color: #e53e3e; }
+
+  .main-body { flex: 1; display: flex; overflow: hidden; }
+
+  /* ── Empty State ── */
+  .empty-hint { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .empty-hint__inner { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 14px; }
+  .empty-hint__icon { width: 48px; height: 48px; border-radius: 10px; background: var(--accent-color); color: #fff; font-weight: 700; font-size: 24px; display: flex; align-items: center; justify-content: center; }
+  .empty-hint__sub { font-size: 12px; opacity: 0.6; }
+  .empty-hint__formats { font-size: 11px; opacity: 0.4; margin-top: -4px; }
+
+  /* ── Annotations ── */
+  .annotation { position: absolute; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #92400e; pointer-events: none; z-index: 9999; max-width: 260px; line-height: 1.4; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  .annotation::before { content: ''; position: absolute; width: 8px; height: 8px; background: #fef3c7; border-left: 1px solid #f59e0b; border-top: 1px solid #f59e0b; transform: rotate(45deg); }
+  .annotation--top::before { bottom: -5px; left: 16px; transform: rotate(225deg); }
+
+  /* ── Info Panel ── */
+  .ws-info { max-width: 640px; text-align: left; padding: 40px; }
+  .ws-info h2 { font-size: 18px; margin-bottom: 16px; }
+  .ws-info h3 { font-size: 14px; margin: 16px 0 8px; color: var(--text-secondary); }
+  .ws-info p { font-size: 13px; line-height: 1.6; margin-bottom: 8px; }
+  .ws-info code { background: var(--bg-code); padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .ws-info table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 8px; }
+  .ws-info td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); }
+  .ws-info td:first-child { font-weight: 600; }
+  .ws-info .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .ws-info .card-row { display: flex; gap: 24px; margin-top: 12px; }
+  .ws-info .card-option { flex: 1; padding: 14px; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 8px; }
+  .ws-info .card-option--file { border-color: var(--accent-color); }
+  .ws-info .card-option--folder { border-color: #10b981; }
+  .ws-info .card-option strong { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 6px; }
+  .ws-info .card-option p { font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; margin: 0; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- DEMO SWITCHER BAR                                          -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="demo-bar">
+  <span class="demo-bar__title">UI Mockup — Open Folder as Workspace</span>
+  <div class="demo-bar__sep"></div>
+  <button class="demo-bar__btn demo-bar__btn--active" onclick="showView('empty')">1. Empty State</button>
+  <button class="demo-bar__btn" onclick="showView('withTree')">2. With File Tree</button>
+  <button class="demo-bar__btn" onclick="showView('dropdown')">3. Dropdown Detail</button>
+  <div class="demo-bar__sep"></div>
+  <button class="demo-bar__btn" onclick="toggleTheme()">Toggle Theme</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- VIEW 1: Empty State                                        -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div id="view-empty" class="app">
+  <div class="app-bar">
+    <div class="app-bar__left">
+      <span class="app-bar__logo">M</span>
+      <span class="app-bar__title">MarkdownView</span>
+    </div>
+    <div class="app-bar__right">
+      <button class="app-bar__btn" title="Load template">ℹ</button>
+      <button class="app-bar__btn" title="New (Ctrl+N)">📄</button>
+      <div class="dropdown" id="dd1">
+        <button class="app-bar__btn" onclick="toggleDropdown('dd1')" title="Open">📂</button>
+        <div class="dropdown__menu" id="dm1">
+          <button class="dropdown__item">
+            <span class="dropdown__item-icon">📄</span>
+            <span class="dropdown__item-label">Open File</span>
+            <span class="dropdown__item-shortcut">Ctrl+O</span>
+          </button>
+          <div class="dropdown__sep"></div>
+          <button class="dropdown__item">
+            <span class="dropdown__item-icon">📁</span>
+            <span class="dropdown__item-label">Open Folder</span>
+            <span class="dropdown__item-shortcut">Ctrl+Shift+O</span>
+          </button>
+        </div>
+      </div>
+      <button class="app-bar__btn" title="Save">💾</button>
+      <button class="app-bar__btn" title="Export PDF">📤</button>
+      <button class="app-bar__btn" title="Toggle outline">☰</button>
+      <button class="app-bar__btn" title="Toggle theme">🌙</button>
+    </div>
+  </div>
+  <div class="main-body">
+    <div class="empty-hint">
+      <div class="empty-hint__inner">
+        <span class="empty-hint__icon">M</span>
+        <p>MarkdownView</p>
+        <p class="empty-hint__sub">Drag & drop a file here or click Open</p>
+        <p class="empty-hint__formats">Supported: .md .markdown .txt .mdown .mkd</p>
+      </div>
+    </div>
+  </div>
+  <div class="annotation annotation--top" style="bottom: 56px; right: 300px;">
+    <strong>Key change:</strong> Open button becomes a dropdown with "Open File" and "Open Folder". No file tree yet.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- VIEW 2: With File Tree                                     -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div id="view-withTree" class="app" style="display:none;">
+  <div class="app-bar">
+    <div class="app-bar__left">
+      <span class="app-bar__logo">M</span>
+      <span class="app-bar__title">readme.md</span>
+    </div>
+    <div class="app-bar__right">
+      <button class="app-bar__btn" title="Load template">ℹ</button>
+      <button class="app-bar__btn" title="New (Ctrl+N)">📄</button>
+      <div class="dropdown" id="dd2">
+        <button class="app-bar__btn" onclick="toggleDropdown('dd2')" title="Open">📂</button>
+        <div class="dropdown__menu" id="dm2">
+          <button class="dropdown__item">
+            <span class="dropdown__item-icon">📄</span>
+            <span class="dropdown__item-label">Open File</span>
+            <span class="dropdown__item-shortcut">Ctrl+O</span>
+          </button>
+          <div class="dropdown__sep"></div>
+          <button class="dropdown__item">
+            <span class="dropdown__item-icon">📁</span>
+            <span class="dropdown__item-label">Open Folder</span>
+            <span class="dropdown__item-shortcut">Ctrl+Shift+O</span>
+          </button>
+        </div>
+      </div>
+      <button class="app-bar__btn" title="Save">💾</button>
+      <button class="app-bar__btn" title="Save As">📋</button>
+      <button class="app-bar__btn" title="Export PDF">📤</button>
+      <!-- ★ File tree toggle button — only visible when folder is open -->
+      <button class="app-bar__btn app-bar__btn--active" title="Toggle file explorer">📁</button>
+      <button class="app-bar__btn app-bar__btn--active" title="Toggle outline">☰</button>
+      <button class="app-bar__btn" title="Toggle theme">🌙</button>
+    </div>
+  </div>
+
+  <div class="file-tabs">
+    <div class="file-tabs__item file-tabs__item--active">
+      <span>readme.md</span>
+      <button class="file-tabs__close">x</button>
+    </div>
+    <div class="file-tabs__item">
+      <span>package.json</span>
+      <button class="file-tabs__close">x</button>
+    </div>
+    <div class="file-tabs__item">
+      <span>App.vue</span>
+      <button class="file-tabs__close">x</button>
+    </div>
+  </div>
+
+  <div class="main-body">
+    <!-- ★ FILE TREE SIDEBAR ★ -->
+    <div class="file-tree">
+      <div class="file-tree__header">
+        <div class="file-tree__header-left">
+          <span class="file-tree__title">Explorer</span>
+          <span class="file-tree__root">markdown-view</span>
+        </div>
+        <button class="file-tree__close" title="Close explorer">x</button>
+      </div>
+      <div class="file-tree__body" id="file-tree-body"></div>
+    </div>
+
+    <div class="outline-pane">
+      <div class="outline-pane__header"><span class="outline-pane__title">Outline</span></div>
+      <div class="outline-pane__body">
+        <div class="outline-item outline-item--l1">Getting Started</div>
+        <div class="outline-item outline-item--l2">Installation</div>
+        <div class="outline-item outline-item--l2">Quick Start</div>
+        <div class="outline-item outline-item--l1">Features</div>
+        <div class="outline-item outline-item--l2">Markdown Editing</div>
+        <div class="outline-item outline-item--l3">Split View</div>
+        <div class="outline-item outline-item--l3">Live Preview</div>
+        <div class="outline-item outline-item--l2">Theme Support</div>
+      </div>
+    </div>
+
+    <div class="editor-area">
+      <div class="editor-mock">
+        <h1>MarkdownView</h1>
+        <p>A desktop Markdown editor built with <code>Tauri 2</code> + <code>Vue 3</code> + <code>Vditor</code>.</p>
+        <h2>Getting Started</h2>
+        <p>Click files in the sidebar to open them as tabs. The active file is highlighted in the tree.</p>
+        <pre>pnpm install
+pnpm tauri dev</pre>
+        <p>Open Folder shows the file tree in the same window. No separate workspace concept.</p>
+        <div class="word-count">87 words · 534 characters</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation annotation--top" style="bottom: 56px; left: 12px;">
+    <strong>File Tree:</strong> 240px sidebar. Lazy-loaded directories.<br>
+    Active file (<code>readme.md</code>) highlighted with blue background.<br>
+    Close (×) hides tree but keeps <code>workspacePath</code>.
+  </div>
+  <div class="annotation annotation--top" style="bottom: 56px; right: 220px;">
+    📁 toggle button visible when folder is open.<br>
+    Active state = file tree is shown.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- VIEW 3: Dropdown Detail                                    -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div id="view-dropdown" class="app" style="display:none;">
+  <div class="app-bar">
+    <div class="app-bar__left">
+      <span class="app-bar__logo">M</span>
+      <span class="app-bar__title">readme.md</span>
+    </div>
+    <div class="app-bar__right">
+      <button class="app-bar__btn" title="New">📄</button>
+      <div class="dropdown" id="dd3" style="position:relative;">
+        <button class="app-bar__btn app-bar__btn--active" title="Open">📂</button>
+        <div class="dropdown__menu show" id="dm3" style="position:relative; top:4px; left:-4px;">
+          <button class="dropdown__item" style="background:var(--bg-hover);">
+            <span class="dropdown__item-icon">📄</span>
+            <span class="dropdown__item-label"><strong>Open File</strong></span>
+            <span class="dropdown__item-shortcut">Ctrl+O</span>
+          </button>
+          <div class="dropdown__sep"></div>
+          <button class="dropdown__item">
+            <span class="dropdown__item-icon">📁</span>
+            <span class="dropdown__item-label"><strong>Open Folder</strong> — show file tree</span>
+            <span class="dropdown__item-shortcut">Ctrl+Shift+O</span>
+          </button>
+        </div>
+      </div>
+      <button class="app-bar__btn">💾</button>
+    </div>
+  </div>
+
+  <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+    <div class="ws-info">
+      <h2>Open Folder — Unified Window</h2>
+
+      <div class="card">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:4px;">Click "Open" to expand:</p>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:8px; font-size:13px;">
+            <span>📂</span><span>Open ▾</span>
+          </div>
+        </div>
+        <div class="card-row">
+          <div class="card-option card-option--file">
+            <strong>📄 Open File</strong>
+            <p>Opens native file dialog.<br>File loads as a <strong>tab</strong> in the current window.<br><code>Ctrl+O</code></p>
+          </div>
+          <div class="card-option card-option--folder">
+            <strong>📁 Open Folder</strong>
+            <p>Opens native directory picker.<br>File tree <strong>sidebar appears</strong> in the same window.<br><code>Ctrl+Shift+O</code></p>
+          </div>
+        </div>
+      </div>
+
+      <h3>How it works</h3>
+      <table>
+        <tr><td>Open File</td><td>File → tab in current window</td></tr>
+        <tr><td>Open Folder</td><td>Folder → file tree sidebar in current window</td></tr>
+        <tr><td>Click file in tree</td><td>Opens as tab (or switches to existing tab)</td></tr>
+        <tr><td>Close file tree</td><td>Click × in tree header or 📁 toggle in AppBar</td></tr>
+        <tr><td>Active file</td><td>Highlighted in tree with blue background</td></tr>
+        <tr><td>Drag-drop file</td><td>Opens as tab (same as Open File)</td></tr>
+      </table>
+
+      <h3>Key design decisions</h3>
+      <p><strong>No separate window types.</strong> Every window is identical — the file tree is a toggle-able sidebar that appears when a folder is opened. Closing the tree hides it but remembers the folder path, so reopening is instant.</p>
+      <p><strong>State model:</strong> <code>workspacePath</code> (folder path) and <code>showFileTree</code> (visibility) are independent. Toggle only changes visibility; opening a new folder resets both.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Demo Data ──
+const activeFilePath = 'src/components/App.vue';
+
+const fileTreeData = [
+  { name: '.github', type: 'directory', expanded: false, children: [
+    { name: 'workflows', type: 'directory', expanded: false, children: [
+      { name: 'release.yml', type: 'file' },
+    ]},
+  ]},
+  { name: 'public', type: 'directory', expanded: false, children: [
+    { name: 'vditor', type: 'directory', expanded: false, children: [] },
+  ]},
+  { name: 'scripts', type: 'directory', expanded: false, children: [
+    { name: 'patch-vditor.cjs', type: 'file' },
+  ]},
+  { name: 'src', type: 'directory', expanded: true, children: [
+    { name: 'assets', type: 'directory', expanded: false, children: [
+      { name: 'TEMPLATE.md', type: 'file' },
+    ]},
+    { name: 'components', type: 'directory', expanded: true, children: [
+      { name: 'AppBar.vue', type: 'file' },
+      { name: 'ConfirmDialog.vue', type: 'file' },
+      { name: 'FileTabs.vue', type: 'file' },
+      { name: 'OutlineNode.vue', type: 'file' },
+      { name: 'OutlinePane.vue', type: 'file' },
+      { name: 'VditorEditor.vue', type: 'file' },
+    ]},
+    { name: 'composables', type: 'directory', expanded: false, children: [
+      { name: 'useCloseConfirmation.ts', type: 'file' },
+      { name: 'useDragDrop.ts', type: 'file' },
+      { name: 'useFileOperation.ts', type: 'file' },
+      { name: 'useKeyboardShortcuts.ts', type: 'file' },
+      { name: 'useVditor.ts', type: 'file' },
+    ]},
+    { name: 'stores', type: 'directory', expanded: false, children: [
+      { name: 'useMarkdownStore.ts', type: 'file' },
+    ]},
+    { name: 'styles', type: 'directory', expanded: false, children: [
+      { name: 'global.scss', type: 'file' },
+    ]},
+    { name: 'types', type: 'directory', expanded: false, children: [
+      { name: 'index.ts', type: 'file' },
+    ]},
+    { name: 'App.vue', type: 'file' },
+    { name: 'main.ts', type: 'file' },
+  ]},
+  { name: 'src-tauri', type: 'directory', expanded: false, children: [
+    { name: 'src', type: 'directory', expanded: false, children: [
+      { name: 'lib.rs', type: 'file' },
+      { name: 'main.rs', type: 'file' },
+    ]},
+    { name: 'Cargo.toml', type: 'file' },
+    { name: 'tauri.conf.json', type: 'file' },
+  ]},
+  { name: '.gitignore', type: 'file' },
+  { name: 'AGENTS.md', type: 'file' },
+  { name: 'index.html', type: 'file' },
+  { name: 'package.json', type: 'file' },
+  { name: 'pnpm-lock.yaml', type: 'file' },
+  { name: 'README.md', type: 'file' },
+  { name: 'tsconfig.json', type: 'file' },
+  { name: 'vite.config.ts', type: 'file' },
+];
+
+const fileIcons = {
+  md: '📝', markdown: '📝', txt: '📄',
+  vue: '💚', ts: '💙', js: '💛', jsx: '💛', tsx: '💙',
+  json: '📋', yml: '📋', yaml: '📋', toml: '📋',
+  rs: '🦀', py: '🐍', scss: '🎨', css: '🎨',
+  html: '🌐', svg: '🖼️', png: '🖼️', jpg: '🖼️',
+  lock: '🔒',
+};
+
+function getFileIcon(name) {
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  return fileIcons[ext] || '📄';
+}
+
+function renderTree(nodes, depth, parentPath) {
+  depth = depth || 0;
+  parentPath = parentPath || '';
+  let html = '';
+  const sorted = [...nodes].sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  for (const node of sorted) {
+    const pad = depth * 16 + 8;
+    const isDir = node.type === 'directory';
+    const fullPath = parentPath ? parentPath + '/' + node.name : node.name;
+    const icon = isDir ? (node.expanded ? '📂' : '📁') : getFileIcon(node.name);
+    const arrow = isDir ? (node.expanded ? '▾' : '▸') : '·';
+    const arrowClass = isDir ? 'tree-node__arrow' : 'tree-node__arrow tree-node__arrow--hidden';
+    const isActive = !isDir && fullPath === activeFilePath;
+    const activeClass = isActive ? ' tree-node__row--active' : '';
+    const safeName = node.name.replace(/'/g, "\\'");
+    html += '<div class="tree-node__row' + activeClass + '" style="padding-left:' + pad + 'px" onclick="toggleNode(\'' + safeName + '\')">';
+    html += '<span class="' + arrowClass + '">' + arrow + '</span>';
+    html += '<span class="tree-node__icon">' + icon + '</span>';
+    html += '<span class="tree-node__name">' + node.name + '</span>';
+    html += '</div>';
+    if (isDir && node.expanded && node.children) {
+      html += '<div class="tree-node__children">' + renderTree(node.children, depth + 1, fullPath) + '</div>';
+    }
+  }
+  return html;
+}
+
+function findNode(nodes, name) {
+  for (const n of nodes) {
+    if (n.name === name) return n;
+    if (n.children) {
+      const found = findNode(n.children, name);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function toggleNode(name) {
+  const node = findNode(fileTreeData, name);
+  if (node && node.type === 'directory') {
+    node.expanded = !node.expanded;
+    renderFileTree();
+  }
+}
+
+function renderFileTree() {
+  const body = document.getElementById('file-tree-body');
+  if (body) body.innerHTML = renderTree(fileTreeData);
+}
+
+function showView(view) {
+  document.getElementById('view-empty').style.display = view === 'empty' ? '' : 'none';
+  document.getElementById('view-withTree').style.display = view === 'withTree' ? '' : 'none';
+  document.getElementById('view-dropdown').style.display = view === 'dropdown' ? '' : 'none';
+  document.querySelectorAll('.demo-bar__btn').forEach(b => b.classList.remove('demo-bar__btn--active'));
+  const btns = document.querySelectorAll('.demo-bar__btn');
+  const idx = view === 'empty' ? 1 : view === 'withTree' ? 2 : 3;
+  if (btns[idx]) btns[idx].classList.add('demo-bar__btn--active');
+}
+
+function toggleDropdown(id) {
+  const menu = document.getElementById('dm-' + id.split('-')[1]);
+  if (menu) menu.classList.toggle('show');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.dropdown')) {
+    document.querySelectorAll('.dropdown__menu').forEach(m => m.classList.remove('show'));
+  }
+});
+
+function toggleTheme() {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? '' : 'dark');
+}
+
+renderFileTree();
+</script>
+</body>
+</html>

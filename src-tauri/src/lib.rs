@@ -3,21 +3,9 @@
 use std::env;
 use tauri::Manager;
 
-fn is_markdown_file(path: &str) -> bool {
-    let lower = path.to_lowercase();
-    lower.ends_with(".md")
-        || lower.ends_with(".markdown")
-        || lower.ends_with(".txt")
-        || lower.ends_with(".mdown")
-        || lower.ends_with(".mkd")
-}
-
 #[tauri::command]
 fn get_file_args() -> Vec<String> {
-    env::args()
-        .skip(1)
-        .filter(|a| is_markdown_file(a))
-        .collect()
+    env::args().skip(1).collect()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -33,7 +21,6 @@ pub fn run() {
             let files: Vec<String> = args
                 .into_iter()
                 .skip(1)
-                .filter(|a| is_markdown_file(a))
                 .collect();
             if !files.is_empty() {
                 use tauri::Emitter;

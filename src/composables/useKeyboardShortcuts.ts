@@ -21,6 +21,10 @@ export function useKeyboardShortcuts() {
         e.preventDefault()
         fileOps.newFile()
         break
+      case shift && e.key === 'O':
+        e.preventDefault()
+        fileOps.openFolder()
+        break
       case e.key === 'o':
         e.preventDefault()
         fileOps.openFile()
