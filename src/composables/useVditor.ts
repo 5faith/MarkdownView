@@ -55,6 +55,10 @@ export function useVditor(containerId: string) {
       },
       after: () => {
         nextTick(() => {
+          editor.value?.setTheme(
+            store.theme === 'dark' ? 'dark' : 'classic',
+            store.theme === 'dark' ? 'dark' : 'light',
+          )
           editor.value?.focus()
         })
       },
