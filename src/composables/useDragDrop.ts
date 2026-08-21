@@ -1,6 +1,7 @@
 import { ref, onBeforeUnmount } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { isMarkdownFile } from '../utils/fileType'
+import { openFolderInNewWindow } from './useFileOperation'
 import type { MarkdownFile } from '../types'
 
 export function useDragDrop() {
@@ -10,7 +11,7 @@ export function useDragDrop() {
 
   async function setup() {
     const { getCurrentWebview } = await import('@tauri-apps/api/webview')
-    const { readTextFile } = await import('@tauri-apps/plugin-fs')
+    const { readTextFile, stat } = await import('@tauri-apps/plugin-fs')
 
     unlisten = await getCurrentWebview().onDragDropEvent(async (event) => {
       if (event.payload.type === 'over') {
@@ -19,36 +20,54 @@ export function useDragDrop() {
         isDragging.value = false
         const paths = event.payload.paths
 
-        let loaded = 0
-        let skipped = 0
+        const droppedDirs: string[] = []
+        const markdownPaths: string[] = []
 
-        for (const filePath of paths) {
-          if (!isMarkdownFile(filePath)) {
-            skipped++
-            continue
-          }
-
+        for (const p of paths) {
           try {
-            const text = await readTextFile(filePath)
-            const name = filePath.split(/[\\/]/).pop() ?? filePath
-            const mdFile: MarkdownFile = {
-              id: '',
-              path: filePath,
-              content: text,
-              name,
-              saved: true,
+            const s = await stat(p)
+            if (s.isDirectory) {
+              droppedDirs.push(p)
+            } else if (isMarkdownFile(p)) {
+              markdownPaths.push(p)
             }
-            store.setCurrentFile(mdFile)
-            loaded++
           } catch {
-            skipped++
+            // skip inaccessible paths
           }
         }
 
-        if (skipped > 0 && loaded > 0) {
-          showToast(`Loaded ${loaded} file(s), skipped ${skipped} non-Markdown file(s)`)
-        } else if (skipped > 0 && loaded === 0) {
-          showToast('No Markdown files found. Supported: .md, .markdown, .txt, .mdown, .mkd')
+        if (droppedDirs.length > 0) {
+          for (const dir of droppedDirs) {
+            if (store.workspacePath) {
+              openFolderInNewWindow(dir)
+            } else {
+              store.setWorkspace(dir)
+            }
+          }
+        } else {
+          let loaded = 0
+
+          for (const filePath of markdownPaths) {
+            try {
+              const text = await readTextFile(filePath)
+              const name = filePath.split(/[\\/]/).pop() ?? filePath
+              const mdFile: MarkdownFile = {
+                id: '',
+                path: filePath,
+                content: text,
+                name,
+                saved: true,
+              }
+              store.setCurrentFile(mdFile)
+              loaded++
+            } catch {
+              // skip unreadable files
+            }
+          }
+
+          if (loaded === 0) {
+            showToast('No Markdown files found. Supported: .md, .markdown, .txt, .mdown, .mkd')
+          }
         }
       } else {
         isDragging.value = false

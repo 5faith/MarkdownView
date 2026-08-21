@@ -91,9 +91,28 @@ export function useFileOperation() {
     })
 
     if (selected && typeof selected === 'string') {
-      store.setWorkspace(selected)
+      if (store.workspacePath) {
+        openFolderInNewWindow(selected)
+      } else {
+        store.setWorkspace(selected)
+      }
     }
   }
 
   return { openFile, saveFile, saveFileAs, newFile, openFolder }
 }
+
+async function openFolderInNewWindow(folderPath: string) {
+  const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow')
+  const folderName = folderPath.split(/[\\/]/).pop() ?? 'Folder'
+  new WebviewWindow(`folder-${Date.now()}`, {
+    title: `${folderName} - MarkdownView`,
+    url: `index.html?workspace=${encodeURIComponent(folderPath)}`,
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+  })
+}
+
+export { openFolderInNewWindow }

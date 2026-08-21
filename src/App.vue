@@ -18,7 +18,7 @@
         <div class="app__empty-hint">
           <span class="app__empty-icon">M</span>
           <p>MarkdownView</p>
-          <p class="app__empty-sub">Drag & drop a file here or click Open</p>
+          <p class="app__empty-sub">Drag & drop a file or folder here or click Open</p>
           <p class="app__empty-formats">
             Supported: .md .markdown .txt .mdown .mkd
           </p>
@@ -52,8 +52,8 @@
             <line x1="9" y1="15" x2="15" y2="15" />
           </svg>
         </span>
-        <span>Drop file here</span>
-        <span class="app__drag-sub">.md .markdown .txt .mdown .mkd</span>
+        <span>Drop file or folder here</span>
+        <span class="app__drag-sub">Markdown files or folders</span>
       </div>
     </div>
   </div>
@@ -120,6 +120,12 @@ onMounted(async () => {
 
   const { invoke } = await import('@tauri-apps/api/core')
   const { listen } = await import('@tauri-apps/api/event')
+
+  const urlParams = new URLSearchParams(window.location.search)
+  const workspacePath = urlParams.get('workspace')
+  if (workspacePath) {
+    store.setWorkspace(workspacePath)
+  }
 
   const fileArgs: string[] = await invoke('get_file_args')
   if (fileArgs.length > 0) {
