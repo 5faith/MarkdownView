@@ -69,6 +69,19 @@ export const useMarkdownStore = defineStore('markdown', () => {
     activeId.value = ''
   }
 
+  function closeTabsInWorkspace(wsPath: string): void {
+    tabs.value = tabs.value.filter((t) => !t.path.startsWith(wsPath))
+    if (tabs.value.length === 0) {
+      activeId.value = ''
+    } else if (!tabs.value.find((t) => t.id === activeId.value)) {
+      activeId.value = tabs.value[0]!.id
+    }
+  }
+
+  function hasUnsavedInWorkspace(wsPath: string): boolean {
+    return tabs.value.some((t) => t.path.startsWith(wsPath) && !t.saved)
+  }
+
   function switchTab(id: string) {
     activeId.value = id
   }
@@ -161,6 +174,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     closeTab,
     closeOtherTabs,
     closeAllTabs,
+    closeTabsInWorkspace,
+    hasUnsavedInWorkspace,
     switchTab,
     setContent,
     toggleTheme,

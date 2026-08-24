@@ -1,6 +1,7 @@
 import { ref, onBeforeUnmount } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { isMarkdownFile } from '../utils/fileType'
+import { showConfirm } from './showConfirm'
 import { openFolderInNewWindow } from './useFileOperation'
 import type { MarkdownFile } from '../types'
 
@@ -39,7 +40,28 @@ export function useDragDrop() {
         if (droppedDirs.length > 0) {
           for (const dir of droppedDirs) {
             if (store.workspacePath) {
-              openFolderInNewWindow(dir)
+              const openInNewWindow = await showConfirm({
+                title: 'Open Folder',
+                message: 'A folder is already open in this window. Open in a new window?',
+                confirmLabel: 'New Window',
+                cancelLabel: 'Current Window',
+              })
+              if (openInNewWindow) {
+                openFolderInNewWindow(dir)
+              } else {
+                const oldPath = store.workspacePath
+                if (store.hasUnsavedInWorkspace(oldPath)) {
+                  const confirmed = await showConfirm({
+                    title: 'Unsaved Changes',
+                    message: 'There are unsaved files in the current folder. Close them anyway?',
+                    confirmLabel: 'Close',
+                    cancelLabel: 'Cancel',
+                  })
+                  if (!confirmed) continue
+                }
+                store.closeTabsInWorkspace(oldPath)
+                store.setWorkspace(dir)
+              }
             } else {
               store.setWorkspace(dir)
             }

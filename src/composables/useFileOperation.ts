@@ -1,4 +1,5 @@
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import { showConfirm } from './showConfirm'
 import type { MarkdownFile } from '../types'
 
 export function useFileOperation() {
@@ -92,7 +93,28 @@ export function useFileOperation() {
 
     if (selected && typeof selected === 'string') {
       if (store.workspacePath) {
-        openFolderInNewWindow(selected)
+        const openInNewWindow = await showConfirm({
+          title: 'Open Folder',
+          message: 'A folder is already open in this window. Open in a new window?',
+          confirmLabel: 'New Window',
+          cancelLabel: 'Current Window',
+        })
+        if (openInNewWindow) {
+          openFolderInNewWindow(selected)
+        } else {
+          const oldPath = store.workspacePath
+          if (store.hasUnsavedInWorkspace(oldPath)) {
+            const confirmed = await showConfirm({
+              title: 'Unsaved Changes',
+              message: 'There are unsaved files in the current folder. Close them anyway?',
+              confirmLabel: 'Close',
+              cancelLabel: 'Cancel',
+            })
+            if (!confirmed) return
+          }
+          store.closeTabsInWorkspace(oldPath)
+          store.setWorkspace(selected)
+        }
       } else {
         store.setWorkspace(selected)
       }
