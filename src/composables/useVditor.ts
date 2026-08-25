@@ -90,6 +90,19 @@ export function useVditor(containerId: string) {
     },
   )
 
+  watch(
+    () => store.readingMode,
+    (isReading) => {
+      if (!editor.value) return
+      if (isReading) {
+        editor.value.disabled()
+      } else {
+        editor.value.enable()
+        editor.value.focus()
+      }
+    },
+  )
+
   onBeforeUnmount(() => {
     editor.value?.destroy()
     editor.value = null

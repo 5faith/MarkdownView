@@ -1,5 +1,5 @@
 <template>
-  <div class="file-tree">
+  <div class="file-tree" :style="{ width: store.fileTreeWidth + 'px' }">
     <div class="file-tree__header">
       <span class="file-tree__header-label">EXPLORER</span>
       <span class="file-tree__header-name" :title="store.workspacePath">{{ folderName }}</span>
@@ -17,6 +17,11 @@
       />
     </div>
 
+    <div
+      class="file-tree__resize"
+      @mousedown.prevent="onResizeStart"
+    />
+
     <FileTreeContextMenu
       :visible="menuVisible"
       :x="menuX"
@@ -29,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { readDir } from '@tauri-apps/plugin-fs'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import type { FileTreeNode as FileTreeNodeType, MarkdownFile } from '../types'
@@ -44,6 +49,43 @@ const menuVisible = ref(false)
 const menuX = ref(0)
 const menuY = ref(0)
 const menuFilePath = ref('')
+
+let resizing = false
+
+function onResizeStart(e: MouseEvent) {
+  e.preventDefault()
+  resizing = true
+  const startX = e.clientX
+  const startWidth = store.fileTreeWidth
+
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+
+  function onMouseMove(e: MouseEvent) {
+    if (!resizing) return
+    const delta = e.clientX - startX
+    const newWidth = Math.min(500, Math.max(180, startWidth + delta))
+    store.setFileTreeWidth(newWidth)
+  }
+
+  function onMouseUp() {
+    resizing = false
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
+
+onBeforeUnmount(() => {
+  if (resizing) {
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }
+})
 
 const folderName = computed(() => {
   const path = store.workspacePath
@@ -143,15 +185,15 @@ watch(() => store.workspacePath, () => {
 
 <style scoped lang="scss">
 .file-tree {
-  width: 240px;
-  min-width: 240px;
-  max-width: 240px;
+  min-width: 180px;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   overflow: hidden;
   user-select: none;
+  position: relative;
 
   &__header {
     display: flex;
@@ -204,6 +246,22 @@ watch(() => store.workspacePath, () => {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  &__resize {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.15s;
+    z-index: 10;
+
+    &:hover {
+      background: var(--accent-color);
+    }
   }
 }
 </style>

@@ -4,7 +4,7 @@
     :class="{ 'app--dragging': dragDrop.isDragging.value }"
   >
     <AppBar />
-    <FileTabs v-if="store.tabs.length > 1" />
+    <FileTabs v-if="store.tabs.length > 1 && !store.readingMode" />
 
     <div class="app__body">
       <FileTree v-if="store.showFileTree" />

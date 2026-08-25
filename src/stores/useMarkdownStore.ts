@@ -17,6 +17,10 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const loading = ref(false)
   const workspacePath = ref<string>('')
   const showFileTree = ref(false)
+  const readingMode = ref(false)
+  const fileTreeWidth = ref(
+    Number(localStorage.getItem('markdownview-filetree-width')) || 240,
+  )
 
   const activeFile = computed(
     () => tabs.value.find((t) => t.id === activeId.value) ?? null,
@@ -157,6 +161,15 @@ export const useMarkdownStore = defineStore('markdown', () => {
     showFileTree.value = !showFileTree.value
   }
 
+  function toggleReadingMode() {
+    readingMode.value = !readingMode.value
+  }
+
+  function setFileTreeWidth(width: number) {
+    fileTreeWidth.value = width
+    localStorage.setItem('markdownview-filetree-width', String(width))
+  }
+
   return {
     tabs,
     activeId,
@@ -167,6 +180,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     loading,
     workspacePath,
     showFileTree,
+    readingMode,
+    fileTreeWidth,
     fileName,
     isSaved,
     hasUnsaved,
@@ -188,5 +203,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
     setWorkspace,
     clearWorkspace,
     toggleFileTree,
+    toggleReadingMode,
+    setFileTreeWidth,
   }
 })

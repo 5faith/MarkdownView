@@ -8,56 +8,66 @@
     </div>
 
     <div class="app-bar__right">
-      <button class="app-bar__btn" @click="store.loadDefaultContent" title="Load template (Ctrl+Shift+T)">
-        <span>ℹ</span>
-      </button>
-      <button class="app-bar__btn" @click="fileOps.newFile" title="New (Ctrl+N)">
-        <span>📄</span>
-      </button>
-
-      <div class="app-bar__dropdown" ref="dropdownRef">
-        <button class="app-bar__btn" @click="toggleDropdown" title="Open (Ctrl+O)">
-          <span>📂</span>
+      <template v-if="!store.readingMode">
+        <button class="app-bar__btn" @click="store.loadDefaultContent" title="Load template (Ctrl+Shift+T)">
+          <span>ℹ</span>
         </button>
-        <div v-if="showDropdown" class="app-bar__dropdown-menu">
-          <button class="app-bar__dropdown-item" @click="handleOpenFile">
-            <span>📄</span>
-            <span>Open File</span>
-            <span class="app-bar__dropdown-shortcut">Ctrl+O</span>
-          </button>
-          <button class="app-bar__dropdown-item" @click="handleOpenFolder">
-            <span>📁</span>
-            <span>Open Folder</span>
-            <span class="app-bar__dropdown-shortcut">Ctrl+Shift+O</span>
-          </button>
-        </div>
-      </div>
+        <button class="app-bar__btn" @click="fileOps.newFile" title="New (Ctrl+N)">
+          <span>📄</span>
+        </button>
 
-      <button class="app-bar__btn" @click="fileOps.saveFile" title="Save (Ctrl+S)">
-        <span>💾</span>
-      </button>
-      <button class="app-bar__btn" @click="fileOps.saveFileAs" title="Save As (Ctrl+Shift+S)">
-        <span>📋</span>
-      </button>
-      <button class="app-bar__btn" @click="handleExportPdf" title="Export PDF (Ctrl+P)">
-        <span>📤</span>
-      </button>
+        <div class="app-bar__dropdown" ref="dropdownRef">
+          <button class="app-bar__btn" @click="toggleDropdown" title="Open (Ctrl+O)">
+            <span>📂</span>
+          </button>
+          <div v-if="showDropdown" class="app-bar__dropdown-menu">
+            <button class="app-bar__dropdown-item" @click="handleOpenFile">
+              <span>📄</span>
+              <span>Open File</span>
+              <span class="app-bar__dropdown-shortcut">Ctrl+O</span>
+            </button>
+            <button class="app-bar__dropdown-item" @click="handleOpenFolder">
+              <span>📁</span>
+              <span>Open Folder</span>
+              <span class="app-bar__dropdown-shortcut">Ctrl+Shift+O</span>
+            </button>
+          </div>
+        </div>
+
+        <button class="app-bar__btn" @click="fileOps.saveFile" title="Save (Ctrl+S)">
+          <span>💾</span>
+        </button>
+        <button class="app-bar__btn" @click="fileOps.saveFileAs" title="Save As (Ctrl+Shift+S)">
+          <span>📋</span>
+        </button>
+        <button class="app-bar__btn" @click="handleExportPdf" title="Export PDF (Ctrl+P)">
+          <span>📤</span>
+        </button>
+        <button
+          v-if="store.workspacePath"
+          class="app-bar__btn"
+          :class="{ 'app-bar__btn--active': store.showFileTree }"
+          @click="store.toggleFileTree"
+          title="Toggle file explorer"
+        >
+          <span>📁</span>
+        </button>
+        <button
+          class="app-bar__btn"
+          :class="{ 'app-bar__btn--active': store.showOutline }"
+          @click="store.toggleOutline"
+          title="Toggle outline (Ctrl+B)"
+        >
+          <span>☰</span>
+        </button>
+      </template>
       <button
-        v-if="store.workspacePath"
         class="app-bar__btn"
-        :class="{ 'app-bar__btn--active': store.showFileTree }"
-        @click="store.toggleFileTree"
-        title="Toggle file explorer"
+        :class="{ 'app-bar__btn--active': store.readingMode }"
+        @click="store.toggleReadingMode"
+        :title="store.readingMode ? 'Exit reading mode (Esc)' : 'Reading mode (Ctrl+R)'"
       >
-        <span>📁</span>
-      </button>
-      <button
-        class="app-bar__btn"
-        :class="{ 'app-bar__btn--active': store.showOutline }"
-        @click="store.toggleOutline"
-        title="Toggle outline (Ctrl+B)"
-      >
-        <span>☰</span>
+        <span>📖</span>
       </button>
       <button class="app-bar__btn" @click="store.toggleTheme" :title="`Switch to ${store.theme === 'light' ? 'dark' : 'light'} mode (Ctrl+Shift+D)`">
         <span>{{ store.theme === 'light' ? '🌙' : '☀️' }}</span>

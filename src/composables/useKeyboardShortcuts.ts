@@ -10,6 +10,12 @@ export function useKeyboardShortcuts() {
     const ctrl = e.ctrlKey || e.metaKey
     const shift = e.shiftKey
 
+    if (e.key === 'Escape' && store.readingMode) {
+      e.preventDefault()
+      store.readingMode = false
+      return
+    }
+
     if (!ctrl) return
 
     switch (true) {
@@ -48,6 +54,10 @@ export function useKeyboardShortcuts() {
       case shift && e.key === 'D':
         e.preventDefault()
         store.toggleTheme()
+        break
+      case e.key === 'r':
+        e.preventDefault()
+        store.toggleReadingMode()
         break
     }
   }
