@@ -28,7 +28,6 @@
       :y="menuY"
       :file-path="menuFilePath"
       @open-file-location="handleOpenFileLocation"
-      @close-menu="closeMenu"
     />
   </div>
 </template>
