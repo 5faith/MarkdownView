@@ -33,7 +33,7 @@ export function useVditor(containerId: string) {
     externalUpdate = true
     editor.value = new Vditor(containerId, {
       height: '100%',
-      mode: 'ir',
+      mode: store.editorMode,
       icon: 'material',
       outline: {
         enable: false,
@@ -59,9 +59,9 @@ export function useVditor(containerId: string) {
           externalUpdate = false
           editor.value?.setTheme(
             store.theme === 'dark' ? 'dark' : 'classic',
-            store.theme === 'dark' ? 'dark' : 'light',
+            store.contentTheme,
           )
-          // Ensure Vditor content matches store after initialization
+          Vditor.setCodeTheme(store.codeTheme, '/vditor')
           const currentContent = store.content
           const editorContent = editor.value?.getValue()
           if (editorContent !== currentContent) {
@@ -80,8 +80,25 @@ export function useVditor(containerId: string) {
     (newTheme) => {
       editor.value?.setTheme(
         newTheme === 'dark' ? 'dark' : 'classic',
-        newTheme === 'dark' ? 'dark' : 'light',
+        store.contentTheme,
       )
+    },
+  )
+
+  watch(
+    () => store.contentTheme,
+    (val) => {
+      editor.value?.setTheme(
+        store.theme === 'dark' ? 'dark' : 'classic',
+        val,
+      )
+    },
+  )
+
+  watch(
+    () => store.codeTheme,
+    (val) => {
+      Vditor.setCodeTheme(val, '/vditor')
     },
   )
 

@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 import DEFAULT_CONTENT from '../assets/TEMPLATE.md?raw'
-import type { MarkdownFile, Theme } from '../types'
+import type { AppTheme, EditorMode, MarkdownFile } from '../types'
+import { loadPreferences, savePreferences } from '../utils/preferences'
 
 let fileCounter = 0
 function createId(): string {
@@ -10,17 +11,21 @@ function createId(): string {
 }
 
 export const useMarkdownStore = defineStore('markdown', () => {
+  const prefs = loadPreferences()
+
   const tabs = ref<MarkdownFile[]>([])
   const activeId = ref<string>('')
-  const theme = ref<Theme>('light')
-  const showOutline = ref(true)
+  const theme = ref<AppTheme>(prefs.theme)
+  const contentTheme = ref(prefs.contentTheme)
+  const codeTheme = ref(prefs.codeTheme)
+  const editorMode = ref<EditorMode>(prefs.editorMode)
+  const showOutline = ref(prefs.showOutline)
+  const showFileTree = ref(prefs.workspacePath ? prefs.showFileTree : false)
+  const outlineWidth = ref(prefs.outlineWidth)
   const loading = ref(false)
-  const workspacePath = ref<string>('')
-  const showFileTree = ref(false)
+  const workspacePath = ref(prefs.workspacePath)
   const readingMode = ref(false)
-  const fileTreeWidth = ref(
-    Number(localStorage.getItem('markdownview-filetree-width')) || 240,
-  )
+  const fileTreeWidth = ref(prefs.fileTreeWidth)
 
   const activeFile = computed(
     () => tabs.value.find((t) => t.id === activeId.value) ?? null,
@@ -28,6 +33,20 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const content = computed(() => activeFile.value?.content ?? '')
   const fileName = computed(() => activeFile.value?.name ?? 'Untitled')
   const isSaved = computed(() => activeFile.value?.saved ?? true)
+
+  watchEffect(() => {
+    savePreferences({
+      theme: theme.value,
+      contentTheme: contentTheme.value,
+      codeTheme: codeTheme.value,
+      editorMode: editorMode.value,
+      showOutline: showOutline.value,
+      showFileTree: showFileTree.value,
+      outlineWidth: outlineWidth.value,
+      fileTreeWidth: fileTreeWidth.value,
+      workspacePath: workspacePath.value,
+    })
+  })
 
   function hasUnsaved(): boolean {
     return tabs.value.some((t) => !t.saved)
@@ -167,7 +186,10 @@ export const useMarkdownStore = defineStore('markdown', () => {
 
   function setFileTreeWidth(width: number) {
     fileTreeWidth.value = width
-    localStorage.setItem('markdownview-filetree-width', String(width))
+  }
+
+  function setOutlineWidth(width: number) {
+    outlineWidth.value = width
   }
 
   return {
@@ -176,10 +198,14 @@ export const useMarkdownStore = defineStore('markdown', () => {
     activeFile,
     content,
     theme,
+    contentTheme,
+    codeTheme,
+    editorMode,
     showOutline,
+    showFileTree,
+    outlineWidth,
     loading,
     workspacePath,
-    showFileTree,
     readingMode,
     fileTreeWidth,
     fileName,
@@ -205,5 +231,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
     toggleFileTree,
     toggleReadingMode,
     setFileTreeWidth,
+    setOutlineWidth,
   }
 })

@@ -125,6 +125,8 @@ onMounted(async () => {
   const workspacePath = urlParams.get('workspace')
   if (workspacePath) {
     store.setWorkspace(workspacePath)
+  } else if (store.workspacePath) {
+    store.setWorkspace(store.workspacePath)
   }
 
   const fileArgs: string[] = await invoke('get_file_args')

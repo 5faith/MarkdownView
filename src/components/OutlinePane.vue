@@ -1,5 +1,5 @@
 <template>
-  <div class="outline-pane">
+  <div class="outline-pane" :style="{ width: store.outlineWidth + 'px' }">
     <div class="outline-pane__header">
       <span class="outline-pane__title">Outline</span>
     </div>
@@ -14,6 +14,10 @@
         @navigate="onNavigate"
       />
     </div>
+    <div
+      class="outline-pane__resize"
+      @mousedown.prevent="onResizeStart"
+    />
   </div>
 </template>
 
@@ -125,17 +129,55 @@ function onNavigate(slug: string) {
     }
   }
 }
+
+let resizing = false
+
+function onResizeStart(e: MouseEvent) {
+  e.preventDefault()
+  resizing = true
+  const startX = e.clientX
+  const startWidth = store.outlineWidth
+
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+
+  function onMouseMove(e: MouseEvent) {
+    if (!resizing) return
+    const delta = startX - e.clientX
+    const newWidth = Math.min(400, Math.max(160, startWidth + delta))
+    store.setOutlineWidth(newWidth)
+  }
+
+  function onMouseUp() {
+    resizing = false
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
+
+onBeforeUnmount(() => {
+  if (resizing) {
+    resizing = false
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }
+})
 </script>
 
 <style scoped lang="scss">
 .outline-pane {
-  width: 220px;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
+  position: relative;
 
   &__header {
     padding: 8px 12px;
@@ -161,6 +203,20 @@ function onNavigate(slug: string) {
     font-size: 12px;
     color: var(--text-secondary);
     text-align: center;
+  }
+
+  &__resize {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    width: 4px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+
+    &:hover {
+      background: var(--accent-color);
+    }
   }
 }
 </style>
