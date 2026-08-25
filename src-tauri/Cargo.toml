@@ -1,6 +1,6 @@
 [package]
 name = "markdown-view"
-version = "0.1.2"
+version = "0.2.1"
 description = "A Markdown editor with split view"
 authors = ["you"]
 edition = "2021"
