@@ -13,6 +13,9 @@ function createId(): string {
 export const useMarkdownStore = defineStore('markdown', () => {
   const prefs = loadPreferences()
 
+  // 立即应用主题到 DOM，不依赖 Vue 响应式时序
+  document.documentElement.dataset.theme = prefs.theme
+
   const tabs = ref<MarkdownFile[]>([])
   const activeId = ref<string>('')
   const theme = ref<AppTheme>(prefs.theme)
@@ -118,7 +121,9 @@ export const useMarkdownStore = defineStore('markdown', () => {
   }
 
   function toggleTheme() {
-    theme.value = theme.value === 'light' ? 'dark' : 'light'
+    const next = theme.value === 'light' ? 'dark' : 'light'
+    theme.value = next
+    contentTheme.value = next
   }
 
   function toggleOutline() {

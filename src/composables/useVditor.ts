@@ -55,13 +55,13 @@ export function useVditor(containerId: string) {
         }
       },
       after: () => {
+        editor.value?.setTheme(
+          store.theme === 'dark' ? 'dark' : 'classic',
+          store.contentTheme,
+        )
+        Vditor.setCodeTheme(store.codeTheme, '/vditor')
         nextTick(() => {
           externalUpdate = false
-          editor.value?.setTheme(
-            store.theme === 'dark' ? 'dark' : 'classic',
-            store.contentTheme,
-          )
-          Vditor.setCodeTheme(store.codeTheme, '/vditor')
           const currentContent = store.content
           const editorContent = editor.value?.getValue()
           if (editorContent !== currentContent) {
