@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import OutlineNode from './OutlineNode.vue'
 
@@ -31,21 +31,50 @@ export interface OutlineItem {
 
 const store = useMarkdownStore()
 
-const tree = computed<OutlineItem[]>(() => {
-  const lines = store.content.split('\n')
+const tree = ref<OutlineItem[]>([])
+
+function parseTree() {
+  const id = store.activeId
+  const file = store.tabs.find((t) => t.id === id)
+  const content = file?.content ?? ''
+  const lines = content.split('\n')
   const items: { level: number; text: string; slug: string }[] = []
 
-  for (const line of lines) {
-    const match = line.match(/^(#{1,6})\s+(.+)$/)
-    if (match) {
-      const level = match[1]!.length
-      const text = match[2]!.trim()
-      const slug = slugify(text)
-      items.push({ level, text, slug })
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!.replace(/\r/g, '')
+
+    // ATX heading: # heading ... ######
+    const atxMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    if (atxMatch) {
+      const level = atxMatch[1]!.length
+      const text = atxMatch[2]!.trim()
+      items.push({ level, text, slug: slugify(text) })
+      continue
+    }
+
+    // Setext heading: text followed by === (h1) or --- (h2)
+    if (i + 1 < lines.length && line.trim().length > 0) {
+      const nextLine = lines[i + 1]!.replace(/\r/g, '')
+      if (/^={3,}\s*$/.test(nextLine)) {
+        items.push({ level: 1, text: line.trim(), slug: slugify(line.trim()) })
+      } else if (/^-{3,}\s*$/.test(nextLine)) {
+        items.push({ level: 2, text: line.trim(), slug: slugify(line.trim()) })
+      }
     }
   }
 
-  return buildTree(items)
+  tree.value = buildTree(items)
+}
+
+let stopSubscription: (() => void) | null = null
+
+onMounted(() => {
+  parseTree()
+  stopSubscription = store.$subscribe(() => parseTree(), { flush: 'sync' })
+})
+
+onBeforeUnmount(() => {
+  stopSubscription?.()
 })
 
 function buildTree(items: { level: number; text: string; slug: string }[]): OutlineItem[] {

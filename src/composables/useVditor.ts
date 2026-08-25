@@ -30,6 +30,7 @@ export function useVditor(containerId: string) {
 
     await loadIcons('/vditor', 'material')
 
+    externalUpdate = true
     editor.value = new Vditor(containerId, {
       height: '100%',
       mode: 'ir',
@@ -55,6 +56,7 @@ export function useVditor(containerId: string) {
       },
       after: () => {
         nextTick(() => {
+          externalUpdate = false
           editor.value?.setTheme(
             store.theme === 'dark' ? 'dark' : 'classic',
             store.theme === 'dark' ? 'dark' : 'light',
