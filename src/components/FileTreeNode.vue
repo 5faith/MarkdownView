@@ -7,6 +7,7 @@
       }"
       :style="{ paddingLeft: `${props.depth * 12 + 8}px` }"
       @click="handleClick"
+      @contextmenu.prevent="emit('nodeContextmenu', $event, props.node)"
     >
       <span v-if="props.node.type === 'directory'" class="tree-node__arrow" :class="{ 'tree-node__arrow--open': expanded }">
         ▶
@@ -34,6 +35,7 @@
           :depth="props.depth + 1"
           :active-file-path="props.activeFilePath"
           @open-file="(path: string) => $emit('openFile', path)"
+          @node-contextmenu="(e: MouseEvent, n: FileTreeNodeType) => emit('nodeContextmenu', e, n)"
         />
       </template>
     </div>
@@ -54,6 +56,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   openFile: [path: string]
+  nodeContextmenu: [event: MouseEvent, node: FileTreeNodeType]
 }>()
 
 const expanded = ref(false)

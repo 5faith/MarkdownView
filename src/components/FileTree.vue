@@ -13,8 +13,18 @@
         :depth="0"
         :active-file-path="store.activeFile?.path ?? ''"
         @open-file="handleOpenFile"
+        @node-contextmenu="onNodeContextmenu"
       />
     </div>
+
+    <FileTreeContextMenu
+      :visible="menuVisible"
+      :x="menuX"
+      :y="menuY"
+      :file-path="menuFilePath"
+      @open-file-location="handleOpenFileLocation"
+      @close-menu="closeMenu"
+    />
   </div>
 </template>
 
@@ -24,10 +34,16 @@ import { readDir } from '@tauri-apps/plugin-fs'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import type { FileTreeNode as FileTreeNodeType, MarkdownFile } from '../types'
 import FileTreeNode from './FileTreeNode.vue'
+import FileTreeContextMenu from './FileTreeContextMenu.vue'
 
 const store = useMarkdownStore()
 
 const rootNodes = ref<FileTreeNodeType[]>([])
+
+const menuVisible = ref(false)
+const menuX = ref(0)
+const menuY = ref(0)
+const menuFilePath = ref('')
 
 const folderName = computed(() => {
   const path = store.workspacePath
@@ -74,6 +90,49 @@ async function handleOpenFile(path: string) {
     store.setCurrentFile(file)
   } catch {
     // ignore read errors
+  }
+}
+
+function onNodeContextmenu(e: MouseEvent, node: FileTreeNodeType) {
+  closeMenu()
+  if (node.type !== 'file') return
+  menuFilePath.value = node.path
+  menuX.value = e.clientX
+  menuY.value = e.clientY
+  menuVisible.value = true
+  document.addEventListener('mousedown', onOutsideClick)
+  document.addEventListener('keydown', onEscape)
+}
+
+function closeMenu() {
+  menuVisible.value = false
+  menuFilePath.value = ''
+  document.removeEventListener('mousedown', onOutsideClick)
+  document.removeEventListener('keydown', onEscape)
+}
+
+function onOutsideClick(e: MouseEvent) {
+  const menu = document.querySelector('.file-tree-context-menu')
+  if (menu && !menu.contains(e.target as Node)) {
+    closeMenu()
+  }
+}
+
+function onEscape(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    closeMenu()
+  }
+}
+
+async function handleOpenFileLocation() {
+  const filePath = menuFilePath.value
+  closeMenu()
+  if (!filePath) return
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('reveal_in_file_manager', { path: filePath })
+  } catch {
+    // ignore errors
   }
 }
 

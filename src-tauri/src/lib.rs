@@ -8,6 +8,43 @@ fn get_file_args() -> Vec<String> {
     env::args().skip(1).collect()
 }
 
+#[tauri::command]
+fn reveal_in_file_manager(path: String) -> Result<(), String> {
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Err("path does not exist".into());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let win_path = path.replace('/', "\\");
+        let arg = format!("/select,{}", win_path);
+        std::process::Command::new("explorer")
+            .arg(&arg)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let dir = p.parent().unwrap_or(p);
+        std::process::Command::new("xdg-open")
+            .arg(dir)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -33,7 +70,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![get_file_args])
+        .invoke_handler(tauri::generate_handler![get_file_args, reveal_in_file_manager])
         .setup(|app| {
             let handle = app.handle().clone();
             ctrlc::set_handler(move || {
