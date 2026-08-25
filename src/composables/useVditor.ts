@@ -61,6 +61,14 @@ export function useVditor(containerId: string) {
             store.theme === 'dark' ? 'dark' : 'classic',
             store.theme === 'dark' ? 'dark' : 'light',
           )
+          // Ensure Vditor content matches store after initialization
+          const currentContent = store.content
+          const editorContent = editor.value?.getValue()
+          if (editorContent !== currentContent) {
+            externalUpdate = true
+            editor.value?.setValue(currentContent)
+            externalUpdate = false
+          }
           editor.value?.focus()
         })
       },
@@ -74,6 +82,20 @@ export function useVditor(containerId: string) {
         newTheme === 'dark' ? 'dark' : 'classic',
         newTheme === 'dark' ? 'dark' : 'light',
       )
+    },
+  )
+
+  watch(
+    () => store.activeId,
+    () => {
+      if (!editor.value) return
+      const currentContent = store.content
+      const currentValue = editor.value.getValue()
+      if (currentValue !== currentContent) {
+        externalUpdate = true
+        editor.value.setValue(currentContent)
+        externalUpdate = false
+      }
     },
   )
 
