@@ -3,8 +3,6 @@ export type EditorMode = 'ir' | 'sv' | 'wysiwyg'
 
 export interface Preferences {
   theme: AppTheme
-  contentTheme: string
-  codeTheme: string
   editorMode: EditorMode
   showOutline: boolean
   showFileTree: boolean
@@ -15,8 +13,6 @@ export interface Preferences {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'light',
-  contentTheme: 'light',
-  codeTheme: 'github',
   editorMode: 'ir',
   showOutline: true,
   showFileTree: false,

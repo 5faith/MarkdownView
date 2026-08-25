@@ -19,18 +19,11 @@ export function loadPreferences(): Preferences {
       }
     }
     const parsed = JSON.parse(raw) as Partial<Preferences>
-    const merged = {
+    return {
       ...DEFAULT_PREFERENCES,
       ...parsed,
       fileTreeWidth: oldWidth ? Number(oldWidth) : (parsed.fileTreeWidth ?? DEFAULT_PREFERENCES.fileTreeWidth),
     }
-    // theme 和 contentTheme 保持一致：dark UI 配 dark 内容
-    if (merged.theme === 'dark' && merged.contentTheme === 'light') {
-      merged.contentTheme = 'dark'
-    } else if (merged.theme === 'light' && merged.contentTheme === 'dark') {
-      merged.contentTheme = 'light'
-    }
-    return merged
   } catch {
     return { ...DEFAULT_PREFERENCES }
   }

@@ -19,8 +19,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const tabs = ref<MarkdownFile[]>([])
   const activeId = ref<string>('')
   const theme = ref<AppTheme>(prefs.theme)
-  const contentTheme = ref(prefs.contentTheme)
-  const codeTheme = ref(prefs.codeTheme)
   const editorMode = ref<EditorMode>(prefs.editorMode)
   const showOutline = ref(prefs.showOutline)
   const showFileTree = ref(prefs.workspacePath ? prefs.showFileTree : false)
@@ -29,6 +27,9 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const workspacePath = ref(prefs.workspacePath)
   const readingMode = ref(false)
   const fileTreeWidth = ref(prefs.fileTreeWidth)
+
+  const contentTheme = computed(() => theme.value === 'dark' ? 'dark' : 'light')
+  const codeTheme = computed(() => theme.value === 'dark' ? 'github-dark' : 'github')
 
   const activeFile = computed(
     () => tabs.value.find((t) => t.id === activeId.value) ?? null,
@@ -40,8 +41,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
   watchEffect(() => {
     savePreferences({
       theme: theme.value,
-      contentTheme: contentTheme.value,
-      codeTheme: codeTheme.value,
       editorMode: editorMode.value,
       showOutline: showOutline.value,
       showFileTree: showFileTree.value,
@@ -121,9 +120,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
   }
 
   function toggleTheme() {
-    const next = theme.value === 'light' ? 'dark' : 'light'
-    theme.value = next
-    contentTheme.value = next
+    theme.value = theme.value === 'light' ? 'dark' : 'light'
   }
 
   function toggleOutline() {
