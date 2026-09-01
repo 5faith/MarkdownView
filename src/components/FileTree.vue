@@ -106,7 +106,7 @@ async function loadRoot() {
         path: `${store.workspacePath}/${entry.name}`,
         type: (entry.isDirectory ? 'directory' : 'file') as 'file' | 'directory',
       }))
-      .filter((node) => node.name !== '' && !node.name.startsWith('.'))
+      .filter((node) => node.name !== '')
       .sort((a, b) => {
         if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
         return a.name.localeCompare(b.name)
