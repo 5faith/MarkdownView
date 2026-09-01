@@ -10,7 +10,7 @@
       <FileTree v-if="store.showFileTree" />
       <OutlinePane v-if="store.showOutline && store.activeId && activeIsMarkdown" />
       <div v-if="store.activeId" class="app__editor">
-        <VditorEditor v-if="activeIsMarkdown" :key="store.activeId" container-id="vditor-editor" />
+        <VditorEditor v-if="activeIsMarkdown" :key="`${store.activeId}-${store.readingMode}`" container-id="vditor-editor" />
         <CodeMirrorEditor v-else :key="store.activeId" v-model="cmContent" :file-name="store.activeFile?.name ?? ''" />
       </div>
 

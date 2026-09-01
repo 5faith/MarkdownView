@@ -69,7 +69,11 @@ export function useVditor(containerId: string) {
             editor.value?.setValue(currentContent)
             externalUpdate = false
           }
-          editor.value?.focus()
+          if (store.readingMode) {
+            editor.value?.disabled()
+          } else {
+            editor.value?.focus()
+          }
         })
       },
     })
@@ -125,19 +129,6 @@ export function useVditor(containerId: string) {
         externalUpdate = true
         editor.value.setValue(newContent)
         externalUpdate = false
-      }
-    },
-  )
-
-  watch(
-    () => store.readingMode,
-    (isReading) => {
-      if (!editor.value) return
-      if (isReading) {
-        editor.value.disabled()
-      } else {
-        editor.value.enable()
-        editor.value.focus()
       }
     },
   )

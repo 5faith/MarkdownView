@@ -38,6 +38,10 @@ onMounted(() => {
     :deep(.vditor-content) {
       padding-top: 0 !important;
     }
+    :deep(.vditor-ir pre.vditor-reset[contenteditable="false"]),
+    :deep(.vditor-wysiwyg pre.vditor-reset[contenteditable="false"]) {
+      opacity: 1 !important;
+    }
   }
 }
 </style>
