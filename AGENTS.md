@@ -78,6 +78,7 @@ No test suite, linter, or formatter is configured.
 - **Multi-window**: new windows are created via `WebviewWindow` with `?workspace=<path>` URL param; `App.vue` reads this on mount to call `store.setWorkspace()`. Capabilities use `"windows": ["*"]` so all windows share permissions.
 - **Close confirmation**: `useCloseConfirmation` uses `win.destroy()` (not `exit(0)`) to close only the current window. Adding new Tauri API calls requires adding matching permissions to `capabilities/default.json`.
 - **Drag-drop**: handles both files and folders. Dropped folders open as workspace (current window if empty, new window otherwise). Dropped markdown files open as tabs.
+- **Version upgrade**: When upgrading the app version, update all three files: `package.json` (frontend), `src-tauri/Cargo.toml` (backend), and `src-tauri/tauri.conf.json` (Tauri config). All must match.
 - Release workflow: push a `v*.*.*` tag to trigger the GitHub Actions build-and-release CI (builds for Windows, macOS arm64/x64, Ubuntu). See `command.md` for the tag push command.
 
 ## Code Conventions
