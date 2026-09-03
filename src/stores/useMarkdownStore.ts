@@ -29,7 +29,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const fileTreeWidth = ref(prefs.fileTreeWidth)
 
   const contentTheme = computed(() => theme.value === 'dark' ? 'dark' : 'light')
-  const codeTheme = computed(() => theme.value === 'dark' ? 'github-dark' : 'github')
+  const codeTheme = computed(() => theme.value === 'dark' ? 'a11y-dark' : 'github')
 
   const activeFile = computed(
     () => tabs.value.find((t) => t.id === activeId.value) ?? null,
