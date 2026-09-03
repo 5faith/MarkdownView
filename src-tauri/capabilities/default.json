@@ -18,6 +18,7 @@
     "fs:allow-write",
     "fs:allow-exists",
     "fs:allow-read-dir",
+    "fs:allow-watch",
     "fs:read-all",
     "fs:write-all",
     "process:default",

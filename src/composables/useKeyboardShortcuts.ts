@@ -16,6 +16,12 @@ export function useKeyboardShortcuts() {
       return
     }
 
+    if (e.key === 'F5') {
+      e.preventDefault()
+      store.reloadActiveFile()
+      return
+    }
+
     if (!ctrl) return
 
     switch (true) {

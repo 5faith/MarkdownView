@@ -3,6 +3,7 @@ import { computed, ref, watchEffect } from 'vue'
 import DEFAULT_CONTENT from '../assets/TEMPLATE.md?raw'
 import type { AppTheme, EditorMode, MarkdownFile } from '../types'
 import { loadPreferences, savePreferences } from '../utils/preferences'
+import { showConfirm } from '../composables/showConfirm'
 
 let fileCounter = 0
 function createId(): string {
@@ -49,6 +50,56 @@ export const useMarkdownStore = defineStore('markdown', () => {
       workspacePath: workspacePath.value,
     })
   })
+
+  let unwatchFile: (() => void) | null = null
+
+  async function startFileWatch(path: string) {
+    stopFileWatch()
+    try {
+      const { watch } = await import('@tauri-apps/plugin-fs')
+      unwatchFile = await watch(path, async (event) => {
+        const kind = event.type
+        if (typeof kind === 'object' && 'modify' in kind) {
+          const file = tabs.value.find((t) => t.path === path)
+          if (file) {
+            const { readTextFile } = await import('@tauri-apps/plugin-fs')
+            try {
+              const text = await readTextFile(path)
+              file.content = text
+              file.saved = true
+            } catch { /* silent */ }
+          }
+        }
+      }, { delayMs: 300 })
+    } catch { /* watch not supported or permission denied */ }
+  }
+
+  function stopFileWatch() {
+    unwatchFile?.()
+    unwatchFile = null
+  }
+
+  async function reloadActiveFile() {
+    const file = activeFile.value
+    if (!file?.path) return
+
+    if (!file.saved) {
+      const confirmed = await showConfirm({
+        title: 'Reload File',
+        message: 'File has unsaved changes. Reload from disk will overwrite them.',
+        confirmLabel: 'Reload',
+        cancelLabel: 'Keep mine',
+      })
+      if (!confirmed) return
+    }
+
+    try {
+      const { readTextFile } = await import('@tauri-apps/plugin-fs')
+      const text = await readTextFile(file.path)
+      file.content = text
+      file.saved = true
+    } catch { /* silent */ }
+  }
 
   function hasUnsaved(): boolean {
     return tabs.value.some((t) => !t.saved)
@@ -110,6 +161,23 @@ export const useMarkdownStore = defineStore('markdown', () => {
   function switchTab(id: string) {
     activeId.value = id
   }
+
+  watchEffect(async () => {
+    const file = activeFile.value
+    if (file?.path) {
+      startFileWatch(file.path)
+      if (file.saved) {
+        try {
+          const { readTextFile } = await import('@tauri-apps/plugin-fs')
+          const text = await readTextFile(file.path)
+          file.content = text
+          file.saved = true
+        } catch { /* silent */ }
+      }
+    } else {
+      stopFileWatch()
+    }
+  })
 
   function setContent(value: string) {
     const file = activeFile.value
@@ -234,5 +302,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
     toggleReadingMode,
     setFileTreeWidth,
     setOutlineWidth,
+    reloadActiveFile,
   }
 })
