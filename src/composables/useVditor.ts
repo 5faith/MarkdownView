@@ -1,6 +1,6 @@
-import { ref, onBeforeUnmount, watch, nextTick } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 
 async function loadIcons(cdn: string, icon: string) {
@@ -58,8 +58,8 @@ export function useVditor(containerId: string) {
         editor.value?.setTheme(
           store.theme === 'dark' ? 'dark' : 'classic',
           store.contentTheme,
+          store.codeTheme,
         )
-        Vditor.setCodeTheme(store.codeTheme, '/vditor')
         nextTick(() => {
           externalUpdate = false
           const currentContent = store.content
@@ -85,16 +85,7 @@ export function useVditor(containerId: string) {
       editor.value?.setTheme(
         newTheme === 'dark' ? 'dark' : 'classic',
         store.contentTheme,
-      )
-    },
-  )
-
-  watch(
-    () => store.contentTheme,
-    (val) => {
-      editor.value?.setTheme(
-        store.theme === 'dark' ? 'dark' : 'classic',
-        val,
+        store.codeTheme,
       )
     },
   )
