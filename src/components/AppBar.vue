@@ -10,7 +10,7 @@
     <div class="app-bar__right">
       <template v-if="!store.readingMode">
         <button class="app-bar__btn" @click="store.loadDefaultContent" title="Load template (Ctrl+Shift+T)">
-          <span>ℹ</span>
+          <span>📝</span>
         </button>
         <button class="app-bar__btn" @click="fileOps.newFile" title="New (Ctrl+N)">
           <span>📄</span>

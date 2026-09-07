@@ -232,7 +232,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
   }
 
   function loadDefaultContent() {
-    addTab({ content: DEFAULT_CONTENT, name: 'Untitled', saved: true })
+    addTab({ content: DEFAULT_CONTENT, name: 'TEMPLATE.md', saved: true })
   }
 
   function setWorkspace(path: string) {
