@@ -34,6 +34,7 @@
           :node="child"
           :depth="props.depth + 1"
           :active-file-path="props.activeFilePath"
+          :refresh-key="props.refreshKey"
           @open-file="(path: string) => $emit('openFile', path)"
           @node-contextmenu="(e: MouseEvent, n: FileTreeNodeType) => emit('nodeContextmenu', e, n)"
         />
@@ -43,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { readDir } from '@tauri-apps/plugin-fs'
 import type { FileTreeNode as FileTreeNodeType } from '../types'
 import FileIcon from './FileIcon.vue'
@@ -52,6 +53,7 @@ const props = defineProps<{
   node: FileTreeNodeType
   depth: number
   activeFilePath: string
+  refreshKey: number
 }>()
 
 const emit = defineEmits<{
@@ -62,6 +64,11 @@ const emit = defineEmits<{
 const expanded = ref(false)
 const loading = ref(false)
 const children = ref<FileTreeNodeType[]>([])
+
+watch(() => props.refreshKey, () => {
+  expanded.value = false
+  children.value = []
+})
 
 async function handleClick() {
   if (props.node.type === 'directory') {

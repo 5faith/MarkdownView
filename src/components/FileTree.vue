@@ -12,6 +12,7 @@
         :node="node"
         :depth="0"
         :active-file-path="store.activeFile?.path ?? ''"
+        :refresh-key="store.fileTreeVersion"
         @open-file="handleOpenFile"
         @node-contextmenu="onNodeContextmenu"
       />
@@ -180,6 +181,10 @@ async function handleOpenFileLocation() {
 watch(() => store.workspacePath, () => {
   loadRoot()
 }, { immediate: true })
+
+watch(() => store.fileTreeVersion, () => {
+  loadRoot()
+})
 </script>
 
 <style scoped lang="scss">

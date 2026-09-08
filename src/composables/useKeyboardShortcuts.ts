@@ -19,6 +19,7 @@ export function useKeyboardShortcuts() {
     if (e.key === 'F5') {
       e.preventDefault()
       store.reloadActiveFile()
+      store.refreshFileTree()
       return
     }
 

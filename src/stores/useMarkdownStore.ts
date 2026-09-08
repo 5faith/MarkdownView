@@ -28,6 +28,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const workspacePath = ref(prefs.workspacePath)
   const readingMode = ref(false)
   const fileTreeWidth = ref(prefs.fileTreeWidth)
+  const fileTreeVersion = ref(0)
 
   const contentTheme = computed(() => theme.value === 'dark' ? 'dark' : 'light')
   const codeTheme = computed(() => theme.value === 'dark' ? 'a11y-dark' : 'github')
@@ -258,6 +259,10 @@ export const useMarkdownStore = defineStore('markdown', () => {
     fileTreeWidth.value = width
   }
 
+  function refreshFileTree() {
+    fileTreeVersion.value++
+  }
+
   function setOutlineWidth(width: number) {
     outlineWidth.value = width
   }
@@ -278,6 +283,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
     workspacePath,
     readingMode,
     fileTreeWidth,
+    fileTreeVersion,
     fileName,
     isSaved,
     hasUnsaved,
@@ -303,5 +309,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
     setFileTreeWidth,
     setOutlineWidth,
     reloadActiveFile,
+    refreshFileTree,
   }
 })
