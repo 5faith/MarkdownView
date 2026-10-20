@@ -8,11 +8,17 @@
       @mousedown.stop
     >
       <div
-        v-if="filePath"
+        v-if="!isDirectory"
         class="file-tree-context-menu__item"
         @click="$emit('open-file-location')"
       >
-        Open File Location
+        在文件管理器中显示
+      </div>
+      <div class="file-tree-context-menu__item" @click="$emit('rename')">
+        重命名
+      </div>
+      <div class="file-tree-context-menu__item file-tree-context-menu__item--danger" @click="$emit('delete')">
+        删除
       </div>
     </div>
   </Teleport>
@@ -23,11 +29,13 @@ defineProps<{
   visible: boolean
   x: number
   y: number
-  filePath: string
+  isDirectory: boolean
 }>()
 
 defineEmits<{
   'open-file-location': []
+  rename: []
+  delete: []
 }>()
 </script>
 
@@ -52,18 +60,19 @@ defineEmits<{
 }
 
 .file-tree-context-menu__item {
-  padding: 8px 16px;
+  padding: 7px 16px;
   font-size: 13px;
   color: var(--text-primary);
   cursor: pointer;
   transition: background 0.1s;
+  white-space: nowrap;
 
   &:hover {
     background: var(--bg-hover);
   }
 
-  &:not(:last-child) {
-    border-bottom: 1px solid var(--border-color);
+  &--danger {
+    color: #e53e3e;
   }
 }
 </style>

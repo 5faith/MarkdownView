@@ -1,29 +1,284 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * 样式标准：prd/20261019-milkdown-typora-refactor/style.md（Drake 契约移植）
+ *
+ * 三层结构（同 Drake 不变式）：
+ *   变量层  —— 本文件 :root / [data-theme] 的 Drake 契约变量（换肤只改这里）
+ *   派生层  —— 旧 UI 变量（--bg-primary 等）映射到契约变量，组件无需感知
+ *   骨架层  —— .milkdown 排版规则（选择器按本项目 DOM 重写，语义对齐 Drake）
+ *
+ * 不变式：全站 rem 缩放（html { font-size: var(--text-size) }），
+ *         标题尺度固定 h1=2rem / h2=1.8rem / h3=1.4rem / h4=1.2rem / h5,h6=1rem，
+ *         一处改 --text-size 全站等比生效。
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────── 变量层：Drake 契约（style.md §4.1 浅色基准值） ─────────────────── */
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f0f0f2;
-  --bg-code: #f0f0f0;
-  --bg-hover: rgba(0, 0, 0, 0.06);
-  --bg-active: rgba(0, 0, 0, 0.1);
-  --text-primary: #1a1a1a;
-  --text-secondary: #666666;
-  --border-color: #e0e0e0;
-  --accent-color: #3b82f6;
-  --drag-overlay: rgba(59, 130, 246, 0.15);
+  --text-color: #333333;
+  --bg-color: #ffffff;
+  --drake-accent: #e95f59;            /* 点缀色：引用左边条、文件树激活边框 */
+  --drake-highlight: #d63200;         /* 高亮色：行内代码、链接、主按钮文字 */
+  --a-color: var(--drake-highlight);
+  --title-color: #273849;
+  --strong-color: var(--title-color);
+  --variable-color: var(--drake-highlight);
+  --outline-active-color: var(--a-color);
+  --blur-text-color: rgba(51, 51, 51, 0.5);
+  --horizontal-divider-color: var(--title-color);
+  --blockquote-border-color: var(--drake-accent);
+  --blockquote-color: var(--text-color);
+  --blockquote-bg-color: #fdefee;
+  --code-block-bg-color: #2b2b2b;
+  --code-block-color: #a9b7c6;
+  --yaml-color: #777777;
+  --yaml-bg-color: #f7f7f7;
+  --height-light-color: var(--drake-highlight);
+  --height-light-border-color: var(--drake-highlight);
+  --table-border-color: #dfe2e5;
+  --table-header-bg-color: #f8f8f8;
+  --table-bg-color: var(--bg-color);
+  --table-n2-bg-color: #f8f8f8;
+  --item-hover-bg-color: #e5e5e596;   /* 深浅主题共用的万能悬浮底色源 */
+  --active-file-bg-color: var(--item-hover-bg-color);
+  --active-file-border-color: var(--drake-accent);
+  --input-bg-color: var(--item-hover-bg-color);
+  --btn-hover-bg-color: var(--item-hover-bg-color);
+  --control-text-color: var(--text-color);
+  --meta-content-color: var(--text-color);
+  --select-text-bg-color: #3473b068;
+  --side-bar-bg-color: var(--bg-color);
+
+  /* ── 排版尺度（style.md §4.3，全局唯一） ── */
+  --monospace: "Iosevka Curly", "JetBrains Mono", Consolas, "Courier New", monospace;
+  --text-font: var(--monospace);
+  --title-font: var(--monospace);
+  --latex-font: var(--monospace);
+  --text-line-height: 1.6;
+  --code-line-height: 1.6;
+  --p-spacing: 0.8rem;
+  --file-tree-text-size: 1.1rem;
+  --toc-text-size: 1rem;
+  --text-size: 14px;
 }
 
 [data-theme='dark'] {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --bg-code: #0f3460;
-  --bg-hover: rgba(255, 255, 255, 0.08);
-  --bg-active: rgba(255, 255, 255, 0.12);
-  --text-primary: #e0e0e0;
-  --text-secondary: #999999;
-  --border-color: #2a2a4a;
-  --accent-color: #60a5fa;
-  --drag-overlay: rgba(96, 165, 250, 0.15);
+  --text-color: #d6d6d6;
+  --bg-color: #1d1f21;
+  --drake-accent: #e95f59;
+  --drake-highlight: #ff7350;
+  --a-color: var(--drake-highlight);
+  --title-color: #e6e6e6;
+  --strong-color: var(--title-color);
+  --blur-text-color: rgba(214, 214, 214, 0.5);
+  --blockquote-bg-color: rgba(233, 95, 89, 0.08);
+  --code-block-bg-color: #2b2b2b;
+  --code-block-color: #a9b7c6;
+  --yaml-color: #8a8a8a;
+  --yaml-bg-color: #26282b;
+  --table-border-color: #3a3d40;
+  --table-header-bg-color: #26282b;
+  --table-n2-bg-color: #242628;
+  --item-hover-bg-color: rgba(255, 255, 255, 0.08);
+  --select-text-bg-color: #3473b068;
+  --md-char-color: #535455;           /* Typora 内置变量（深色必须覆盖，style.md §4.2） */
+  --window-border: 1px solid #282828;
 }
 
+/* ─────────────────── 派生层：旧 UI 变量 → Drake 契约映射 ─────────────────── */
+:root {
+  --bg-primary: var(--bg-color);
+  --bg-secondary: var(--side-bar-bg-color);
+  --bg-raised: var(--bg-color);
+  --bg-code: var(--code-block-bg-color);
+  --bg-hover: var(--item-hover-bg-color);
+  --bg-active: var(--active-file-bg-color);
+  --text-primary: var(--text-color);
+  --text-secondary: rgba(51, 51, 51, 0.6);
+  --border-color: var(--table-border-color);
+  --accent-color: var(--drake-accent);
+  --drag-overlay: rgba(233, 95, 89, 0.15);
+
+  --font-sans: var(--text-font);
+  --font-mono: var(--monospace);
+  --prose-width: 780px;
+}
+
+[data-theme='dark'] {
+  --text-secondary: rgba(214, 214, 214, 0.6);
+  --border-color: #282828;            /* 与 --window-border 一致 */
+}
+
+/* ─────────────────── Crepe 主题变量 → Drake 契约映射 ─────────────────── */
+.milkdown {
+  --crepe-color-background: var(--bg-color);
+  --crepe-color-on-background: var(--text-color);
+  --crepe-color-surface: var(--table-header-bg-color);
+  --crepe-color-surface-low: var(--input-bg-color);
+  --crepe-color-on-surface: var(--text-color);
+  --crepe-color-on-surface-variant: rgba(51, 51, 51, 0.65);
+  --crepe-color-outline: var(--table-border-color);
+  --crepe-color-primary: var(--drake-accent);
+  --crepe-color-secondary: var(--table-border-color);
+  --crepe-color-on-secondary: var(--text-color);
+  --crepe-color-inverse: var(--title-color);
+  --crepe-color-on-inverse: var(--bg-color);
+  --crepe-color-inline-code: var(--drake-highlight);
+  --crepe-color-error: var(--drake-highlight);
+  --crepe-color-hover: var(--item-hover-bg-color);
+  --crepe-color-selected: var(--select-text-bg-color);
+  --crepe-color-inline-area: var(--code-block-bg-color);
+
+  --crepe-base-font-size: 1rem;
+  --crepe-font-title: var(--title-font);
+  --crepe-font-default: var(--text-font);
+  --crepe-font-code: var(--monospace);
+}
+
+[data-theme='dark'] .milkdown {
+  --crepe-color-on-surface-variant: rgba(214, 214, 214, 0.65);
+}
+
+/* ─────────────────── 骨架层：编辑区排版（Drake 骨架选择器重写至 .milkdown） ─────────────────── */
+html {
+  font-size: var(--text-size);
+}
+
+.milkdown {
+  font-family: var(--text-font);
+  font-size: 1rem;
+  line-height: var(--text-line-height);
+  color: var(--text-color);
+  font-feature-settings: 'liga' 1, 'calt' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 内容区宽度（Drake #write 语义） */
+.milkdown .ProseMirror {
+  max-width: var(--prose-width);
+  margin: 0 auto;
+  padding: 40px 32px 100px;
+}
+
+/* 标题尺度固定，不允许 px 硬编码字号 */
+.milkdown h1 { font-size: 2rem;   color: var(--title-color); font-family: var(--title-font); line-height: 1.25; }
+.milkdown h2 { font-size: 1.8rem; color: var(--title-color); font-family: var(--title-font); line-height: 1.3; }
+.milkdown h3 { font-size: 1.4rem; color: var(--title-color); font-family: var(--title-font); }
+.milkdown h4 { font-size: 1.2rem; color: var(--title-color); font-family: var(--title-font); }
+.milkdown h5,
+.milkdown h6 { font-size: 1rem;  color: var(--title-color); font-family: var(--title-font); }
+
+.milkdown strong { color: var(--strong-color); }
+.milkdown var { color: var(--variable-color); }
+
+/* 段间距统一消费 --p-spacing */
+.milkdown p,
+.milkdown blockquote,
+.milkdown ul,
+.milkdown ol,
+.milkdown table {
+  margin: var(--p-spacing) 0;
+}
+
+/* code block */
+.milkdown pre {
+  background: var(--code-block-bg-color);
+  color: var(--code-block-color);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+  line-height: var(--code-line-height);
+}
+
+/* code snippet */
+.milkdown :not(pre) > code {
+  color: var(--drake-highlight);
+  background: var(--input-bg-color);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-family: var(--monospace);
+}
+
+/* quote block：左侧 4px 竖条 */
+.milkdown blockquote {
+  border-left: 0.25rem solid var(--blockquote-border-color);
+  background: var(--blockquote-bg-color);
+  color: var(--blockquote-color);
+  padding: 0.2rem 1rem;
+  border-radius: 0 6px 6px 0;
+}
+
+/* link */
+.milkdown a {
+  color: var(--a-color);
+}
+
+.milkdown hr {
+  border: none;
+  border-top: 0.1em solid var(--horizontal-divider-color);
+  margin: 1.6em 0;
+}
+
+/* 表格全套 + 斑马纹 */
+.milkdown table {
+  border-collapse: collapse;
+  background: var(--table-bg-color);
+}
+
+.milkdown th,
+.milkdown td {
+  border: 0.1em solid var(--table-border-color);
+  padding: 0.35rem 0.9rem;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.milkdown th {
+  background: var(--table-header-bg-color);
+}
+
+.milkdown tbody tr:nth-child(even) td {
+  background: var(--table-n2-bg-color);
+}
+
+/* height light ==高亮== */
+.milkdown mark {
+  color: var(--height-light-color);
+  background: transparent;
+  border: 0.1em solid var(--height-light-border-color);
+  border-radius: 3px;
+  padding: 0 0.15em;
+}
+
+/* 图片圆角 */
+.milkdown img {
+  border-radius: 6px;
+  max-width: 100%;
+}
+
+/* 文本选中色（Typora 内置变量语义） */
+.milkdown ::selection,
+.ProseMirror ::selection {
+  background: var(--select-text-bg-color);
+}
+
+/* front-matter（YAML） */
+.milkdown pre[data-language='yaml'],
+.milkdown .yl {
+  color: var(--yaml-color);
+  background: var(--yaml-bg-color);
+}
+
+/* ─────────────────── chrome 导航面消费排版尺度变量 ─────────────────── */
+.file-tree,
+.file-tree .tree-node__row,
+.file-tree__hit {
+  font-size: var(--file-tree-text-size);
+}
+
+.outline-pane {
+  font-size: var(--toc-text-size);
+}
+
+/* ─────────────────── 全局基线 ─────────────────── */
 * {
   margin: 0;
   padding: 0;
@@ -36,14 +291,14 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  font-family: var(--text-font);
+  background: var(--bg-color);
+  color: var(--text-color);
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -51,11 +306,15 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 4px;
+  background: var(--table-border-color);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 
   &:hover {
-    background: var(--text-secondary);
+    background: var(--md-char-color, var(--blur-text-color));
+    background-clip: padding-box;
+    border: 2px solid transparent;
   }
 }
 
@@ -65,16 +324,16 @@ body,
   left: 50%;
   transform: translateX(-50%) translateY(20px);
   padding: 10px 20px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 13px;
+  background: var(--btn-hover-bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--table-border-color);
+  border-radius: 99px;
+  font-size: 1rem;
   z-index: 9999;
   opacity: 0;
   transition: opacity 0.3s, transform 0.3s;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 
   &--visible {
     opacity: 1;

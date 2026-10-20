@@ -1,9 +1,9 @@
 export type AppTheme = 'light' | 'dark'
-export type EditorMode = 'ir' | 'sv' | 'wysiwyg'
 
 export interface Preferences {
   theme: AppTheme
-  editorMode: EditorMode
+  sourceMode: boolean
+  typewriter: boolean
   showOutline: boolean
   showFileTree: boolean
   outlineWidth: number
@@ -13,7 +13,8 @@ export interface Preferences {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'light',
-  editorMode: 'ir',
+  sourceMode: false,
+  typewriter: false,
   showOutline: true,
   showFileTree: false,
   outlineWidth: 220,
@@ -33,4 +34,9 @@ export interface FileTreeNode {
   name: string
   path: string
   type: 'file' | 'directory'
+}
+
+export interface CaretPosition {
+  line: number
+  col: number
 }

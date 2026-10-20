@@ -1,30 +1,54 @@
 <template>
   <div
     class="app"
-    :class="{ 'app--dragging': dragDrop.isDragging.value }"
+    :class="{ 'app--reading': store.readingMode, 'app--dragging': dragDrop.isDragging.value }"
   >
-    <AppBar />
-    <FileTabs v-if="store.tabs.length > 0" />
+    <MenuBar />
 
     <div class="app__body">
-      <FileTree v-if="store.showFileTree" />
-      <OutlinePane v-if="store.showOutline && store.activeId && activeIsMarkdown" />
-      <div v-if="store.activeId" class="app__editor">
-        <VditorEditor v-if="activeIsMarkdown" :key="`${store.activeId}-${store.readingMode}`" container-id="vditor-editor" />
-        <CodeMirrorEditor v-else :key="store.activeId" v-model="cmContent" :file-name="store.activeFile?.name ?? ''" />
-      </div>
+      <FileTree v-if="store.showFileTree && store.workspacePath" />
 
-      <div v-if="!store.activeId" class="app__empty">
-        <div class="app__empty-hint">
-          <span class="app__empty-icon">M</span>
-          <p>MarkdownView</p>
-          <p class="app__empty-sub">Drag & drop a file or folder here or click Open</p>
-          <p class="app__empty-formats">
-            Supported: .md .markdown .txt .mdown .mkd
-          </p>
+      <main class="app__main">
+        <template v-if="store.activeId">
+          <FileTabs v-if="!store.readingMode" />
+
+          <div class="app__editwrap">
+            <OutlinePane
+              v-if="store.showOutline && activeIsMarkdown && !store.sourceMode && !store.readingMode"
+            />
+            <div class="app__editorcol">
+              <EditorToolbar v-if="activeIsMarkdown && !store.readingMode" />
+              <MilkdownEditor
+                v-if="activeIsMarkdown && !store.sourceMode"
+                :key="store.activeId"
+              />
+              <SourceEditor v-else-if="activeIsMarkdown" :key="store.activeId" />
+              <CodeMirrorEditor
+                v-else
+                :key="store.activeId"
+                v-model="cmContent"
+                :file-name="store.activeFile?.name ?? ''"
+              />
+            </div>
+          </div>
+
+          <StatusBar v-if="!store.readingMode" />
+        </template>
+
+        <div v-else class="app__empty">
+          <div class="app__empty-hint">
+            <span class="app__empty-icon">M</span>
+            <p>MarkdownView</p>
+            <p class="app__empty-sub">拖入文件或文件夹，或通过菜单打开</p>
+            <p class="app__empty-formats">支持 .md .markdown .txt .mdown .mkd</p>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
+
+    <button v-if="store.readingMode" class="app__reading-exit" @click="store.readingMode = false">
+      ✕ 退出阅读 (Esc)
+    </button>
 
     <div v-if="store.loading" class="app__loading">
       <div class="app__loading-spinner"></div>
@@ -44,9 +68,7 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path
-              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-            />
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
             <line x1="12" y1="18" x2="12" y2="12" />
             <line x1="9" y1="15" x2="15" y2="15" />
@@ -61,12 +83,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, watchEffect } from 'vue'
-import AppBar from './components/AppBar.vue'
+import MenuBar from './components/MenuBar.vue'
 import FileTabs from './components/FileTabs.vue'
 import FileTree from './components/FileTree.vue'
 import OutlinePane from './components/OutlinePane.vue'
-import VditorEditor from './components/VditorEditor.vue'
+import EditorToolbar from './components/EditorToolbar.vue'
+import MilkdownEditor from './components/MilkdownEditor.vue'
+import SourceEditor from './components/SourceEditor.vue'
 import CodeMirrorEditor from './components/CodeMirrorEditor.vue'
+import StatusBar from './components/StatusBar.vue'
 import { useCloseConfirmation } from './composables/useCloseConfirmation'
 import { useDragDrop } from './composables/useDragDrop'
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
@@ -151,15 +176,33 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   position: relative;
+  background: var(--bg-primary);
 
   &__body {
     flex: 1;
     display: flex;
     overflow: hidden;
+    min-height: 0;
   }
 
-  &__editor {
+  &__main {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg-primary);
+  }
+
+  &__editwrap {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
+  &__editorcol {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     min-width: 0;
   }
 
@@ -201,6 +244,29 @@ onBeforeUnmount(() => {
     font-size: 11px;
     opacity: 0.4;
     margin-top: -4px;
+  }
+
+  &__reading-exit {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 99px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+    &:hover {
+      color: var(--text-primary);
+    }
   }
 
   &__drag-overlay {

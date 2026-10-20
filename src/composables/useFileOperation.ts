@@ -1,5 +1,6 @@
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { showConfirm } from './showConfirm'
+import { exportPdf } from './useExportPdf'
 import type { MarkdownFile } from '../types'
 
 export function useFileOperation() {
@@ -83,6 +84,10 @@ export function useFileOperation() {
     store.newFile()
   }
 
+  function closeActiveTab() {
+    if (store.activeId) store.closeTab(store.activeId)
+  }
+
   async function openFolder() {
     const { open } = await import('@tauri-apps/plugin-dialog')
 
@@ -121,7 +126,7 @@ export function useFileOperation() {
     }
   }
 
-  return { openFile, saveFile, saveFileAs, newFile, openFolder }
+  return { openFile, saveFile, saveFileAs, newFile, openFolder, closeActiveTab, exportPdf }
 }
 
 async function openFolderInNewWindow(folderPath: string) {

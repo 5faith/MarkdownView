@@ -48,7 +48,7 @@ const expanded = ref(true)
     align-items: center;
     gap: 4px;
     padding: 3px 12px;
-    font-size: 13px;
+    font-size: var(--toc-text-size);
     color: var(--text-primary);
     cursor: pointer;
     border-radius: 4px;
@@ -59,12 +59,12 @@ const expanded = ref(true)
       background: var(--bg-hover);
     }
 
-    &--h1 { font-weight: 700; font-size: 14px; }
-    &--h2 { font-weight: 600; font-size: 13px; }
-    &--h3 { font-weight: 500; font-size: 13px; }
+    &--h1 { font-weight: 700; font-size: calc(var(--toc-text-size) + 1px); }
+    &--h2 { font-weight: 600; font-size: var(--toc-text-size); }
+    &--h3 { font-weight: 500; font-size: var(--toc-text-size); }
     &--h4,
     &--h5,
-    &--h6 { font-weight: 400; font-size: 12px; color: var(--text-secondary); }
+    &--h6 { font-weight: 400; font-size: calc(var(--toc-text-size) - 1px); color: var(--text-secondary); }
   }
 
   &__arrow {

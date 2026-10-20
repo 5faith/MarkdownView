@@ -52,12 +52,9 @@ export function useKeyboardShortcuts() {
         break
       case e.key === 'p':
         e.preventDefault()
-        document.querySelector<HTMLButtonElement>('[title="Export PDF"]')?.click()
+        fileOps.exportPdf()
         break
-      case e.key === 'b':
-        e.preventDefault()
-        store.toggleOutline()
-        break
+      // Ctrl+B/Ctrl+I 不在全局拦截，交给 Milkdown 编辑器做加粗/斜体（Typora 键位）
       case shift && e.key === 'D':
         e.preventDefault()
         store.toggleTheme()

@@ -102,6 +102,8 @@ function onCancel() {
     font-size: 14px;
     line-height: 1.6;
     color: var(--text-secondary);
+    white-space: pre-line;
+    word-break: break-all;
   }
 
   &__footer {

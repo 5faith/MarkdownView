@@ -41,6 +41,7 @@ defineEmits<{
   'close': []
   'close-others': []
   'close-all': []
+  'close-menu': []
 }>()
 </script>
 

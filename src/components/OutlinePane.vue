@@ -112,16 +112,11 @@ function slugify(text: string): string {
 }
 
 function onNavigate(slug: string) {
-  const vditorEl = document.getElementById('vditor-editor')
-  if (!vditorEl) return
+  // Milkdown 编辑器 DOM：按标题文本匹配并滚动
+  const root = document.querySelector('.milkdown-editor__scroll')
+  if (!root) return
 
-  const heading = vditorEl.querySelector(`[id="${CSS.escape(slug)}"]`)
-  if (heading) {
-    heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    return
-  }
-
-  const allHeadings = vditorEl.querySelectorAll('h1, h2, h3, h4, h5, h6')
+  const allHeadings = root.querySelectorAll('h1, h2, h3, h4, h5, h6')
   for (const el of allHeadings) {
     if (slugify(el.textContent?.trim() ?? '') === slug) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })

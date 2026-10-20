@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watchEffect } from 'vue'
 import DEFAULT_CONTENT from '../assets/TEMPLATE.md?raw'
-import type { AppTheme, EditorMode, MarkdownFile } from '../types'
+import type { AppTheme, CaretPosition, MarkdownFile } from '../types'
 import { loadPreferences, savePreferences } from '../utils/preferences'
 import { showConfirm } from '../composables/showConfirm'
 
@@ -20,7 +20,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const tabs = ref<MarkdownFile[]>([])
   const activeId = ref<string>('')
   const theme = ref<AppTheme>(prefs.theme)
-  const editorMode = ref<EditorMode>(prefs.editorMode)
+  const sourceMode = ref(prefs.sourceMode)
+  const typewriter = ref(prefs.typewriter)
   const showOutline = ref(prefs.showOutline)
   const showFileTree = ref(prefs.workspacePath ? prefs.showFileTree : false)
   const outlineWidth = ref(prefs.outlineWidth)
@@ -29,9 +30,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const readingMode = ref(false)
   const fileTreeWidth = ref(prefs.fileTreeWidth)
   const fileTreeVersion = ref(0)
-
-  const contentTheme = computed(() => theme.value === 'dark' ? 'dark' : 'light')
-  const codeTheme = computed(() => theme.value === 'dark' ? 'a11y-dark' : 'github')
+  const caret = ref<CaretPosition>({ line: 1, col: 1 })
 
   const activeFile = computed(
     () => tabs.value.find((t) => t.id === activeId.value) ?? null,
@@ -43,7 +42,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
   watchEffect(() => {
     savePreferences({
       theme: theme.value,
-      editorMode: editorMode.value,
+      sourceMode: sourceMode.value,
+      typewriter: typewriter.value,
       showOutline: showOutline.value,
       showFileTree: showFileTree.value,
       outlineWidth: outlineWidth.value,
@@ -155,6 +155,17 @@ export const useMarkdownStore = defineStore('markdown', () => {
     }
   }
 
+  function closeTabsUnderPath(path: string): void {
+    const prefix = path.replace(/[\\/]+$/, '') + /[\\/]/.test(path) ? '' : ''
+    void prefix
+    const sep = path.includes('\\') ? '\\' : '/'
+    const base = path.replace(/[\\/]+$/, '')
+    tabs.value = tabs.value.filter((t) => t.path !== base && !t.path.startsWith(base + sep))
+    if (!tabs.value.find((t) => t.id === activeId.value)) {
+      activeId.value = tabs.value.length > 0 ? tabs.value[0]!.id : ''
+    }
+  }
+
   function hasUnsavedInWorkspace(wsPath: string): boolean {
     return tabs.value.some((t) => t.path.startsWith(wsPath) && !t.saved)
   }
@@ -188,12 +199,28 @@ export const useMarkdownStore = defineStore('markdown', () => {
     }
   }
 
+  function setCaret(pos: CaretPosition) {
+    caret.value = pos
+  }
+
   function toggleTheme() {
     theme.value = theme.value === 'light' ? 'dark' : 'light'
   }
 
   function toggleOutline() {
     showOutline.value = !showOutline.value
+  }
+
+  function toggleSourceMode() {
+    sourceMode.value = !sourceMode.value
+  }
+
+  function toggleTypewriter() {
+    typewriter.value = !typewriter.value
+  }
+
+  function toggleReadingMode() {
+    readingMode.value = !readingMode.value
   }
 
   function setCurrentFile(file: MarkdownFile) {
@@ -226,7 +253,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     const hasLaunched = localStorage.getItem('markdownview-launched')
     if (tabs.value.length === 0) {
       if (!hasLaunched) {
-        addTab({ content: DEFAULT_CONTENT, name: 'Untitled', saved: true })
+        // 名字必须带 .md 扩展名，否则 activeIsMarkdown 判定为否会走 CodeMirror
+        addTab({ content: DEFAULT_CONTENT, name: '未命名.md', saved: true })
         localStorage.setItem('markdownview-launched', '1')
       }
     }
@@ -251,10 +279,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
     showFileTree.value = !showFileTree.value
   }
 
-  function toggleReadingMode() {
-    readingMode.value = !readingMode.value
-  }
-
   function setFileTreeWidth(width: number) {
     fileTreeWidth.value = width
   }
@@ -273,9 +297,9 @@ export const useMarkdownStore = defineStore('markdown', () => {
     activeFile,
     content,
     theme,
-    contentTheme,
-    codeTheme,
-    editorMode,
+    sourceMode,
+    typewriter,
+    caret,
     showOutline,
     showFileTree,
     outlineWidth,
@@ -292,11 +316,16 @@ export const useMarkdownStore = defineStore('markdown', () => {
     closeOtherTabs,
     closeAllTabs,
     closeTabsInWorkspace,
+    closeTabsUnderPath,
     hasUnsavedInWorkspace,
     switchTab,
     setContent,
+    setCaret,
     toggleTheme,
     toggleOutline,
+    toggleSourceMode,
+    toggleTypewriter,
+    toggleReadingMode,
     setCurrentFile,
     markSaved,
     newFile,
@@ -305,7 +334,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
     setWorkspace,
     clearWorkspace,
     toggleFileTree,
-    toggleReadingMode,
     setFileTreeWidth,
     setOutlineWidth,
     reloadActiveFile,
