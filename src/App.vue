@@ -20,7 +20,7 @@
               <EditorToolbar v-if="activeIsMarkdown && !store.readingMode" />
               <MilkdownEditor
                 v-if="activeIsMarkdown && !store.sourceMode"
-                :key="store.activeId"
+                :key="`${store.activeId}-${store.theme}`"
               />
               <SourceEditor v-else-if="activeIsMarkdown" :key="store.activeId" />
               <CodeMirrorEditor

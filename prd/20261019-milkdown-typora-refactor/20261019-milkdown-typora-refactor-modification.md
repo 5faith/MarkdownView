@@ -66,6 +66,14 @@
 
 三方案对比预览：`prd/20261019-milkdown-typora-refactor/20261019-milkdown-typora-refactor-preview-light.html`（A 清爽微灰 / B 暖纸米白 / C 高对比冷灰）。**用户选定方案 A（清爽微灰）**，已落地 `global.scss` 浅色 `:root`：
 `--text-color #2e2e2e`、`--side-bar-bg-color #f5f5f6`（chrome 面板与编辑区白底区分）、`--table-border-color #d9d9d9`、`--table-header-bg-color #eaeaea`、`--table-n2-bg-color #f1f1f2`、`--item-hover-bg-color #e6e6e6b3`。深色主题不变。
+
+## 代码块高亮按主题着色（20261021）
+
+- 根因：Crepe CodeMirror 默认用 `defaultHighlightStyle`（亮色 token：keyword `#708`、string `#164`、variable `#000`），暗底代码块上几乎不可见。
+- 修复：`src/shared/cmTheme.ts` 提供 `cmThemeExtension(theme)`——明/暗两套 `EditorView.theme` + `HighlightStyle`（Drake 色系）；经 Crepe 的 `featureConfigs[Crepe.Feature.CodeMirror].theme` 注入。
+- **主题切换 = 编辑器重建**：App.vue 的 MilkdownEditor `:key` 增加 `store.theme`（不用 Compartment/effects——milkdown 事务类型与 CM effects dispatch 不兼容，会抛 `tr.getMeta is not a function`）。
+- 连带修复：方案 A 把 `--side-bar-bg-color` 写成固定 `#f5f5f6` 后深色主题未覆盖 → 暗色下 chrome 全浅。深色块补 `--side-bar-bg-color: var(--bg-color)`。`--code-block-color` 提亮 `#a9b7c6 → #c4cdd9`。
+- **教训**：改 `:root` 固定色值时必须检查每个主题块是否需要覆盖（side-bar 这类"派生自 bg"的变量尤其如此）。
 - `EditorToolbar.vue` / `MenuBar.vue`（追加）：工具栏与格式菜单新增 `任务列表` 项。
 
 ## 样式（prd/style.md 契约移植）

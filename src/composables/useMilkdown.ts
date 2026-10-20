@@ -5,6 +5,7 @@ import type { EditorView } from '@milkdown/kit/prose/view'
 import { replaceAll } from '@milkdown/kit/utils'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { currentEditor } from '../shared/editor'
+import { cmThemeExtension } from '../shared/cmTheme'
 
 /**
  * Crepe 编辑器生命周期与 store 双向同步。
@@ -55,7 +56,16 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
       crepe = null
     }
 
-    crepe = new Crepe({ root, defaultValue: store.content })
+    crepe = new Crepe({
+      root,
+      defaultValue: store.content,
+      featureConfigs: {
+        [Crepe.Feature.CodeMirror]: {
+          // 代码块语法高亮按明暗主题着色（默认亮色 token 在暗底上不可读）
+          theme: cmThemeExtension(store.theme),
+        },
+      },
+    })
     currentEditor.value = crepe
 
     crepe.on((listener) => {
@@ -71,6 +81,8 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
     if (disposed) return
     crepe.setReadonly(store.readingMode)
     lastSynced = store.content
+    ;(window as unknown as Record<string, unknown>).__crepe = crepe // 调试探针
+    ;(window as unknown as Record<string, unknown>).__editorViewCtx = editorViewCtx
 
     document.addEventListener('selectionchange', onSelectionChange)
   }
