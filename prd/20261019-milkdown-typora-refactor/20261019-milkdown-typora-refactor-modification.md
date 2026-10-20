@@ -61,6 +61,11 @@
 3. **大纲同名标题跳转错误**：改为按文档序号定位——`OutlinePane` 维护先序平铺数组 `flatItems`，`onNavigate(node)` 用 `flatItems.indexOf(node)` 取序号，映射到 `.milkdown h1-h6` DOM 序列的第 N 个元素。
 
 **排查方法论记录**：用 headless Chromium + Playwright 对着 vite dev 实测定位（根因 `syncListOrderPlugin` 通过"列出全部插件 spec → 发现 appendTransaction 插件 → 读源码"三步锁定）。**HMR 陈旧陷阱**：长命 dev server 上反复编辑 + HMR 会出现模块分裂假象（window 标志不增、hasFocus 假阴性），验证必须在 fresh server + fresh page 上做；若用户报告"改了没生效/行为怪异"，先重启 dev server 再排查。
+
+## 浅色配色定稿（20261021，用户选定）
+
+三方案对比预览：`prd/20261019-milkdown-typora-refactor/20261019-milkdown-typora-refactor-preview-light.html`（A 清爽微灰 / B 暖纸米白 / C 高对比冷灰）。**用户选定方案 A（清爽微灰）**，已落地 `global.scss` 浅色 `:root`：
+`--text-color #2e2e2e`、`--side-bar-bg-color #f5f5f6`（chrome 面板与编辑区白底区分）、`--table-border-color #d9d9d9`、`--table-header-bg-color #eaeaea`、`--table-n2-bg-color #f1f1f2`、`--item-hover-bg-color #e6e6e6b3`。深色主题不变。
 - `EditorToolbar.vue` / `MenuBar.vue`（追加）：工具栏与格式菜单新增 `任务列表` 项。
 
 ## 样式（prd/style.md 契约移植）

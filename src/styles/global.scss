@@ -13,7 +13,7 @@
 
 /* ─────────────────── 变量层：Drake 契约（style.md §4.1 浅色基准值） ─────────────────── */
 :root {
-  --text-color: #333333;
+  --text-color: #2e2e2e;
   --bg-color: #ffffff;
   --drake-accent: #e95f59;            /* 点缀色：引用左边条、文件树激活边框 */
   --drake-highlight: #d63200;         /* 高亮色：行内代码、链接、主按钮文字 */
@@ -33,11 +33,11 @@
   --yaml-bg-color: #f7f7f7;
   --height-light-color: var(--drake-highlight);
   --height-light-border-color: var(--drake-highlight);
-  --table-border-color: #dfe2e5;
-  --table-header-bg-color: #eeeeee;
+  --table-border-color: #d9d9d9;
+  --table-header-bg-color: #eaeaea;
   --table-bg-color: var(--bg-color);
-  --table-n2-bg-color: #f4f4f4;
-  --item-hover-bg-color: #e5e5e596;   /* 深浅主题共用的万能悬浮底色源 */
+  --table-n2-bg-color: #f1f1f2;
+  --item-hover-bg-color: #e6e6e6b3;   /* 深浅主题共用的万能悬浮底色源 */
   --active-file-bg-color: var(--item-hover-bg-color);
   --active-file-border-color: var(--drake-accent);
   --input-bg-color: var(--item-hover-bg-color);
@@ -45,7 +45,7 @@
   --control-text-color: var(--text-color);
   --meta-content-color: var(--text-color);
   --select-text-bg-color: #3473b068;
-  --side-bar-bg-color: var(--bg-color);
+  --side-bar-bg-color: #f5f5f6;       /* 方案 A：chrome 面板微灰，与编辑区白底区分 */
 
   /* ── 排版尺度（style.md §4.3，全局唯一） ── */
   --monospace: "Iosevka Curly", "JetBrains Mono", Consolas, "Courier New", monospace;

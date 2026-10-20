@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>浅色模式配色方案对比 · 3 选 1</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 18px 56px;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #ececea; color: #1f1f1f;
+  }
+  .head { max-width: 860px; margin: 0 auto 6px; }
+  .head h1 { font-size: 19px; margin: 0 0 6px; }
+  .head p { margin: 0; font-size: 13px; color: #555; }
+  .head p b { color: #111; }
+
+  .scheme { max-width: 860px; margin: 22px auto 0; border-radius: 12px; overflow: hidden;
+    border: 1px solid #b9b9b4; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  .scheme-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #fff; border-bottom: 1px solid #ddd; }
+  .scheme-head .tag { font-weight: 700; font-size: 14px; }
+  .scheme-head .desc { font-size: 12px; color: #666; flex: 1; }
+  .pick { border: 1px solid #c9c9c4; background: #fafaf8; color: #333; font: inherit; font-size: 12.5px;
+    padding: 5px 14px; border-radius: 99px; cursor: pointer; }
+  .pick:hover { border-color: #888; background: #fff; }
+  .pick:disabled { opacity: .45; cursor: default; }
+
+  /* 各方案变量 */
+  .scheme-a {
+    --s-bg: #ffffff; --s-panel: #f5f5f6; --s-border: #d9d9d9; --s-text: #2e2e2e;
+    --s-muted: #6e6e6e; --s-thead: #eaeaea; --s-zebra: #f1f1f2; --s-hover: #e6e6e6;
+    --s-quote-bg: #fdefee; --s-accent: #e95f59; --s-highlight: #d63200; --s-title: #273849;
+  }
+  .scheme-b {
+    --s-bg: #fffdf8; --s-panel: #f5efe4; --s-border: #ddd4c2; --s-text: #35312a;
+    --s-muted: #857c6c; --s-thead: #ece4d4; --s-zebra: #f3eee2; --s-hover: #e9e1d0;
+    --s-quote-bg: #fdf3ee; --s-accent: #e95f59; --s-highlight: #d63200; --s-title: #4a4234;
+  }
+  .scheme-c {
+    --s-bg: #fcfcfd; --s-panel: #e9ebee; --s-border: #c9cdd3; --s-text: #24272c;
+    --s-muted: #555b63; --s-thead: #dde0e4; --s-zebra: #e8eaed; --s-hover: #dfe2e6;
+    --s-quote-bg: #fdefee; --s-accent: #e95f59; --s-highlight: #d63200; --s-title: #1f2d3d;
+  }
+
+  /* mock：chrome + 双栏 + 变量值 */
+  .mock { font-size: 13px; }
+  .mock .chrome { display: flex; align-items: center; gap: 14px; padding: 7px 12px;
+    background: var(--s-panel); border-bottom: 1px solid var(--s-border); color: var(--s-text); }
+  .mock .chrome .brand { margin-left: auto; font-weight: 600; font-size: 12px; }
+  .mock .chrome span:not(.brand) { font-size: 12.5px; color: var(--s-muted); }
+  .mock .body-row { display: flex; min-height: 300px; }
+  .mock .tree { width: 172px; flex-shrink: 0; background: var(--s-panel);
+    border-right: 1px solid var(--s-border); padding: 8px 6px; }
+  .mock .tree .cap { font-size: 10.5px; letter-spacing: .1em; color: var(--s-muted);
+    text-transform: uppercase; padding: 2px 6px 6px; }
+  .mock .tree .row { padding: 4px 8px; border-radius: 6px; color: var(--s-text); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .mock .tree .row:hover { background: var(--s-hover); }
+  .mock .tree .row.active { background: var(--s-hover); color: var(--s-accent); box-shadow: inset 2px 0 0 var(--s-accent); }
+  .mock .editor { flex: 1; background: var(--s-bg); padding: 14px 18px 10px; color: var(--s-text); min-width: 0; }
+  .mock .editor h3 { font-size: 16px; margin: 0 0 8px; color: var(--s-title); }
+  .mock .editor p { margin: 0 0 10px; line-height: 1.7; font-size: 13px; }
+  .mock .editor strong { color: var(--s-title); }
+  .mock .editor code { font-family: Consolas, monospace; font-size: 12px;
+    background: var(--s-hover); color: var(--s-highlight); border-radius: 4px; padding: 1px 5px; }
+  .mock .editor a { color: var(--s-highlight); }
+  .mock .editor blockquote { margin: 0 0 12px; padding: 4px 12px; background: var(--s-quote-bg);
+    border-left: 3px solid var(--s-accent); border-radius: 0 6px 6px 0; color: var(--s-muted); }
+  .mock .editor table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
+  .mock .editor th, .mock .editor td { border: 1px solid var(--s-border); padding: 4px 10px; font-size: 12.5px; text-align: left; }
+  .mock .editor th { background: var(--s-thead); font-weight: 600; }
+  .mock .editor tr:nth-child(even) td { background: var(--s-zebra); }
+  .mock .vars { padding: 8px 14px; border-top: 1px solid var(--s-border); background: var(--s-panel);
+    font-size: 11px; color: var(--s-muted); font-family: Consolas, monospace; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>浅色模式配色方案 · 3 选 1</h1>
+    <p>三套方案都基于 <b>Drake 变量契约</b>（只换 `:root` 变量值即可落地）。当前问题：表头/斑马纹/边框灰色太浅。深色主题不变。点击每块右上角按钮选择，或直接回复 A / B / C。</p>
+  </div>
+
+  <!-- 方案 A -->
+  <div class="scheme scheme-a">
+    <div class="scheme-head">
+      <span class="tag">方案 A · 清爽微灰</span>
+      <span class="desc">在当前白色方案上整体加深一档：表头/斑马纹/边框明显可辨，风格与现在最接近，改动最小。</span>
+      <button class="pick" onclick="pick('A')">✓ 选用方案 A</button>
+    </div>
+    <div class="mock">
+      <div class="chrome"><span>文件</span><span>格式</span><span>视图</span><span class="brand">MarkdownView</span></div>
+      <div class="body-row">
+        <div class="tree">
+          <div class="cap">目录</div>
+          <div class="row active">README.md</div>
+          <div class="row">架构设计.md</div>
+          <div class="row">会议记录.md</div>
+          <div class="row">docs/</div>
+        </div>
+        <div class="editor">
+          <h3>任务列表</h3>
+          <p>正文示例，<strong>加粗文字</strong>、<code>行内代码</code>、<a href="#" onclick="return false">链接文字</a> 的对比效果。</p>
+          <blockquote>引用块：左侧点缀色竖条 + 浅底。</blockquote>
+          <table><thead><tr><th>阶段</th><th>内容</th><th>周期</th></tr></thead>
+            <tbody><tr><td>M1</td><td>内核迁移</td><td>4 周</td></tr>
+            <tr><td>M2</td><td>语法兼容</td><td>3 周</td></tr>
+            <tr><td>M3</td><td>插件主题</td><td>4 周</td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="vars">--bg-color #ffffff · --side-bar #f5f5f6 · --border #d9d9d9 · --table-header #eaeaea · --table-n2 #f1f1f2 · --text #2e2e2e</div>
+    </div>
+  </div>
+
+  <!-- 方案 B -->
+  <div class="scheme scheme-b">
+    <div class="scheme-head">
+      <span class="tag">方案 B · 暖纸米白</span>
+      <span class="desc">预览页的暖纸风格：整体米白偏暖，长时间写作护眼，灰度可辨且不冷硬。</span>
+      <button class="pick" onclick="pick('B')">✓ 选用方案 B</button>
+    </div>
+    <div class="mock">
+      <div class="chrome"><span>文件</span><span>格式</span><span>视图</span><span class="brand">MarkdownView</span></div>
+      <div class="body-row">
+        <div class="tree">
+          <div class="cap">目录</div>
+          <div class="row active">README.md</div>
+          <div class="row">架构设计.md</div>
+          <div class="row">会议记录.md</div>
+          <div class="row">docs/</div>
+        </div>
+        <div class="editor">
+          <h3>任务列表</h3>
+          <p>正文示例，<strong>加粗文字</strong>、<code>行内代码</code>、<a href="#" onclick="return false">链接文字</a> 的对比效果。</p>
+          <blockquote>引用块：左侧点缀色竖条 + 浅底。</blockquote>
+          <table><thead><tr><th>阶段</th><th>内容</th><th>周期</th></tr></thead>
+            <tbody><tr><td>M1</td><td>内核迁移</td><td>4 周</td></tr>
+            <tr><td>M2</td><td>语法兼容</td><td>3 周</td></tr>
+            <tr><td>M3</td><td>插件主题</td><td>4 周</td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="vars">--bg-color #fffdf8 · --side-bar #f5efe4 · --border #ddd4c2 · --table-header #ece4d4 · --table-n2 #f3eee2 · --text #35312a</div>
+    </div>
+  </div>
+
+  <!-- 方案 C -->
+  <div class="scheme scheme-c">
+    <div class="scheme-head">
+      <span class="tag">方案 C · 高对比冷灰</span>
+      <span class="desc">面板/表头/边框最深，文字最黑，层级一眼分明；适合对可读性要求最高的场景。</span>
+      <button class="pick" onclick="pick('C')">✓ 选用方案 C</button>
+    </div>
+    <div class="mock">
+      <div class="chrome"><span>文件</span><span>格式</span><span>视图</span><span class="brand">MarkdownView</span></div>
+      <div class="body-row">
+        <div class="tree">
+          <div class="cap">目录</div>
+          <div class="row active">README.md</div>
+          <div class="row">架构设计.md</div>
+          <div class="row">会议记录.md</div>
+          <div class="row">docs/</div>
+        </div>
+        <div class="editor">
+          <h3>任务列表</h3>
+          <p>正文示例，<strong>加粗文字</strong>、<code>行内代码</code>、<a href="#" onclick="return false">链接文字</a> 的对比效果。</p>
+          <blockquote>引用块：左侧点缀色竖条 + 浅底。</blockquote>
+          <table><thead><tr><th>阶段</th><th>内容</th><th>周期</th></tr></thead>
+            <tbody><tr><td>M1</td><td>内核迁移</td><td>4 周</td></tr>
+            <tr><td>M2</td><td>语法兼容</td><td>3 周</td></tr>
+            <tr><td>M3</td><td>插件主题</td><td>4 周</td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="vars">--bg-color #fcfcfd · --side-bar #e9ebee · --border #c9cdd3 · --table-header #dde0e4 · --table-n2 #e8eaed · --text #24272c</div>
+    </div>
+  </div>
+
+<script>
+function pick(scheme) {
+  document.querySelectorAll('.pick').forEach(function (b) { b.disabled = true })
+  try {
+    openchamber.submit({ scheme: scheme }, '选择浅色方案 ' + scheme).catch(function () {})
+  } catch (e) { /* 在文件中直接打开时无 openchamber */ }
+}
+</script>
+</body>
+</html>
