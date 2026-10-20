@@ -14,8 +14,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import { sourceEditorApi } from '../shared/editor'
 
 const store = useMarkdownStore()
 const taEl = ref<HTMLTextAreaElement | null>(null)
@@ -58,6 +59,40 @@ watch(() => store.content, (value) => {
 watch(() => store.activeId, () => {
   lastSynced = store.content
   store.setCaret({ line: 1, col: 1 })
+})
+
+onMounted(() => {
+  const ta = taEl.value
+  if (!ta) return
+  sourceEditorApi.value = {
+    getSelection: () => ({ start: ta.selectionStart, end: ta.selectionEnd }),
+    replaceRange: (start, end, text, selStart, selEnd) => {
+      ta.focus()
+      ta.setSelectionRange(start, end)
+      // execCommand 走浏览器原生编辑栈，保留 Ctrl+Z 撤销能力
+      let ok = false
+      try {
+        ok = document.execCommand('insertText', false, text)
+      } catch { ok = false }
+      if (!ok) {
+        ta.setRangeText(text, start, end, 'end')
+        ta.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      ta.setSelectionRange(selStart, selEnd)
+      updateCaret()
+    },
+    execUndoRedo: (kind) => {
+      ta.focus()
+      try {
+        document.execCommand(kind)
+      } catch { /* unsupported */ }
+      updateCaret()
+    },
+  }
+})
+
+onBeforeUnmount(() => {
+  if (sourceEditorApi.value) sourceEditorApi.value = null
 })
 </script>
 

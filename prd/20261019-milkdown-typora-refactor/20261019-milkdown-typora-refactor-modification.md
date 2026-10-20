@@ -45,6 +45,14 @@
 - **关键修复（20261020）：`currentEditor` 从 `ref` 改为 `shallowRef`**。根因：Vue 深响应代理包裹 Crepe 实例后，带 `#private` 字段的 class getter（如 `readonly`）经 `Reflect.get` 转发时抛 `Cannot read from private field`，导致**所有**工具栏/格式菜单按钮点击即抛错、毫无反应。Playwright 实测（headless chromium + vite dev）验证修复：加粗/任务列表/菜单/勾选框点击全链路通过。契约：**存 class 实例（带私有字段）一律用 shallowRef，禁止深响应**。
 - `stores/useMarkdownStore.ts`（追加）：首启模板标签名 `'Untitled'` → `'未命名.md'`——无扩展名会被 `activeIsMarkdown` 判为非 md 而走 CodeMirror。
 - `TabContextMenu.vue`（追加）：补声明 `close-menu` emit，消除 Vue 警告。
+
+## 第二轮打磨（20261021，用户反馈五项）
+
+1. **源码模式可用格式命令**：`shared/editor.ts` 新增 `sourceEditorApi`（SourceEditor 挂载注册），`runFormat` 在 sourceMode 下走 markdown 文本操作——行内标记 toggle 包裹（加粗/斜体/删除线/行内码）、行级前缀 strip+apply（标题/引用/三种列表，全部已带前缀时为移除）、块插入（表格/代码块/水平线）、undo/redo 走 `execCommand` 保留原生撤销栈。
+2. **列表互转**：WYSIWYG 下 `ul/ol/task` 互相替换——`findList` 找光标所在最外层列表，不同类型直接 `setNodeMarkup` 改列表节点类型（保留嵌套），转走任务时先清 `checked`；`task` 切换保留原 toggle 语义。
+3. **选区保持**：`withSelection` 包裹标记/包裹类命令，命令后选区塌缩则用 `TextSelection.between` 还原——加粗→斜体→删除线连续作用于同一段文本，无需重选。
+4. **浅色表格灰度加深**：`--table-header-bg-color: #f8f8f8 → #eeeeee`，斑马纹 `#f8f8f8 → #f4f4f4`。
+5. **Ctrl+Z / Ctrl+Y**：Milkdown history 已绑 `Mod-z`/`Mod-y`（编辑器聚焦时原生可用）；全局 handler 补焦点在编辑器外（如刚点完工具栏按钮）的场景，避免与原生键位双触发；源码/CodeMirror 用各自原生撤销。
 - `EditorToolbar.vue` / `MenuBar.vue`（追加）：工具栏与格式菜单新增 `任务列表` 项。
 
 ## 样式（prd/style.md 契约移植）

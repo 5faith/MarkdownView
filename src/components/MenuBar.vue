@@ -74,7 +74,7 @@ const mdActive = computed(
   () => !!store.activeFile && isMarkdownFile(store.activeFile.name),
 )
 const fmtDisabled = computed(
-  () => !mdActive.value || store.readingMode || store.sourceMode,
+  () => !mdActive.value || store.readingMode,
 )
 
 const menus = computed<Array<{ label: string; items: Array<MenuItem | '-'> }>>(() => [
