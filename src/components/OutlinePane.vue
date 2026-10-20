@@ -36,6 +36,7 @@ export interface OutlineItem {
 const store = useMarkdownStore()
 
 const tree = ref<OutlineItem[]>([])
+const flatItems = ref<OutlineItem[]>([])
 
 function parseTree() {
   const id = store.activeId
@@ -68,6 +69,16 @@ function parseTree() {
   }
 
   tree.value = buildTree(items)
+  // 文档序（先序）平铺，用于同名标题按序号跳转
+  const flat: OutlineItem[] = []
+  const walk = (nodes: OutlineItem[]) => {
+    for (const n of nodes) {
+      flat.push(n)
+      walk(n.children)
+    }
+  }
+  walk(tree.value)
+  flatItems.value = flat
 }
 
 let stopSubscription: (() => void) | null = null
@@ -111,18 +122,16 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, '')
 }
 
-function onNavigate(slug: string) {
-  // Milkdown 编辑器 DOM：按标题文本匹配并滚动
+function onNavigate(node: OutlineItem) {
   const root = document.querySelector('.milkdown-editor__scroll')
   if (!root) return
 
+  // 同名标题用文档序号定位，避免永远跳到第一个
+  const idx = flatItems.value.indexOf(node)
+  if (idx < 0) return
   const allHeadings = root.querySelectorAll('h1, h2, h3, h4, h5, h6')
-  for (const el of allHeadings) {
-    if (slugify(el.textContent?.trim() ?? '') === slug) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
-    }
-  }
+  const el = allHeadings[idx]
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 let resizing = false

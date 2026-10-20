@@ -53,6 +53,14 @@
 3. **选区保持**：`withSelection` 包裹标记/包裹类命令，命令后选区塌缩则用 `TextSelection.between` 还原——加粗→斜体→删除线连续作用于同一段文本，无需重选。
 4. **浅色表格灰度加深**：`--table-header-bg-color: #f8f8f8 → #eeeeee`，斑马纹 `#f8f8f8 → #f4f4f4`。
 5. **Ctrl+Z / Ctrl+Y**：Milkdown history 已绑 `Mod-z`/`Mod-y`（编辑器聚焦时原生可用）；全局 handler 补焦点在编辑器外（如刚点完工具栏按钮）的场景，避免与原生键位双触发；源码/CodeMirror 用各自原生撤销。
+
+## 第三轮修复（20261021，用户反馈三项）
+
+1. **列表反向互转**：`ol→ul`/`task→ul` 被还原——根因是 commonmark 的 `syncListOrderPlugin`（`MILKDOWN_KEEP_LIST_ORDER`）：子项 `listType === "ordered"` 时会把 `bullet_list` 改回有序。修复：`convertOrWrapList` 整棵列表子树统一转换（list 节点类型 + 每个 `list_item` 的 `listType` attr，顺带清 `checked`），嵌套子列表一并对齐。
+2. **菜单打开时选区不可见**：点击菜单后焦点在按钮上，PM 选区高亮消失。修复：`shared/editor.ts` 导出 `focusEditor()`，MenuBar 打开菜单时调用；`runFormat`（WYSIWYG 路径）执行后也回焦编辑器。
+3. **大纲同名标题跳转错误**：改为按文档序号定位——`OutlinePane` 维护先序平铺数组 `flatItems`，`onNavigate(node)` 用 `flatItems.indexOf(node)` 取序号，映射到 `.milkdown h1-h6` DOM 序列的第 N 个元素。
+
+**排查方法论记录**：用 headless Chromium + Playwright 对着 vite dev 实测定位（根因 `syncListOrderPlugin` 通过"列出全部插件 spec → 发现 appendTransaction 插件 → 读源码"三步锁定）。**HMR 陈旧陷阱**：长命 dev server 上反复编辑 + HMR 会出现模块分裂假象（window 标志不增、hasFocus 假阴性），验证必须在 fresh server + fresh page 上做；若用户报告"改了没生效/行为怪异"，先重启 dev server 再排查。
 - `EditorToolbar.vue` / `MenuBar.vue`（追加）：工具栏与格式菜单新增 `任务列表` 项。
 
 ## 样式（prd/style.md 契约移植）

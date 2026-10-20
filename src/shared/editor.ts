@@ -8,6 +8,7 @@ import {
   bulletListSchema,
   createCodeBlockCommand,
   insertHrCommand,
+  listItemSchema,
   orderedListSchema,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
@@ -121,36 +122,64 @@ function toggleTaskList(): void {
   setItemsChecked(crepe, info.pos, info.node, allTask ? null : false)
 }
 
-/** 无序/有序/任务列表互相替换：不同类型直接改列表节点类型（保留嵌套），任务标记先清除 */
+/** 无序/有序列表互转：整棵列表子树统一类型（list 节点类型 + 每个 item 的 listType attr）。
+ *  只改 list 节点类型会被 syncListOrderPlugin（MILKDOWN_KEEP_LIST_ORDER）按子项 listType 改回原类型。 */
 function convertOrWrapList(kind: 'ul' | 'ol'): void {
   const crepe = currentEditor.value
   if (!crepe || crepe.readonly) return
 
-  const info = findList(crepe)
-  if (!info) {
-    act(crepe, kind === 'ul' ? wrapInBulletListCommand.key : wrapInOrderedListCommand.key)
-    return
-  }
-
   crepe.editor.action((ctx) => {
     const view = ctx.get(editorViewCtx)
-    const targetType = kind === 'ul' ? bulletListSchema.type(ctx) : orderedListSchema.type(ctx)
-    const tr = view.state.tr
-    let changed = false
+    const $from = view.state.selection.$from
+    const bulletT = bulletListSchema.type(ctx)
+    const orderedT = orderedListSchema.type(ctx)
+    const itemType = listItemSchema.type(ctx)
+    const targetType = kind === 'ul' ? bulletT : orderedT
+    const targetListType = kind === 'ol' ? 'ordered' : 'bullet'
 
-    // 先清任务标记
-    info.node.forEach((item, offset) => {
-      if (item.attrs.checked != null) {
-        tr.setNodeMarkup(info.pos + 1 + offset, undefined, { ...item.attrs, checked: null })
-        changed = true
+    let listPos: number | null = null
+    for (let d = $from.depth; d >= 0; d--) {
+      const n = $from.node(d)
+      if (n.type === bulletT || n.type === orderedT) {
+        listPos = $from.before(d)
+        break
+      }
+    }
+    if (listPos == null) {
+      // 不在列表内：直接包裹
+      callCommand(kind === 'ul' ? wrapInBulletListCommand.key : wrapInOrderedListCommand.key)(ctx)
+      return
+    }
+
+    const listNode = view.state.doc.nodeAt(listPos)
+    if (!listNode) return
+
+    const tr = view.state.tr
+    // 先收集子树内所有 list/item 节点（setNodeMarkup 不改尺寸，位置先算安全）
+    listNode.descendants((child, offset) => {
+      if (child.type === bulletT || child.type === orderedT) {
+        tr.setNodeMarkup(listPos + 1 + offset, targetType)
+      } else if (child.type === itemType) {
+        if (child.attrs.listType !== targetListType || child.attrs.checked != null) {
+          tr.setNodeMarkup(listPos + 1 + offset, undefined, {
+            ...child.attrs,
+            listType: targetListType,
+            checked: null,
+          })
+        }
       }
     })
-    // 类型不同 → 替换列表节点类型
-    if ((kind === 'ol') !== info.isOrdered) {
-      tr.setNodeMarkup(info.pos, targetType)
-      changed = true
-    }
-    if (changed) view.dispatch(tr)
+    tr.setNodeMarkup(listPos, targetType)
+    view.dispatch(tr)
+  })
+}
+
+/** 编辑器重新聚焦，让菜单操作期间选区保持可见 */
+export function focusEditor(): void {
+  const crepe = currentEditor.value
+  if (!crepe || crepe.readonly) return
+  crepe.editor.action((ctx) => {
+    ctx.get(editorViewCtx).focus()
   })
 }
 
@@ -309,4 +338,7 @@ export function runFormat(kind: FormatKind): void {
       withSelection(crepe, () => act(crepe, insertHrCommand.key))
       break
   }
+
+  // 命令后重新聚焦，保持选区可见
+  focusEditor()
 }

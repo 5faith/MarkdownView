@@ -16,7 +16,7 @@
         </svg>
       </span>
       <span v-else class="outline-node__dot" />
-      <span class="outline-node__text" @click="$emit('navigate', node.slug)">
+      <span class="outline-node__text" @click="$emit('navigate', node)">
         {{ node.text }}
       </span>
     </div>
@@ -25,7 +25,7 @@
         v-for="child in node.children"
         :key="child.slug"
         :node="child"
-        @navigate="(slug: string) => $emit('navigate', slug)"
+        @navigate="(child: OutlineItem) => $emit('navigate', child)"
       />
     </div>
   </div>
@@ -36,7 +36,7 @@ import { ref } from 'vue'
 import type { OutlineItem } from './OutlinePane.vue'
 
 defineProps<{ node: OutlineItem }>()
-defineEmits<{ navigate: [slug: string] }>()
+defineEmits<{ navigate: [node: OutlineItem] }>()
 
 const expanded = ref(true)
 </script>

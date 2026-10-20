@@ -39,7 +39,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { useFileOperation } from '../composables/useFileOperation'
 import { showConfirm } from '../composables/showConfirm'
-import { runFormat } from '../shared/editor'
+import { focusEditor, runFormat } from '../shared/editor'
 import { isMarkdownFile } from '../utils/fileType'
 import pkg from '../../package.json'
 
@@ -138,7 +138,12 @@ const menus = computed<Array<{ label: string; items: Array<MenuItem | '-'> }>>((
 ])
 
 function toggleMenu(label: string) {
-  openMenu.value = openMenu.value === label ? null : label
+  const opening = openMenu.value !== label
+  openMenu.value = opening ? label : null
+  // 打开菜单时让编辑器重新聚焦，选中文字保持高亮可见
+  if (opening && mdActive.value && !store.sourceMode && !store.readingMode) {
+    focusEditor()
+  }
 }
 
 // 菜单已展开时横移即切换，与桌面应用习惯一致
