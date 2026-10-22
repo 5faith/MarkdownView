@@ -36,7 +36,8 @@ function scrollTypewriter() {
   if (!ta) return
   const upto = ta.value.slice(0, ta.selectionStart)
   const line = upto.split('\n').length - 1
-  const lineHeight = 1.7 * 14
+  // 行高跟随实际样式（rem 缩放后不能写死 14px）
+  const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 24
   const target = line * lineHeight - ta.clientHeight / 2 + lineHeight
   ta.scrollTop = Math.max(0, target)
 }
@@ -114,8 +115,8 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.7;
-  padding: 32px 24px 96px;
+  padding: 2.286rem 1.714rem 6.857rem;
 }
 </style>

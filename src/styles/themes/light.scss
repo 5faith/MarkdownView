@@ -1,8 +1,14 @@
-/* 浅色主题（默认）。
- * :root 同时兜底 data-theme 写入前的首帧；其它主题一律写 html[data-theme='<name>']，
- * 特异性高于 :root，因此加载顺序无关。契约见 prd/style.md §4.1。 */
+/* ═══════════════════════════════════════════════════════════════════════
+ * 浅色主题变量层（prd/style.md §3 头部结构 / §4 变量契约）
+ *   MIT License · Copyright (c) 2026 5faith
+ *   1. 来源：本仓库自建，取 §4.1 浅色基准值（不复制 Drake 版权头）
+ *   2. 导出字体：无 —— 桌面应用不执行 @include-when-export
+ *   3. 变量：§4.1 全量 + §4.2 可选 + 应用扩展
+ * 选择器 :root = 默认主题，兼作 data-theme 写入前的首帧兜底。
+ * 新增主题：复制本文件 → 选择器改 html[data-theme='<name>'] → 只改值。
+ * ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  --text-color: #2e2e2e;
+  --text-color: #333333;
   --bg-color: #ffffff;
   --drake-accent: #e95f59;            /* 点缀色：引用左边条、文件树激活边框 */
   --drake-highlight: #d63200;         /* 高亮色：行内代码、链接、主按钮文字 */
@@ -17,23 +23,38 @@
   --blockquote-color: var(--text-color);
   --blockquote-bg-color: #fdefee;
   --code-block-bg-color: #2b2b2b;
-  --code-block-color: #c4cdd9;
+  --code-block-color: #a9b7c6;
   --yaml-color: #777777;
   --yaml-bg-color: #f7f7f7;
   --height-light-color: var(--drake-highlight);
   --height-light-border-color: var(--drake-highlight);
-  --table-border-color: #d9d9d9;
-  --table-header-bg-color: #eaeaea;
+  --table-border-color: #dfe2e5;
+  --table-header-bg-color: #f8f8f8;
   --table-bg-color: var(--bg-color);
-  --table-n2-bg-color: #f1f1f2;
-  --item-hover-bg-color: #e6e6e6b3;   /* 深浅主题共用的万能悬浮底色源 */
+  --table-n2-bg-color: #f8f8f8;
+  --footnotes-bg-color: #3c3d3e;
+  --footnotes-highlight: #ffd760;
+  --item-hover-bg-color: #e5e5e596;   /* 深色主题的万能底色源 */
   --active-file-bg-color: var(--item-hover-bg-color);
   --active-file-border-color: var(--drake-accent);
   --input-bg-color: var(--item-hover-bg-color);
   --btn-hover-bg-color: var(--item-hover-bg-color);
   --control-text-color: var(--text-color);
   --meta-content-color: var(--text-color);
-  --select-text-bg-color: #3473b068;
+  --rawblock-edit-panel-bd: var(--code-block-bg-color);
+  /* 任务列表勾选框：data-URI 内颜色必须 URL 编码（# → %23） */
+  --checkbox-checked: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath fill='%23e95f59' d='M2 2h12v12H2z'/%3E%3Cpath fill='none' stroke='%23fff' stroke-width='2' d='M4.5 8.5l2.5 2.5 4.5-5'/%3E%3C/svg%3E");
+  --checkbox-unchecked: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='2' y='2' width='12' height='12' rx='2' fill='none' stroke='%23dfe2e5' stroke-width='1.5'/%3E%3C/svg%3E");
+
+  /* ── §4.2 Typora 内置变量（浅色可选声明） ── */
   --side-bar-bg-color: #f5f5f6;       /* chrome 面板微灰，与编辑区白底区分 */
+  --select-text-bg-color: #3473b068;
+
+  /* ── 应用扩展（prd/style.md 未定义，本仓库自定义） ── */
   --text-secondary: rgba(51, 51, 51, 0.6);
+  --border-color: var(--table-border-color);   /* chrome 边框 */
+  --drag-overlay: rgba(233, 95, 89, 0.15);     /* 拖放蒙层：--drake-accent 的 15% */
 }
+
+/* code render（§5 段 23）：CM6 token 配色无法用 CSS 表达，
+ * 等价实现见 src/shared/cmTheme.ts（文件头有 Name/From/License）。 */

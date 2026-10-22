@@ -46,33 +46,33 @@ const expanded = ref(true)
   &__item {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 12px;
+    gap: 0.286rem;
+    padding: 0.214rem 0.857rem;
     font-size: var(--toc-text-size);
     color: var(--text-primary);
     cursor: pointer;
-    border-radius: 4px;
-    margin: 1px 4px;
+    border-radius: 0.286rem;
+    margin: 1px 0.286rem;
     transition: background 0.15s;
 
     &:hover {
       background: var(--bg-hover);
     }
 
-    &--h1 { font-weight: 700; font-size: calc(var(--toc-text-size) + 1px); }
+    &--h1 { font-weight: 700; font-size: calc(var(--toc-text-size) + 0.071rem); }
     &--h2 { font-weight: 600; font-size: var(--toc-text-size); }
     &--h3 { font-weight: 500; font-size: var(--toc-text-size); }
     &--h4,
     &--h5,
-    &--h6 { font-weight: 400; font-size: calc(var(--toc-text-size) - 1px); color: var(--text-secondary); }
+    &--h6 { font-weight: 400; font-size: calc(var(--toc-text-size) - 0.071rem); color: var(--text-secondary); }
   }
 
   &__arrow {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 1.143rem;
+    height: 1.143rem;
     flex-shrink: 0;
     color: var(--text-secondary);
     transition: transform 0.15s;
@@ -83,12 +83,12 @@ const expanded = ref(true)
   }
 
   &__dot {
-    width: 4px;
-    height: 4px;
+    width: 0.286rem;
+    height: 0.286rem;
     border-radius: 50%;
     background: var(--text-secondary);
     flex-shrink: 0;
-    margin: 0 6px;
+    margin: 0 0.429rem;
   }
 
   &__text {

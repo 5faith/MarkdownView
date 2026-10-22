@@ -62,44 +62,44 @@ function onCancel() {
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  from { opacity: 0; transform: translateY(-0.857rem) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .confirm-dialog {
-  min-width: 400px;
-  max-width: 480px;
+  min-width: 28.571rem;
+  max-width: 34.286rem;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border-radius: 0.857rem;
+  box-shadow: 0 1.429rem 4.286rem rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
   animation: slideIn 0.2s ease;
   user-select: none;
 
   &__header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 24px 28px 0;
+    gap: 0.857rem;
+    padding: 1.714rem 2rem 0;
   }
 
   &__icon {
-    font-size: 28px;
+    font-size: 2rem;
     line-height: 1;
   }
 
   &__title {
-    font-size: 17px;
+    font-size: 1.214rem;
     font-weight: 600;
     color: var(--text-primary);
   }
 
   &__body {
-    padding: 16px 28px 0;
+    padding: 1.143rem 2rem 0;
   }
 
   &__message {
-    font-size: 14px;
+    font-size: 1rem;
     line-height: 1.6;
     color: var(--text-secondary);
     white-space: pre-line;
@@ -109,16 +109,16 @@ function onCancel() {
   &__footer {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 24px 28px;
+    gap: 0.714rem;
+    padding: 1.714rem 2rem;
   }
 
   &__btn {
-    min-width: 80px;
-    padding: 8px 20px;
+    min-width: 5.714rem;
+    padding: 0.571rem 1.429rem;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 0.571rem;
+    font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;

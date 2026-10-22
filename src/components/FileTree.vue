@@ -340,8 +340,8 @@ watch(() => store.fileTreeVersion, () => {
 
 <style scoped lang="scss">
 .file-tree {
-  min-width: 180px;
-  max-width: 500px;
+  min-width: 12.857rem;
+  max-width: 35.714rem;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
@@ -354,20 +354,20 @@ watch(() => store.fileTreeVersion, () => {
     display: flex;
     align-items: center;
     gap: 2px;
-    height: 32px;
-    padding: 0 8px 0 10px;
+    height: 2.286rem;
+    padding: 0 0.571rem 0 0.714rem;
     flex-shrink: 0;
   }
 
   &__header-label {
-    font-size: 11px;
+    font-size: 0.786rem;
     font-weight: 600;
     color: var(--text-secondary);
     letter-spacing: 0.12em;
   }
 
   &__header-name {
-    font-size: 11px;
+    font-size: 0.786rem;
     color: var(--text-secondary);
     opacity: 0.6;
     overflow: hidden;
@@ -380,14 +380,14 @@ watch(() => store.fileTreeVersion, () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.571rem;
+    height: 1.571rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 0.357rem;
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 0.929rem;
     flex-shrink: 0;
     transition: background 0.15s, color 0.15s;
 
@@ -398,18 +398,18 @@ watch(() => store.fileTreeVersion, () => {
   }
 
   &__search {
-    padding: 0 10px 8px;
+    padding: 0 0.714rem 0.571rem;
     flex-shrink: 0;
 
     input {
       width: 100%;
       font: inherit;
-      font-size: 12.5px;
+      font-size: 0.893rem;
       color: var(--text-primary);
       background: var(--bg-primary);
       border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 5px 8px;
+      border-radius: 0.429rem;
+      padding: 0.357rem 0.571rem;
       outline: none;
 
       &:focus {
@@ -427,9 +427,9 @@ watch(() => store.fileTreeVersion, () => {
   &__hit {
     display: flex;
     align-items: center;
-    gap: 5px;
-    height: 26px;
-    padding: 0 8px;
+    gap: 0.357rem;
+    height: 1.857rem;
+    padding: 0 0.571rem;
     cursor: pointer;
     font-size: var(--file-tree-text-size);
     color: var(--text-primary);
@@ -459,8 +459,8 @@ watch(() => store.fileTreeVersion, () => {
   }
 
   &__empty {
-    padding: 16px 12px;
-    font-size: 12px;
+    padding: 1.143rem 0.857rem;
+    font-size: 0.857rem;
     color: var(--text-secondary);
     text-align: center;
   }
@@ -470,7 +470,7 @@ watch(() => store.fileTreeVersion, () => {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 4px;
+    width: 0.286rem;
     cursor: col-resize;
     background: transparent;
     transition: background 0.15s;

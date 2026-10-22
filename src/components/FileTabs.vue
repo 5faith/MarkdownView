@@ -142,7 +142,7 @@ async function handleMenuCloseAll() {
 .file-tabs {
   display: flex;
   align-items: center;
-  height: 32px;
+  height: 2.286rem;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
   overflow-x: auto;
@@ -161,10 +161,10 @@ async function handleMenuCloseAll() {
   &__item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 12px;
+    gap: 0.429rem;
+    padding: 0 0.857rem;
     height: 100%;
-    font-size: 12px;
+    font-size: 0.857rem;
     color: var(--text-secondary);
     cursor: pointer;
     border-right: 1px solid var(--border-color);
@@ -190,7 +190,7 @@ async function handleMenuCloseAll() {
   }
 
   &__name {
-    max-width: 120px;
+    max-width: 8.571rem;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -199,13 +199,13 @@ async function handleMenuCloseAll() {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 1.143rem;
+    height: 1.143rem;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.214rem;
     background: transparent;
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: 0.786rem;
     cursor: pointer;
     line-height: 1;
     transition: background 0.15s;

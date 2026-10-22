@@ -188,8 +188,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 2px;
-  height: 36px;
-  padding: 0 12px;
+  height: 2.571rem;
+  padding: 0 0.857rem;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
@@ -206,9 +206,9 @@ onBeforeUnmount(() => {
     background: transparent;
     color: var(--text-secondary);
     font: inherit;
-    font-size: 13px;
-    padding: 5px 10px;
-    border-radius: 6px;
+    font-size: 0.929rem;
+    padding: 0.357rem 0.714rem;
+    border-radius: 0.429rem;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
 
@@ -223,28 +223,28 @@ onBeforeUnmount(() => {
     position: absolute;
     top: 100%;
     left: 0;
-    margin-top: 4px;
-    min-width: 216px;
+    margin-top: 0.286rem;
+    min-width: 15.429rem;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
-    padding: 5px;
+    border-radius: 0.714rem;
+    box-shadow: 0 0.714rem 2.143rem rgba(0, 0, 0, 0.16);
+    padding: 0.357rem;
     z-index: 1000;
   }
 
   &__item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.571rem;
     width: 100%;
     border: none;
     background: transparent;
     color: var(--text-primary);
     font: inherit;
-    font-size: 13px;
-    padding: 7px 10px;
-    border-radius: 6px;
+    font-size: 0.929rem;
+    padding: 0.5rem 0.714rem;
+    border-radius: 0.429rem;
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
@@ -261,7 +261,7 @@ onBeforeUnmount(() => {
   }
 
   &__chk {
-    width: 14px;
+    width: 1rem;
     color: var(--accent-color);
     flex-shrink: 0;
   }
@@ -269,24 +269,24 @@ onBeforeUnmount(() => {
   &__sc {
     margin-left: auto;
     color: var(--text-secondary);
-    font-size: 11.5px;
-    padding-left: 18px;
+    font-size: 0.821rem;
+    padding-left: 1.286rem;
   }
 
   &__sep {
     height: 1px;
     background: var(--border-color);
-    margin: 5px 8px;
+    margin: 0.357rem 0.571rem;
   }
 
   &__brand {
     margin-left: auto;
-    font-size: 13px;
+    font-size: 0.929rem;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: 0.01em;
     white-space: nowrap;
-    padding: 0 4px;
+    padding: 0 0.286rem;
   }
 }
 </style>

@@ -185,9 +185,9 @@ async function handleClick() {
   &__row {
     display: flex;
     align-items: center;
-    gap: 4px;
-    height: 26px;
-    padding-right: 8px;
+    gap: 0.286rem;
+    height: 1.857rem;
+    padding-right: 0.571rem;
     cursor: pointer;
     font-size: var(--file-tree-text-size);
     color: var(--text-primary);
@@ -212,12 +212,12 @@ async function handleClick() {
   &__rename {
     width: 100%;
     font: inherit;
-    font-size: 12.5px;
+    font-size: 0.893rem;
     color: var(--text-primary);
     background: var(--bg-primary);
     border: 1px solid var(--accent-color);
-    border-radius: 4px;
-    padding: 1px 5px;
+    border-radius: 0.286rem;
+    padding: 1px 0.357rem;
     outline: none;
     min-width: 0;
   }
@@ -226,9 +226,9 @@ async function handleClick() {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
-    font-size: 8px;
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.571rem;
     transition: transform 0.15s;
     flex-shrink: 0;
 
@@ -238,7 +238,7 @@ async function handleClick() {
   }
 
   &__arrow-placeholder {
-    width: 14px;
+    width: 1rem;
     flex-shrink: 0;
   }
 
@@ -246,8 +246,8 @@ async function handleClick() {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
+    width: 1rem;
+    height: 1rem;
     flex-shrink: 0;
     line-height: 0;
   }

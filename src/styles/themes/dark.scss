@@ -1,23 +1,66 @@
-/* 深色主题。只写与浅色不同的值（纯别名变量在 light.scss 已指向 --text-color 等，
- * 会自动跟随），选择器用 html[data-theme='dark'] 保证不依赖文件加载顺序。 */
+/* ═══════════════════════════════════════════════════════════════════════
+ * 深色主题变量层（prd/style.md §3 头部结构 / §4 变量契约）
+ *   MIT License · Copyright (c) 2026 5faith
+ *   1. 来源：本仓库自建，取 §4.1 深色值；不复制 Drake 版权头
+ *   2. 导出字体：无 —— 桌面应用不执行 @include-when-export
+ *   3. 变量：§4.1 全量（不依赖 light.scss）+ §4.2 + 应用扩展
+ * 选择器 html[data-theme='dark'] 特异性 0,1,1 高于 :root 的 0,1,0，
+ * 因此与 CSS 加载顺序无关。
+ * ═══════════════════════════════════════════════════════════════════════ */
 html[data-theme='dark'] {
   --text-color: #d6d6d6;
   --bg-color: #1d1f21;
-  --side-bar-bg-color: var(--bg-color);
+  --drake-accent: #e95f59;
   --drake-highlight: #ff7350;
+  --a-color: var(--drake-highlight);
   --title-color: #e6e6e6;
+  --strong-color: var(--title-color);
+  --variable-color: var(--drake-highlight);
+  --outline-active-color: var(--a-color);
   --blur-text-color: rgba(214, 214, 214, 0.5);
+  --horizontal-divider-color: var(--title-color);
+  --blockquote-border-color: var(--drake-accent);
+  --blockquote-color: var(--text-color);
   --blockquote-bg-color: rgba(233, 95, 89, 0.08);
+  --code-block-bg-color: #2b2b2b;
+  --code-block-color: #a9b7c6;
   --yaml-color: #8a8a8a;
   --yaml-bg-color: #26282b;
+  --height-light-color: var(--drake-highlight);
+  --height-light-border-color: var(--drake-highlight);
   --table-border-color: #3a3d40;
   --table-header-bg-color: #26282b;
+  --table-bg-color: var(--bg-color);
   --table-n2-bg-color: #242628;
+  --footnotes-bg-color: #3c3d3e;
+  --footnotes-highlight: #ffd760;
   --item-hover-bg-color: rgba(255, 255, 255, 0.08);
+  --active-file-bg-color: var(--item-hover-bg-color);
+  --active-file-border-color: var(--drake-accent);
+  --input-bg-color: var(--item-hover-bg-color);
+  --btn-hover-bg-color: var(--item-hover-bg-color);
+  --control-text-color: var(--text-color);
+  --meta-content-color: var(--text-color);
+  --rawblock-edit-panel-bd: var(--code-block-bg-color);
+  --checkbox-checked: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath fill='%23e95f59' d='M2 2h12v12H2z'/%3E%3Cpath fill='none' stroke='%23fff' stroke-width='2' d='M4.5 8.5l2.5 2.5 4.5-5'/%3E%3C/svg%3E");
+  --checkbox-unchecked: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='2' y='2' width='12' height='12' rx='2' fill='none' stroke='%233a3d40' stroke-width='1.5'/%3E%3C/svg%3E");
+
+  /* ── §4.2 Typora 内置变量（深浅共有的两项） ── */
+  --side-bar-bg-color: var(--bg-color);
   --select-text-bg-color: #3473b068;
+
+  /* ── 应用扩展（prd/style.md 未定义，本仓库自定义） ── */
   --text-secondary: rgba(214, 214, 214, 0.6);
-  --border-color: #282828;
-  --md-char-color: #535455;           /* Typora 内置变量（style.md §4.2） */
+  --border-color: #282828;            /* 与 --window-border 一致 */
+  --drag-overlay: rgba(233, 95, 89, 0.15);
+
+  /* ── §4.2 Typora 内置变量（深色专有，必须覆盖） ── */
+  --mermaid-theme: night;
+  --md-char-color: #535455;
+  --search-select-bg-color: #ffffff;
+  --search-select-text-color: var(--bg-color);
   --window-border: 1px solid #282828;
-  /* 代码块两种主题同为深底，--code-block-* 不覆盖 */
 }
+
+/* code render（§5 段 23）：CM6 token 配色无法用 CSS 表达，
+ * 等价实现见 src/shared/cmTheme.ts（文件头有 Name/From/License）。 */

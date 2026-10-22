@@ -71,5 +71,10 @@ const extensions = computed(() => {
   :deep(.cm-editor) {
     height: 100%;
   }
+
+  /* CM6 基础主题把 .cm-scroller 写死为 monospace，必须显式覆盖才能用内置字体 */
+  :deep(.cm-scroller) {
+    font-family: var(--monospace);
+  }
 }
 </style>

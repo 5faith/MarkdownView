@@ -217,52 +217,52 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 0.857rem;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 1rem;
   }
 
   &__empty-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 10px;
+    width: 3.429rem;
+    height: 3.429rem;
+    border-radius: 0.714rem;
     background: var(--accent-color);
     color: #fff;
     font-weight: 700;
-    font-size: 24px;
+    font-size: 1.714rem;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   &__empty-sub {
-    font-size: 12px;
+    font-size: 0.857rem;
     opacity: 0.6;
   }
 
   &__empty-formats {
-    font-size: 11px;
+    font-size: 0.786rem;
     opacity: 0.4;
-    margin-top: -4px;
+    margin-top: -0.286rem;
   }
 
   &__reading-exit {
     position: fixed;
-    top: 14px;
-    right: 16px;
+    top: 1rem;
+    right: 1.143rem;
     z-index: 20;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.429rem;
     border: 1px solid var(--border-color);
     background: var(--bg-primary);
     color: var(--text-secondary);
     font: inherit;
-    font-size: 12px;
-    padding: 6px 12px;
-    border-radius: 99px;
+    font-size: 0.857rem;
+    padding: 0.429rem 0.857rem;
+    border-radius: 7.071rem;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0.286rem 1.143rem rgba(0, 0, 0, 0.12);
 
     &:hover {
       color: var(--text-primary);
@@ -284,23 +284,23 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 40px 60px;
+    gap: 0.857rem;
+    padding: 2.857rem 4.286rem;
     background: var(--bg-primary);
     border: 2px dashed var(--accent-color);
-    border-radius: 12px;
+    border-radius: 0.857rem;
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: 1.143rem;
     font-weight: 500;
   }
 
   &__drag-icon {
-    font-size: 48px;
+    font-size: 3.429rem;
     color: var(--accent-color);
   }
 
   &__drag-sub {
-    font-size: 12px;
+    font-size: 0.857rem;
     color: var(--text-secondary);
     font-weight: 400;
   }
@@ -313,17 +313,17 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 1.143rem;
     z-index: 2000;
     color: #fff;
-    font-size: 14px;
+    font-size: 1rem;
     font-weight: 500;
   }
 
   &__loading-spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    width: 2.571rem;
+    height: 2.571rem;
+    border: 0.214rem solid rgba(255, 255, 255, 0.3);
     border-top-color: #fff;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;

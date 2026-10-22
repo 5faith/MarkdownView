@@ -52,7 +52,7 @@ const fileOps = useFileOperation()
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 4px 10px;
+  padding: 0.286rem 0.714rem;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-secondary);
   overflow-x: auto;
@@ -67,15 +67,15 @@ const fileOps = useFileOperation()
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 28px;
-    height: 28px;
-    padding: 0 6px;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.429rem;
     border: none;
-    border-radius: 6px;
+    border-radius: 0.429rem;
     background: transparent;
     color: var(--text-secondary);
     font: inherit;
-    font-size: 13px;
+    font-size: 0.929rem;
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s, color 0.15s;
@@ -91,8 +91,8 @@ const fileOps = useFileOperation()
     }
 
     svg {
-      width: 15px;
-      height: 15px;
+      width: 1.071rem;
+      height: 1.071rem;
       fill: none;
       stroke: currentColor;
       stroke-width: 1.8;
@@ -102,24 +102,24 @@ const fileOps = useFileOperation()
 
     code {
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 0.786rem;
     }
   }
 
   &__sep {
     width: 1px;
-    height: 16px;
+    height: 1.143rem;
     background: var(--border-color);
-    margin: 0 6px;
+    margin: 0 0.429rem;
     flex-shrink: 0;
   }
 
   &__flag {
-    font-size: 11px;
+    font-size: 0.786rem;
     color: var(--accent-color);
     background: var(--bg-hover);
-    padding: 2px 9px;
-    border-radius: 99px;
+    padding: 2px 0.643rem;
+    border-radius: 7.071rem;
     white-space: nowrap;
   }
 

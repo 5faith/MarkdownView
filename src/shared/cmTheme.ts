@@ -4,6 +4,11 @@ import type { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 
 /**
+ * 代码高亮层（prd/style.md §5 段 23 的应用等价物：CM6 用 HighlightStyle 而非 CSS）。
+ * Name: MarkdownView Light / MarkdownView Dark
+ * From: 自建取色；dark 的 token 色参考 Atom One Dark（MIT）
+ * License: MIT
+ *
  * Crepe 代码块语法高亮按应用明暗主题着色。
  * Crepe 默认用 CM 亮色 token（深紫/深绿/黑），暗底上几乎不可见。
  * 主题实例随 MilkdownEditor 重建（App 的 :key 含 store.theme）而切换。

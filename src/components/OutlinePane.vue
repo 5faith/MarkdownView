@@ -184,27 +184,27 @@ onBeforeUnmount(() => {
   position: relative;
 
   &__header {
-    padding: 8px 12px;
+    padding: 0.571rem 0.857rem;
     border-bottom: 1px solid var(--border-color);
   }
 
   &__title {
-    font-size: 12px;
+    font-size: 0.857rem;
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.036rem;
   }
 
   &__body {
     flex: 1;
     overflow-y: auto;
-    padding: 4px 0;
+    padding: 0.286rem 0;
   }
 
   &__empty {
-    padding: 16px 12px;
-    font-size: 12px;
+    padding: 1.143rem 0.857rem;
+    font-size: 0.857rem;
     color: var(--text-secondary);
     text-align: center;
   }
@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
     position: absolute;
     top: 0;
     right: -2px;
-    width: 4px;
+    width: 0.286rem;
     height: 100%;
     cursor: col-resize;
     z-index: 10;

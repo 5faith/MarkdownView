@@ -48,18 +48,18 @@ function countWords(text: string): number {
 .status-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.571rem;
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-size: 12px;
-  padding: 4px 14px;
+  font-size: 0.857rem;
+  padding: 0.286rem 1rem;
   flex-shrink: 0;
   user-select: none;
   -webkit-app-region: drag;
 
   &__name {
-    max-width: 240px;
+    max-width: 17.143rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -78,9 +78,9 @@ function countWords(text: string): number {
     background: transparent;
     color: var(--text-secondary);
     font: inherit;
-    font-size: 12px;
-    padding: 2px 10px;
-    border-radius: 99px;
+    font-size: 0.857rem;
+    padding: 2px 0.714rem;
+    border-radius: 7.071rem;
     cursor: pointer;
     -webkit-app-region: no-drag;
     transition: color 0.15s, border-color 0.15s;

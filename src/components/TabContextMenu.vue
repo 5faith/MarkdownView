@@ -49,13 +49,13 @@ defineEmits<{
 .tab-context-menu {
   position: fixed;
   z-index: 10000;
-  min-width: 160px;
+  min-width: 11.429rem;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18),
-              0 2px 8px rgba(0, 0, 0, 0.08);
-  padding: 4px 0;
+  border-radius: 0.571rem;
+  box-shadow: 0 0.571rem 2.143rem rgba(0, 0, 0, 0.18),
+              0 2px 0.571rem rgba(0, 0, 0, 0.08);
+  padding: 0.286rem 0;
   user-select: none;
   animation: menuFadeIn 0.1s ease;
 }
@@ -66,8 +66,8 @@ defineEmits<{
 }
 
 .tab-context-menu__item {
-  padding: 8px 16px;
-  font-size: 13px;
+  padding: 0.571rem 1.143rem;
+  font-size: 0.929rem;
   color: var(--text-primary);
   cursor: pointer;
   transition: background 0.1s;
