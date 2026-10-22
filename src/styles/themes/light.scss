@@ -1,0 +1,39 @@
+/* 浅色主题（默认）。
+ * :root 同时兜底 data-theme 写入前的首帧；其它主题一律写 html[data-theme='<name>']，
+ * 特异性高于 :root，因此加载顺序无关。契约见 prd/style.md §4.1。 */
+:root {
+  --text-color: #2e2e2e;
+  --bg-color: #ffffff;
+  --drake-accent: #e95f59;            /* 点缀色：引用左边条、文件树激活边框 */
+  --drake-highlight: #d63200;         /* 高亮色：行内代码、链接、主按钮文字 */
+  --a-color: var(--drake-highlight);
+  --title-color: #273849;
+  --strong-color: var(--title-color);
+  --variable-color: var(--drake-highlight);
+  --outline-active-color: var(--a-color);
+  --blur-text-color: rgba(51, 51, 51, 0.5);
+  --horizontal-divider-color: var(--title-color);
+  --blockquote-border-color: var(--drake-accent);
+  --blockquote-color: var(--text-color);
+  --blockquote-bg-color: #fdefee;
+  --code-block-bg-color: #2b2b2b;
+  --code-block-color: #c4cdd9;
+  --yaml-color: #777777;
+  --yaml-bg-color: #f7f7f7;
+  --height-light-color: var(--drake-highlight);
+  --height-light-border-color: var(--drake-highlight);
+  --table-border-color: #d9d9d9;
+  --table-header-bg-color: #eaeaea;
+  --table-bg-color: var(--bg-color);
+  --table-n2-bg-color: #f1f1f2;
+  --item-hover-bg-color: #e6e6e6b3;   /* 深浅主题共用的万能悬浮底色源 */
+  --active-file-bg-color: var(--item-hover-bg-color);
+  --active-file-border-color: var(--drake-accent);
+  --input-bg-color: var(--item-hover-bg-color);
+  --btn-hover-bg-color: var(--item-hover-bg-color);
+  --control-text-color: var(--text-color);
+  --meta-content-color: var(--text-color);
+  --select-text-bg-color: #3473b068;
+  --side-bar-bg-color: #f5f5f6;       /* chrome 面板微灰，与编辑区白底区分 */
+  --text-secondary: rgba(51, 51, 51, 0.6);
+}
