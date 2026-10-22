@@ -8,16 +8,16 @@
  * 新增主题：复制本文件 → 选择器改 html[data-theme='<name>'] → 只改值。
  * ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  --text-color: #333333;
+  --text-color: #1f2328;              /* 用户要求更清晰；style.md §4.1 基准为 #333333 */
   --bg-color: #ffffff;
   --drake-accent: #e95f59;            /* 点缀色：引用左边条、文件树激活边框 */
   --drake-highlight: #d63200;         /* 高亮色：行内代码、链接、主按钮文字 */
   --a-color: var(--drake-highlight);
-  --title-color: #273849;
+  --title-color: #111827;
   --strong-color: var(--title-color);
   --variable-color: var(--drake-highlight);
   --outline-active-color: var(--a-color);
-  --blur-text-color: rgba(51, 51, 51, 0.5);
+  --blur-text-color: rgba(31, 35, 40, 0.5);
   --horizontal-divider-color: var(--title-color);
   --blockquote-border-color: var(--drake-accent);
   --blockquote-color: var(--text-color);
@@ -51,7 +51,7 @@
   --select-text-bg-color: #3473b068;
 
   /* ── 应用扩展（prd/style.md 未定义，本仓库自定义） ── */
-  --text-secondary: rgba(51, 51, 51, 0.6);
+  --text-secondary: rgba(31, 35, 40, 0.75);
   --border-color: var(--table-border-color);   /* chrome 边框 */
   --drag-overlay: rgba(233, 95, 89, 0.15);     /* 拖放蒙层：--drake-accent 的 15% */
 }

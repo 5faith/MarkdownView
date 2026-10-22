@@ -32,10 +32,13 @@
 
     <span class="menu-bar__brand">MarkdownView</span>
   </header>
+
+  <SettingsDialog :open="settingsOpen" @close="settingsOpen = false" />
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import SettingsDialog from './SettingsDialog.vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { useFileOperation } from '../composables/useFileOperation'
 import { showConfirm } from '../composables/showConfirm'
@@ -69,6 +72,7 @@ interface MenuItem {
 const store = useMarkdownStore()
 const fileOps = useFileOperation()
 const openMenu = ref<string | null>(null)
+const settingsOpen = ref(false)
 
 const mdActive = computed(
   () => !!store.activeFile && isMarkdownFile(store.activeFile.name),
@@ -131,6 +135,8 @@ const menus = computed<Array<{ label: string; items: Array<MenuItem | '-'> }>>((
     label: '帮助',
     items: [
       { label: '加载模板', sc: 'Ctrl+Shift+T', run: () => store.loadDefaultContent() },
+      '-',
+      { label: '设置…', run: () => { settingsOpen.value = true } },
       '-',
       { label: '关于 MarkdownView', run: showAbout },
     ],
@@ -204,9 +210,9 @@ onBeforeUnmount(() => {
   &__btn {
     border: none;
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     font: inherit;
-    font-size: 0.929rem;
+    font-size: 1rem;
     padding: 0.357rem 0.714rem;
     border-radius: 0.429rem;
     cursor: pointer;
@@ -224,7 +230,7 @@ onBeforeUnmount(() => {
     top: 100%;
     left: 0;
     margin-top: 0.286rem;
-    min-width: 15.429rem;
+    min-width: 17.5rem;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: 0.714rem;
@@ -242,7 +248,8 @@ onBeforeUnmount(() => {
     background: transparent;
     color: var(--text-primary);
     font: inherit;
-    font-size: 0.929rem;
+    font-size: 1rem;
+    font-weight: 500;
     padding: 0.5rem 0.714rem;
     border-radius: 0.429rem;
     cursor: pointer;

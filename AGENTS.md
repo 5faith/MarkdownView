@@ -54,6 +54,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 ### 变量契约（style.md §4）
 
 - 每个主题文件必须**全量**声明 §4.1 变量（深色也照抄变量名，不允许只写差异、依赖 `light.scss` 兜底）。
+- **已知偏离**：浅色正文/标题色按用户要求加深为 `#1f2328` / `#111827`（§4.1 基准是 `#333333` / `#273849`），不要再「纠正」回基准；改对比度前先确认这是产品决定。
 - §4.2 内置变量：深色必须覆盖 `--mermaid-theme`、`--side-bar-bg-color`、`--md-char-color`、`--select-text-bg-color`、`--search-select-bg-color`、`--search-select-text-color`、`--window-border`。
 - `--footnotes-*`、`--rawblock-edit-panel-bd`、`--checkbox-*` 目前无对应 UI，但按契约先声明占位（未消费≠可删）。
 - 应用扩展变量（`--text-secondary`、`--border-color`、`--prose-width`、`--bg-primary` 等）只允许出现在两处：`global.scss` 的派生层，或主题文件末尾的「应用扩展」段。新增前先确认 `style.md` 里没有现成变量；`--side-bar-bg-color` / `--select-text-bg-color` 属 §4.2，浅色可选声明、深色必须覆盖。
@@ -63,7 +64,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 
 ### 尺寸与缩放（style.md §4.3）
 
-- `html { font-size: var(--text-size) }` 是唯一缩放入口；`--text-size` 是全仓库唯一允许的 px 字号（14px）。
+- `html { font-size: var(--text-size) }` 是唯一缩放入口；`--text-size` 是全仓库唯一允许的 px 字号，默认 14px，`帮助 → 设置…` 弹窗可选 13/14/15/16px（写入根元素内联变量）。
 - 字号、间距、内边距、圆角、图标尺寸、行高**一律 rem**（1rem = 14px；13px → `0.929rem`，8px → `0.571rem`）。组件 `<style>` 里出现 `font-size: 13px` 即不合规。
 - 例外：1px 发丝线边框、`--window-border: 1px solid #282828`、用户拖拽产生的像素宽度（`store.fileTreeWidth` 等 JS 内联值）、`data:` URI 内的像素尺寸。
 - 标题尺度固定 `h1 2rem / h2 1.8rem / h3 1.4rem / h4 1.2rem / h5,h6 1rem`，不得改写。

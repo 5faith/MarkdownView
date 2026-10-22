@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watchEffect } from 'vue'
 import DEFAULT_CONTENT from '../assets/TEMPLATE.md?raw'
-import type { AppTheme, CaretPosition, MarkdownFile } from '../types'
+import type { AppFont, AppTheme, CaretPosition, MarkdownFile } from '../types'
 import { loadPreferences, savePreferences } from '../utils/preferences'
 import { showConfirm } from '../composables/showConfirm'
 
@@ -20,6 +20,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const tabs = ref<MarkdownFile[]>([])
   const activeId = ref<string>('')
   const theme = ref<AppTheme>(prefs.theme)
+  const font = ref<AppFont>(prefs.font)
+  const fontSize = ref(prefs.fontSize)
   const sourceMode = ref(prefs.sourceMode)
   const typewriter = ref(prefs.typewriter)
   const showOutline = ref(prefs.showOutline)
@@ -32,6 +34,35 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const fileTreeVersion = ref(0)
   const caret = ref<CaretPosition>({ line: 1, col: 1 })
 
+  // 非默认字体方案：text 作用于正文/标题，mono 作用于代码与源码模式
+  const FONT_STACKS: Record<Exclude<AppFont, 'maple'>, { text: string; mono: string }> = {
+    system: {
+      text: 'system-ui, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif',
+      mono: 'Consolas, "Courier New", monospace',
+    },
+    mono: {
+      text: 'Consolas, "Courier New", monospace',
+      mono: 'Consolas, "Courier New", monospace',
+    },
+  }
+
+  // 外观设置写成根元素内联变量；maple 是 CSS 默认值，移除内联覆盖即可（避免两处维护字体栈）
+  function applyAppearance() {
+    const root = document.documentElement
+    root.style.setProperty('--text-size', `${fontSize.value}px`)
+    if (font.value === 'maple') {
+      root.style.removeProperty('--text-font')
+      root.style.removeProperty('--title-font')
+      root.style.removeProperty('--monospace')
+      return
+    }
+    const stack = FONT_STACKS[font.value]
+    root.style.setProperty('--text-font', stack.text)
+    root.style.setProperty('--title-font', stack.text)
+    root.style.setProperty('--monospace', stack.mono)
+  }
+  applyAppearance()
+
   const activeFile = computed(
     () => tabs.value.find((t) => t.id === activeId.value) ?? null,
   )
@@ -42,6 +73,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
   watchEffect(() => {
     savePreferences({
       theme: theme.value,
+      font: font.value,
+      fontSize: fontSize.value,
       sourceMode: sourceMode.value,
       typewriter: typewriter.value,
       showOutline: showOutline.value,
@@ -51,6 +84,9 @@ export const useMarkdownStore = defineStore('markdown', () => {
       workspacePath: workspacePath.value,
     })
   })
+
+  // 字体/字号变化立即写回根元素，无需重建组件
+  watchEffect(applyAppearance)
 
   let unwatchFile: (() => void) | null = null
 
@@ -297,6 +333,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     activeFile,
     content,
     theme,
+    font,
+    fontSize,
     sourceMode,
     typewriter,
     caret,

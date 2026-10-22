@@ -1,7 +1,12 @@
 export type AppTheme = 'light' | 'dark'
 
+/** 界面字体方案：内置 Maple / 系统界面字体 / 系统等宽 */
+export type AppFont = 'maple' | 'system' | 'mono'
+
 export interface Preferences {
   theme: AppTheme
+  font: AppFont
+  fontSize: number
   sourceMode: boolean
   typewriter: boolean
   showOutline: boolean
@@ -13,6 +18,8 @@ export interface Preferences {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'light',
+  font: 'maple',
+  fontSize: 14,
   sourceMode: false,
   typewriter: false,
   showOutline: true,
