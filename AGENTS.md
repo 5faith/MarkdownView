@@ -1,6 +1,6 @@
-# AGENTS.md
+# MarkdownView
 
-Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Markdown 编辑器。包管理器 **pnpm**。代码注释与文档用中文。
+Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Markdown 编辑器。包管理器 **pnpm**，代码注释与文档用中文。
 
 ## 命令
 
@@ -9,13 +9,27 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `pnpm tauri build` — 打安装包（`beforeBuildCommand` 会再跑一次 `pnpm build`）。
 - Vite 端口 14200 是 `strictPort`，改端口必须同步 `src-tauri/tauri.conf.json` 的 `devUrl`。
 
-## 容易踩的坑
+## 结构
 
-- `vue-tsc -b` 没有 `outDir`/`noEmit`，会在 `src/` 里就地生成同名 `.js` / `.vue.js`。这些是产物：不要编辑、不要提交（`.gitignore` 已忽略）；`predev` 与 `pnpm clean` 会删掉它们。
-- 新增任何 `@tauri-apps/plugin-*` 调用，必须先在 `src-tauri/capabilities/default.json` 加权限（`fs:scope` 已放行 `**`，但 API 权限仍需逐项声明）。
-- JS 侧 Tauri API 一律在函数内 `await import('@tauri-apps/plugin-fs')` 动态导入，不要顶层静态导入。
-- 版本号三处必须同时改：`package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json`。
-- `README.md` 已过时（还写 Vditor），编辑器实际是 Milkdown Crepe 7.x。
+- `src/main.ts` — 入口：Pinia、`global.scss`、主题（glob 全量注册）、Crepe 基础样式。
+- `src/App.vue` — 布局与启动流程：`?workspace=` 参数、`get_file_args`、`file-open` 事件（单实例转发）、拖放、关闭确认。
+- `src/components/` — UI 组件：`MenuBar`、`SettingsDialog`、`EditorToolbar`、`MilkdownEditor`、`SourceEditor`、`CodeMirrorEditor`、`FileTree*`、`FileTabs`、`OutlinePane`、`StatusBar`、`FileIcon`、`ConfirmDialog`。
+- `src/stores/useMarkdownStore.ts` — 唯一 Pinia store，setup 语法、全 `ref()`；偏好存 localStorage `markdownview-preferences`。
+- `src/composables/` — `useFileOperation`（打开/保存/另存）、`useMilkdown`、`useExportPdf`（marked → 隐藏 iframe 打印）、`useKeyboardShortcuts`、`useDragDrop`、`useCloseConfirmation`。
+- `src/shared/` — `editor.ts`（`currentEditor` 单例 + `runFormat` 命令入口）、`cmTheme.ts`（代码块明暗高亮）。
+- `src/utils/` — `preferences.ts`（偏好读写）、`fileType.ts`（按扩展名判定展示方式）。
+- `src/types/index.ts` — 共享类型（`AppTheme`、`Preferences`、`MarkdownFile`、`FileTreeNode`、`CaretPosition`）。
+- `src/assets/` — `TEMPLATE.md`（新建文件模板）、`fonts/`（内置 Maple Mono NF CN woff2 + OFL 许可）。
+- `src-tauri/src/lib.rs` — 全部 Rust 逻辑：`get_file_args`、`reveal_in_file_manager`、插件注册、single-instance、ctrlc。`main.rs` 只是入口；新增命令必须加进 `generate_handler!`，命令名 snake_case。
+- `src-tauri/` — `tauri.conf.json` 管窗口、构建与 `devUrl`；`capabilities/default.json` 管 Tauri 权限白名单。
+- `src/styles/global.scss` — 骨架层（与主题无关）；`src/styles/themes/<name>.scss` — 每主题一个变量文件；规则见「主题与样式契约」，标准来源 `prd/style.md`。
+- `prd/` — 需求目录，每个需求一个 `prd/{yyyyMMdd}-{需求名}/`，见「需求文档（prd/）」；`version/` — 需求计划与修改记录，命名 `{yyyyMMdd}-{需求名}-plan.md` / `-modification.md`。
+
+## 需求文档（prd/）
+
+- 在 `prd/` 下新建文件**默认视为新增需求**：先创建 `prd/{yyyyMMdd}-{需求名}/` 目录，再在目录内写 `{yyyyMMdd}-{需求名}-plan.md` 作为需求/修改计划，实现后补 `-modification.md`；不要把需求 md 平铺在 `prd/` 根目录。
+- 只有极小的改动（文案、样式微调）可跳过目录直接在 `prd/` 建文件；拿不准一律按需求目录走。
+- 需求目录内存放该需求的全部产物：计划、修改记录、预览 HTML、设计稿。
 
 ## 编辑器同步契约（改编辑器、工具栏、菜单前先读）
 
@@ -26,15 +40,6 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `currentEditor` 必须保持 `shallowRef`：Vue 深代理会让 Crepe 类的 `#private` 字段抛错。
 - `MilkdownEditor` 由 `:key="${activeId}-${theme}"` 驱动整实例重建；切文件/切主题不是增量更新。代码块高亮主题通过 `Crepe.Feature.CodeMirror` 的 `featureConfigs` 传入。
 - `store.content` 是 `activeFile.content` 的 computed；写入一律 `store.setContent()`（同时置 `saved = false`）。`watchEffect` 会监听 `activeFile` 并在标签切换时从磁盘重读。
-
-## 结构
-
-- `src/App.vue` — 布局与启动流程：`?workspace=` 参数、`get_file_args`、`file-open` 事件（单实例转发）、拖放、关闭确认。
-- `src/stores/useMarkdownStore.ts` — 唯一 Pinia store，setup 语法、全 `ref()`；偏好存 localStorage `markdownview-preferences`。
-- `src/composables/` — `useFileOperation`（打开/保存/另存）、`useMilkdown`、`useExportPdf`（marked → 隐藏 iframe 打印）、`useKeyboardShortcuts`、`useDragDrop`、`useCloseConfirmation`。
-- `src-tauri/src/lib.rs` — 全部 Rust 逻辑：`get_file_args`、`reveal_in_file_manager`、插件注册、single-instance、ctrlc。`main.rs` 只是入口；新增命令必须加进 `generate_handler!`，命令名 snake_case。
-- `src/styles/global.scss` — 骨架层（与主题无关）；`src/styles/themes/<name>.scss` — 每主题一个变量文件；规则见下一节「主题与样式契约」，标准来源是 `prd/style.md`。
-- `prd/`、`version/` — 需求计划与修改记录，命名 `{yyyyMMdd}-{需求名}-plan.md` / `-modification.md`。
 
 ## 主题与样式契约（改样式前必读）
 
@@ -85,6 +90,14 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - §5 里依赖 Typora DOM 的选择器（`#write`、`.md-fences`、`.md-diagram-panel-preview`、`[id^=mermaidChart]` 等）由 Crepe / 组件替代；Mermaid、脚注、raw block、任务列表当前无 UI。
 - §2 的「骨架三处结构性修改要在 12 个主题文件中同步」不适用：本仓库骨架只有 `global.scss` 一份，天然同步。
 
+## 容易踩的坑
+
+- `vue-tsc -b` 没有 `outDir`/`noEmit`，会在 `src/` 里就地生成同名 `.js` / `.vue.js`。这些是产物：不要编辑、不要提交（`.gitignore` 已忽略）；`predev` 与 `pnpm clean` 会删掉它们。
+- 新增任何 `@tauri-apps/plugin-*` 调用，必须先在 `src-tauri/capabilities/default.json` 加权限（`fs:scope` 已放行 `**`，但 API 权限仍需逐项声明）。
+- JS 侧 Tauri API 一律在函数内 `await import('@tauri-apps/plugin-fs')` 动态导入，不要顶层静态导入。
+- `README.md` 已过时（还写 Vditor），编辑器实际是 Milkdown Crepe 7.x。
+
 ## 发布
 
-打 tag 触发 CI：`git tag -f vX.Y.Z && git push origin -f vX.Y.Z` → `.github/workflows/build-and-release.yml`（Windows/macOS×2/Linux 构建，GitHub 草稿 release，Windows 另挂便携 zip）。dev → main 合并流程见 `command.md`。
+- 版本号三处必须同时改且保持一致：`package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json`。
+- 打 tag 触发 CI：`git tag -f vX.Y.Z && git push origin -f vX.Y.Z` → `.github/workflows/build-and-release.yml`（Windows/macOS×2/Linux 构建，GitHub 草稿 release，Windows 另挂便携 zip）。dev → main 合并流程见 `command.md`。
