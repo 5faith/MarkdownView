@@ -93,8 +93,9 @@
   --accent-color: var(--drake-accent);
   --font-sans: var(--text-font);
   --font-mono: var(--monospace);
-  /* §5 段 11 内容区宽度：Drake 为 1200px；此处按阅读尺度重写为 780px */
-  --prose-width: 55.714rem;
+  /* §5 段 11 内容区宽度：Drake 为 1200px。clamp 三段：最窄 780px（55.714rem），
+     随视口按 72vw 增长，宽屏封顶 1200px（85.714rem）避免行长失控 */
+  --prose-width: clamp(55.714rem, 72vw, 85.714rem);
 }
 
 /* ─────────── Crepe 变量映射（应用扩展：--crepe-* → 契约变量，明暗自动跟随） ─────────── */
