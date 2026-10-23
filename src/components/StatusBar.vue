@@ -9,16 +9,6 @@
     <span>{{ store.content.length }} 字符</span>
     <span class="status-bar__spacer" />
     <span v-if="showCaret">行 {{ store.caret.line }}，列 {{ store.caret.col }}</span>
-    <span v-if="showCaret" class="status-bar__sep">·</span>
-    <button
-      class="status-bar__toggle"
-      :class="{ 'status-bar__toggle--on': store.typewriter }"
-      :aria-pressed="store.typewriter"
-      title="打字机滚动模式"
-      @click="store.toggleTypewriter"
-    >
-      打字机
-    </button>
   </div>
 </template>
 
@@ -71,29 +61,6 @@ function countWords(text: string): number {
 
   &__spacer {
     flex: 1;
-  }
-
-  &__toggle {
-    border: 1px solid var(--border-color);
-    background: transparent;
-    color: var(--text-secondary);
-    font: inherit;
-    font-size: 0.857rem;
-    padding: 2px 0.714rem;
-    border-radius: 7.071rem;
-    cursor: pointer;
-    -webkit-app-region: no-drag;
-    transition: color 0.15s, border-color 0.15s;
-
-    &:hover {
-      color: var(--text-primary);
-      background: var(--bg-hover);
-    }
-
-    &--on {
-      color: var(--accent-color);
-      border-color: var(--accent-color);
-    }
   }
 }
 </style>

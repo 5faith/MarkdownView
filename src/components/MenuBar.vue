@@ -123,12 +123,8 @@ const menus = computed<Array<{ label: string; items: Array<MenuItem | '-'> }>>((
       { label: '目录树', checked: store.showFileTree, disabled: !store.workspacePath, run: () => store.toggleFileTree() },
       { label: '大纲', checked: store.showOutline, run: () => store.toggleOutline() },
       { label: '源码模式', checked: mdActive.value && store.sourceMode, disabled: !mdActive.value || store.readingMode, run: () => store.toggleSourceMode() },
-      { label: '打字机模式', checked: store.typewriter, run: () => store.toggleTypewriter() },
       '-',
       { label: '阅读模式', sc: 'Ctrl+R', checked: store.readingMode, disabled: !store.activeFile, run: () => store.toggleReadingMode() },
-      '-',
-      { label: '浅色主题', checked: store.theme === 'light', run: () => { store.theme = 'light' } },
-      { label: '深色主题', checked: store.theme === 'dark', run: () => { store.theme = 'dark' } },
     ],
   },
   {

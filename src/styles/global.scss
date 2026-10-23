@@ -106,7 +106,7 @@
   --crepe-color-surface-low: var(--input-bg-color);
   --crepe-color-on-surface: var(--text-color);
   --crepe-color-on-surface-variant: var(--text-secondary);
-  --crepe-color-outline: var(--table-border-color);
+  --crepe-color-outline: var(--text-color);      /* 工具栏/块手柄图标靠它上色，灰色会像禁用 */
   --crepe-color-primary: var(--drake-accent);
   --crepe-color-secondary: var(--table-border-color);
   --crepe-color-on-secondary: var(--text-color);
@@ -116,7 +116,7 @@
   --crepe-color-error: var(--drake-highlight);
   --crepe-color-hover: var(--item-hover-bg-color);
   --crepe-color-selected: var(--select-text-bg-color);
-  --crepe-color-inline-area: var(--code-block-bg-color);
+  --crepe-color-inline-area: var(--input-bg-color);   /* 行内代码底色，勿用代码块深色 */
 
   --crepe-base-font-size: 1rem;
   --crepe-font-title: var(--title-font);

@@ -239,20 +239,12 @@ export const useMarkdownStore = defineStore('markdown', () => {
     caret.value = pos
   }
 
-  function toggleTheme() {
-    theme.value = theme.value === 'light' ? 'dark' : 'light'
-  }
-
   function toggleOutline() {
     showOutline.value = !showOutline.value
   }
 
   function toggleSourceMode() {
     sourceMode.value = !sourceMode.value
-  }
-
-  function toggleTypewriter() {
-    typewriter.value = !typewriter.value
   }
 
   function toggleReadingMode() {
@@ -359,10 +351,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     switchTab,
     setContent,
     setCaret,
-    toggleTheme,
     toggleOutline,
     toggleSourceMode,
-    toggleTypewriter,
     toggleReadingMode,
     setCurrentFile,
     markSaved,

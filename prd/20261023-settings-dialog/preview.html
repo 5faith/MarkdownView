@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>设置窗口 · MarkdownView 设计预览</title>
+<style>
+  /* ── 内置字体（与 src/styles/global.scss 的 @font-face 对齐） ── */
+  @font-face {
+    font-family: 'Maple Mono NF CN';
+    src: url('../../src/assets/fonts/MapleMono-NF-CN-Regular.woff2') format('woff2');
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Maple Mono NF CN';
+    src: url('../../src/assets/fonts/MapleMono-NF-CN-SemiBold.woff2') format('woff2');
+    font-weight: 600; font-style: normal; font-display: swap;
+  }
+
+  * { box-sizing: border-box; }
+
+  /* ── 设计变量：全部取自 light.scss / dark.scss，深色走 html[data-theme] ── */
+  :root {
+    color-scheme: light;
+
+    --canvas: #eef0f2;
+    --canvas-text: #1f2328;
+    --canvas-muted: #67707a;
+    --canvas-card: rgba(255, 255, 255, 0.62);
+    --canvas-border: rgba(31, 35, 40, 0.10);
+
+    --window-bg: #ffffff;
+    --chrome-bg: #f6f7f8;
+    --sidebar-bg: #f7f8f9;
+    --surface: #ffffff;
+    --surface-2: #f3f4f5;
+    --seg-active: #ffffff;
+    --text: #1f2328;
+    --text-2: rgba(31, 35, 40, 0.64);
+    --text-3: rgba(31, 35, 40, 0.52);
+    --border: #e2e5e8;
+    --hairline: rgba(31, 35, 40, 0.07);
+    --border-strong: #cfd4d9;
+    --accent: #e95f59;
+    --accent-strong: #d63200;
+    --accent-hover: #d9534d;
+    --focus: rgba(233, 95, 89, 0.20);
+    --code-bg: rgba(233, 95, 89, 0.09);
+    --switch-off: #d5d9dd;
+    --overlay: rgba(16, 18, 21, 0.40);
+    --toast-bg: #1f2328;
+    --toast-text: #ffffff;
+    --menu-hover: rgba(31, 35, 40, 0.06);
+    --active-row: rgba(233, 95, 89, 0.08);
+
+    --shadow-window: 0 28px 70px rgba(15, 20, 30, 0.18), 0 3px 12px rgba(15, 20, 30, 0.06);
+    --shadow-dialog: 0 24px 64px rgba(15, 20, 30, 0.24), 0 2px 6px rgba(15, 20, 30, 0.08);
+    --shadow-control: 0 1px 2px rgba(15, 20, 30, 0.10);
+
+    --ui-font: 'Maple Mono NF CN', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    --mono-font: 'Maple Mono NF CN', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    --doc-size: 14px;
+  }
+
+  html[data-theme='dark'] {
+    color-scheme: dark;
+
+    --canvas: #121315;
+    --canvas-text: #e8eaed;
+    --canvas-muted: #8a9199;
+    --canvas-card: rgba(255, 255, 255, 0.035);
+    --canvas-border: rgba(255, 255, 255, 0.08);
+
+    --window-bg: #1d1f21;
+    --chrome-bg: #202224;
+    --sidebar-bg: #1a1c1e;
+    --surface: #232527;
+    --surface-2: #2b2d30;
+    --seg-active: #3b3e42;
+    --text: #d6d6d6;
+    --text-2: rgba(214, 214, 214, 0.62);
+    --text-3: rgba(214, 214, 214, 0.52);
+    --border: #34373b;
+    --hairline: rgba(255, 255, 255, 0.06);
+    --border-strong: #464a4f;
+    --accent: #e95f59;
+    --accent-strong: #ff7350;
+    --accent-hover: #f06a60;
+    --focus: rgba(233, 95, 89, 0.28);
+    --code-bg: rgba(255, 115, 80, 0.12);
+    --switch-off: #3a3d41;
+    --overlay: rgba(0, 0, 0, 0.52);
+    --toast-bg: #e8eaed;
+    --toast-text: #1d1f21;
+    --menu-hover: rgba(255, 255, 255, 0.07);
+    --active-row: rgba(233, 95, 89, 0.12);
+
+    --shadow-window: 0 28px 70px rgba(0, 0, 0, 0.50), 0 3px 12px rgba(0, 0, 0, 0.30);
+    --shadow-dialog: 0 28px 70px rgba(0, 0, 0, 0.56), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+
+  html, body { margin: 0; }
+
+  body {
+    background: var(--canvas);
+    color: var(--canvas-text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+
+  .page {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 36px 0 56px;
+  }
+
+  /* ── 页面标题 ── */
+  .page-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 18px;
+  }
+  .page-kicker {
+    margin: 0 0 6px;
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--canvas-muted);
+  }
+  .page-head h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  .page-sub {
+    margin: 6px 0 0;
+    max-width: 620px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--canvas-muted);
+  }
+  .page-head__meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 3px;
+    white-space: nowrap;
+  }
+  .pill {
+    padding: 3px 9px;
+    border: 1px solid rgba(233, 95, 89, 0.22);
+    border-radius: 999px;
+    background: rgba(233, 95, 89, 0.10);
+    color: var(--accent-strong);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .page-date { font-size: 11.5px; color: var(--canvas-muted); }
+
+  /* ── 预览舞台：模仿应用窗口 ── */
+  .stage {
+    position: relative;
+    height: clamp(560px, 78vh, 700px);
+    border: 1px solid var(--canvas-border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--window-bg);
+    box-shadow: var(--shadow-window);
+    font-family: var(--ui-font);
+    transition: background 0.18s ease, border-color 0.18s ease;
+  }
+
+  .mock {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--window-bg);
+    color: var(--text);
+    pointer-events: none;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  /* 窗口标题栏 */
+  .titlebar {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: 38px;
+    padding: 0 14px;
+    background: var(--chrome-bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--text-2);
+  }
+  .titlebar__brand { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  .app-mark {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .titlebar__doc {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 46%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-3);
+  }
+  .titlebar__win { display: flex; align-items: center; gap: 16px; margin-left: auto; color: var(--text-3); }
+  .winicon { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.2; }
+
+  /* 菜单栏 */
+  .menubar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 32px;
+    padding: 0 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .menu-item { padding: 4px 8px; border-radius: 4px; }
+  .menubar__grow { flex: 1; }
+  .menubar__mode { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-3); }
+  .menubar__mode i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+  .appbody { flex: 1; display: flex; min-height: 0; }
+
+  /* 文件树 */
+  .sidebar {
+    width: 206px;
+    flex: none;
+    padding: 10px 8px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .sidebar__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 8px 8px;
+    font-size: 10.5px;
+    letter-spacing: 0.10em;
+    color: var(--text-3);
+  }
+  .sidebar__actions { letter-spacing: 0; font-size: 12px; }
+  .tree-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+  .tree-row.child { padding-left: 26px; }
+  .tree-row.is-active {
+    background: var(--active-row);
+    color: var(--accent);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .tree-icon { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.1; opacity: 0.8; }
+  .tree-chevron { width: 9px; font-size: 9px; line-height: 1; color: var(--text-3); }
+
+  /* 编辑区 */
+  .workspace { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .tabs {
+    flex: none;
+    display: flex;
+    align-items: stretch;
+    height: 36px;
+    padding: 0 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border-bottom: 2px solid transparent;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .tab.is-active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-x { font-size: 12px; opacity: 0.45; }
+  .editor { flex: 1; padding: 34px 48px; overflow: hidden; }
+  .doc {
+    max-width: 640px;
+    margin: 0 auto;
+    font-size: var(--doc-size);
+    line-height: 1.75;
+    color: var(--text);
+  }
+  .doc h1 { margin: 0 0 0.5em; font-size: 2em; line-height: 1.3; font-weight: 600; }
+  .doc h2 { margin: 1.2em 0 0.5em; font-size: 1.4em; line-height: 1.4; font-weight: 600; }
+  .doc p { margin: 0 0 0.8em; color: var(--text-2); }
+  .doc blockquote {
+    margin: 0 0 0.9em;
+    padding: 2px 0 2px 12px;
+    border-left: 3px solid var(--accent);
+    color: var(--text-2);
+  }
+
+  /* 状态栏 */
+  .statusbar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 26px;
+    padding: 0 12px;
+    border-top: 1px solid var(--border);
+    background: var(--chrome-bg);
+    font-size: 10.5px;
+    color: var(--text-3);
+  }
+  .statusbar__right { margin-left: auto; }
+
+  /* ── 蒙层与弹窗 ── */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: var(--overlay);
+    -webkit-backdrop-filter: blur(1.5px);
+    backdrop-filter: blur(1.5px);
+    transition: opacity 0.15s ease;
+    animation: fade-in 0.18s ease;
+  }
+  .scrim.is-off { opacity: 0; pointer-events: none; }
+
+  .dialog-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .dialog-layer[hidden] { display: none; }
+
+  .dialog {
+    display: flex;
+    flex-direction: column;
+    width: 540px;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-dialog);
+    animation: dialog-in 0.22s cubic-bezier(0.2, 0.75, 0.25, 1);
+  }
+  .dialog.is-closing { animation: dialog-out 0.14s ease forwards; }
+
+  .dialog-head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 16px 8px 22px;
+  }
+  .dialog-title { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: 0.01em; }
+  .icon-btn {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .icon-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+  .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+  .icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus); }
+
+  .dialog-body {
+    min-height: 0;
+    padding: 2px 22px 4px;
+    overflow-y: auto;
+  }
+
+  /* 分组 + 设置行 */
+  .group-title {
+    margin: 2px 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--text-2);
+  }
+  .group--editor { margin-top: 16px; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 9px 0;
+  }
+  .row + .row { border-top: 1px solid var(--hairline); }
+  .row-copy { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .row-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .row-desc { font-size: 11.5px; line-height: 1.5; color: var(--text-3); }
+
+  /* 双段控件 */
+  .segmented {
+    display: inline-flex;
+    flex: none;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface-2);
+  }
+  .segmented button {
+    height: 26px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .segmented button:hover { color: var(--text); }
+  .segmented button[aria-pressed='true'] {
+    background: var(--seg-active);
+    color: var(--text);
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(15, 20, 30, 0.12), inset 0 0 0 1px var(--border);
+  }
+  .segmented button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* 下拉选择 */
+  .select { position: relative; display: inline-flex; align-items: center; flex: none; }
+  .select select {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 216px;
+    height: 32px;
+    padding: 0 28px 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .select--size select { width: 92px; }
+  .select:hover select { border-color: var(--border-strong); }
+  .select select:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--focus);
+  }
+  .select svg {
+    position: absolute;
+    right: 9px;
+    width: 11px;
+    height: 11px;
+    fill: none;
+    stroke: var(--text-2);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  /* 开关 */
+  .switch { position: relative; display: inline-flex; flex: none; cursor: pointer; }
+  .switch input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+  .switch-track {
+    position: relative;
+    display: block;
+    width: 36px;
+    height: 21px;
+    border-radius: 999px;
+    background: var(--switch-off);
+    transition: background 0.16s ease, box-shadow 0.12s ease;
+  }
+  .switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    transition: transform 0.16s ease;
+  }
+  .switch input:checked + .switch-track { background: var(--accent); }
+  .switch input:checked + .switch-track .switch-thumb { transform: translateX(15px); }
+  .switch input:focus-visible + .switch-track { box-shadow: 0 0 0 3px var(--focus); }
+
+  /* 实时预览 */
+  .preview {
+    margin: 12px 0 2px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-2);
+  }
+  .preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .preview-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--text-2);
+  }
+  .preview-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(233, 95, 89, 0.14);
+  }
+  .preview-meta { overflow: hidden; font-size: 10.5px; color: var(--text-3); text-overflow: ellipsis; white-space: nowrap; }
+  .preview-body { padding: 12px 14px 13px; font-size: var(--doc-size); line-height: 1.65; }
+  .preview-title { margin: 0 0 3px; font-size: 1.25em; font-weight: 600; color: var(--text); }
+  .preview-text { margin: 0; color: var(--text-2); }
+  .preview-text code {
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: var(--code-bg);
+    color: var(--accent-strong);
+    font-family: var(--mono-font);
+    font-size: 0.9em;
+    white-space: nowrap;
+  }
+
+  .hint {
+    margin: 12px 0 2px;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--text-2);
+    opacity: 0.8;
+  }
+
+  /* 底部操作 */
+  .dialog-footer {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px 14px 22px;
+    border-top: 1px solid var(--hairline);
+    background: var(--surface);
+  }
+  .btn {
+    height: 32px;
+    padding: 0 16px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus); }
+  .btn-ghost { height: 30px; padding: 0 8px; background: transparent; color: var(--text-2); }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+  .btn-primary {
+    min-width: 78px;
+    padding: 0 18px;
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(233, 95, 89, 0.28);
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+
+  /* 关闭后重新打开 / 轻提示 */
+  .reopen {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 4;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--text-2);
+    font-family: var(--ui-font);
+    font-size: 12px;
+    box-shadow: var(--shadow-control);
+    cursor: pointer;
+  }
+  .reopen:hover { color: var(--text); border-color: var(--border-strong); }
+  .reopen:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus); }
+
+  .toast {
+    position: absolute;
+    left: 50%;
+    bottom: 22px;
+    z-index: 5;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--toast-bg);
+    color: var(--toast-text);
+    font-family: var(--ui-font);
+    font-size: 11.5px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    transform: translate(-50%, 6px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ── 设计说明 ── */
+  .notes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .note {
+    padding: 14px 16px;
+    border: 1px solid var(--canvas-border);
+    border-radius: 10px;
+    background: var(--canvas-card);
+  }
+  .note h2 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--canvas-muted);
+  }
+  .note ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .note li {
+    position: relative;
+    padding-left: 12px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--canvas-text);
+  }
+  .note li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.66em;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+  .note code {
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--code-bg);
+    color: var(--accent-strong);
+    font-family: var(--mono-font);
+    font-size: 0.94em;
+  }
+
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes dialog-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes dialog-out {
+    to { opacity: 0; transform: translateY(4px) scale(0.99); }
+  }
+
+  @media (max-width: 860px) {
+    .page { padding-top: 24px; }
+    .page-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .page-head__meta { padding-bottom: 0; }
+    .notes { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 720px) {
+    .stage { height: 640px; }
+    .titlebar__doc { display: none; }
+    .sidebar { display: none; }
+    .dialog-layer { padding: 16px; }
+    .dialog-head { padding-left: 16px; }
+    .dialog-body { padding-inline: 16px; }
+    .dialog-footer { padding-left: 16px; }
+    .row-desc { display: none; }
+    .select select { width: 180px; }
+    .select--size select { width: 84px; }
+    .row { gap: 12px; }
+  }
+
+  @media (max-width: 480px) {
+    .page { width: calc(100% - 20px); }
+    .stage { height: 600px; }
+    .page-head h1 { font-size: 21px; }
+    .select select { width: 148px; }
+    .select--size select { width: 80px; }
+    .preview-meta { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="page-head">
+    <div>
+      <p class="page-kicker">MarkdownView · 基础设置</p>
+      <h1>设置窗口</h1>
+      <p class="page-sub">字号改为下拉选择，设置行左标签右控件；字体、字号、明暗实时预览，颜色与尺寸沿用现有主题变量。</p>
+    </div>
+    <div class="page-head__meta">
+      <span class="pill">设计稿 v1</span>
+      <span class="page-date">2026-10-23</span>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <!-- 背景：应用窗口 mock -->
+    <div class="mock" aria-hidden="true">
+      <div class="titlebar">
+        <div class="titlebar__brand"><span class="app-mark">M</span><span>MarkdownView</span></div>
+        <div class="titlebar__doc">README.md — D:\workspace\github-my\MarkdownView</div>
+        <div class="titlebar__win">
+          <svg class="winicon" viewBox="0 0 12 12"><path d="M2 6h8" /></svg>
+          <svg class="winicon" viewBox="0 0 12 12"><rect x="2.2" y="2.2" width="7.6" height="7.6" rx="0.8" /></svg>
+          <svg class="winicon" viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" /></svg>
+        </div>
+      </div>
+
+      <div class="menubar">
+        <span class="menu-item">文件</span>
+        <span class="menu-item">编辑</span>
+        <span class="menu-item">格式</span>
+        <span class="menu-item">视图</span>
+        <span class="menu-item">帮助</span>
+        <span class="menubar__grow"></span>
+        <span class="menubar__mode"><i></i>Markdown</span>
+      </div>
+
+      <div class="appbody">
+        <aside class="sidebar">
+          <div class="sidebar__head">文件<span class="sidebar__actions">＋</span></div>
+          <div class="tree-row is-active">
+            <svg class="tree-icon" viewBox="0 0 16 16"><path d="M4.5 1.8h4.6L12 4.7v9a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V2.3a.5.5 0 0 1 .5-.5Z" /><path d="M9 1.8v3h3" /></svg>
+            README.md
+          </div>
+          <div class="tree-row">
+            <svg class="tree-icon" viewBox="0 0 16 16"><path d="M4.5 1.8h4.6L12 4.7v9a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V2.3a.5.5 0 0 1 .5-.5Z" /><path d="M9 1.8v3h3" /></svg>
+            package.json
+          </div>
+          <div class="tree-row">
+            <span class="tree-chevron">▾</span>
+            <svg class="tree-icon" viewBox="0 0 16 16"><path d="M1.8 3.6h4.1l1.3 1.5h7v7.2a.6.6 0 0 1-.6.6H2.4a.6.6 0 0 1-.6-.6V3.6Z" /></svg>
+            src
+          </div>
+          <div class="tree-row child">
+            <svg class="tree-icon" viewBox="0 0 16 16"><path d="M4.5 1.8h4.6L12 4.7v9a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V2.3a.5.5 0 0 1 .5-.5Z" /><path d="M9 1.8v3h3" /></svg>
+            App.vue
+          </div>
+          <div class="tree-row child">
+            <svg class="tree-icon" viewBox="0 0 16 16"><path d="M4.5 1.8h4.6L12 4.7v9a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V2.3a.5.5 0 0 1 .5-.5Z" /><path d="M9 1.8v3h3" /></svg>
+            main.ts
+          </div>
+          <div class="tree-row child">
+            <span class="tree-chevron">▾</span>
+            <svg class="tree-icon" viewBox="0 0 16 16"><path d="M1.8 3.6h4.1l1.3 1.5h7v7.2a.6.6 0 0 1-.6.6H2.4a.6.6 0 0 1-.6-.6V3.6Z" /></svg>
+            components
+          </div>
+          <div class="tree-row child">
+            <svg class="tree-icon" viewBox="0 0 16 16"><path d="M4.5 1.8h4.6L12 4.7v9a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V2.3a.5.5 0 0 1 .5-.5Z" /><path d="M9 1.8v3h3" /></svg>
+            styles
+          </div>
+          <div class="tree-row">
+            <span class="tree-chevron">▸</span>
+            <svg class="tree-icon" viewBox="0 0 16 16"><path d="M1.8 3.6h4.1l1.3 1.5h7v7.2a.6.6 0 0 1-.6.6H2.4a.6.6 0 0 1-.6-.6V3.6Z" /></svg>
+            prd
+          </div>
+        </aside>
+
+        <main class="workspace">
+          <div class="tabs">
+            <div class="tab is-active">README.md <span class="tab-x">×</span></div>
+            <div class="tab">style.md</div>
+            <div class="tab">PLAN.md</div>
+          </div>
+          <div class="editor">
+            <article class="doc">
+              <h1>MarkdownView</h1>
+              <p>Tauri 2 + Milkdown 的桌面 Markdown 编辑器，专注于写作本身。</p>
+              <h2>写作优先</h2>
+              <blockquote>样式契约来自 Drake：颜色由主题变量驱动，字号一处缩放全站。</blockquote>
+              <p>支持多标签、文件树、大纲与 PDF 导出。</p>
+            </article>
+          </div>
+        </main>
+      </div>
+
+      <div class="statusbar">
+        <span>行 6，列 18</span>
+        <span>Markdown</span>
+        <span class="statusbar__right">UTF-8 · 字数 186</span>
+      </div>
+    </div>
+
+    <div class="scrim" id="scrim"></div>
+
+    <!-- 设置弹窗 -->
+    <div class="dialog-layer" id="dialogLayer">
+      <section class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" aria-describedby="settingsHint">
+        <header class="dialog-head">
+          <h2 class="dialog-title" id="settingsTitle">设置</h2>
+          <button type="button" class="icon-btn" id="closeBtn" aria-label="关闭设置">
+            <svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+
+        <div class="dialog-body">
+          <section class="group">
+            <h3 class="group-title">外观</h3>
+
+            <div class="row">
+              <div class="row-copy">
+                <span class="row-label" id="themeLabel">主题</span>
+                <span class="row-desc">界面与编辑区的明暗配色</span>
+              </div>
+              <div class="segmented" role="group" aria-labelledby="themeLabel">
+                <button type="button" data-theme-value="light" aria-pressed="true">浅色</button>
+                <button type="button" data-theme-value="dark" aria-pressed="false">深色</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="row-copy">
+                <label class="row-label" for="fontSelect">字体</label>
+                <span class="row-desc">界面与正文共用，代码块始终等宽</span>
+              </div>
+              <div class="select">
+                <select id="fontSelect">
+                  <option value="maple">Maple Mono（内置）</option>
+                  <option value="system">系统界面</option>
+                  <option value="mono">系统等宽</option>
+                </select>
+                <svg viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5" /></svg>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="row-copy">
+                <label class="row-label" for="sizeSelect">字号</label>
+                <span class="row-desc">按比例缩放界面，12–20 px</span>
+              </div>
+              <div class="select select--size">
+                <select id="sizeSelect">
+                  <option value="12">12 px</option>
+                  <option value="13">13 px</option>
+                  <option value="14" selected>14 px</option>
+                  <option value="15">15 px</option>
+                  <option value="16">16 px</option>
+                  <option value="17">17 px</option>
+                  <option value="18">18 px</option>
+                  <option value="19">19 px</option>
+                  <option value="20">20 px</option>
+                </select>
+                <svg viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5" /></svg>
+              </div>
+            </div>
+          </section>
+
+          <div class="preview">
+            <div class="preview-head">
+              <span class="preview-label"><i class="preview-dot"></i>实时预览</span>
+              <span class="preview-meta" id="previewMeta">Maple Mono · 14 px</span>
+            </div>
+            <div class="preview-body">
+              <p class="preview-title">标题 Heading</p>
+              <p class="preview-text">字号等比缩放界面，<code>const n = 14</code> 始终等宽。</p>
+            </div>
+          </div>
+
+          <section class="group group--editor">
+            <h3 class="group-title">编辑器</h3>
+            <div class="row">
+              <div class="row-copy">
+                <label class="row-label" for="typewriter">打字机模式</label>
+                <span class="row-desc">输入时让当前行保持在视口中部</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="typewriter" />
+                <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              </label>
+            </div>
+          </section>
+
+          <p class="hint" id="settingsHint">字体同时作用于界面与编辑器，代码块始终等宽；字号按 1 px 步进缩放界面，选择会保存在本机。</p>
+        </div>
+
+        <footer class="dialog-footer">
+          <button type="button" class="btn btn-ghost" id="resetBtn">恢复默认</button>
+          <button type="button" class="btn btn-primary" id="doneBtn">完成</button>
+        </footer>
+      </section>
+    </div>
+
+    <button type="button" class="reopen" id="reopenBtn" hidden>打开设置</button>
+    <div class="toast" id="toast" role="status" aria-live="polite">设置已保存</div>
+  </div>
+
+  <section class="notes" aria-label="设计说明">
+    <article class="note">
+      <h2>控件</h2>
+      <ul>
+        <li>「字号」由按钮组改为下拉（12–20 px），与字体一致；保留原生 select 的键盘操作。</li>
+        <li>主题用双段控件，打字机模式用开关；控件统一 32 px 高、7 px 圆角。</li>
+      </ul>
+    </article>
+    <article class="note">
+      <h2>层级</h2>
+      <ul>
+        <li>标准设置行：左标签 + 说明，右控件；分组标题 10.5 px 拉开层级。</li>
+        <li>对话框内嵌实时预览，用当前字体与字号渲染，选完立即可见。</li>
+      </ul>
+    </article>
+    <article class="note">
+      <h2>规范</h2>
+      <ul>
+        <li>颜色全部走主题变量，<code>data-theme="dark"</code> 整体切换；主色仍为 #e95f59。</li>
+        <li>落地时尺寸写 rem（1rem = <code>--text-size</code>），字体、字号仍由 <code>applyAppearance()</code> 统一下发。</li>
+      </ul>
+    </article>
+  </section>
+</div>
+
+<script>
+  const FONTS = {
+    maple: {
+      name: 'Maple Mono',
+      stack: "'Maple Mono NF CN', ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace",
+    },
+    system: {
+      name: '系统界面',
+      stack: "system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+    },
+    mono: {
+      name: '系统等宽',
+      stack: "ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace",
+    },
+  };
+
+  const DEFAULTS = { theme: 'light', font: 'maple', size: 14, typewriter: false };
+
+  const stage = document.getElementById('stage');
+  const fontSelect = document.getElementById('fontSelect');
+  const sizeSelect = document.getElementById('sizeSelect');
+  const previewMeta = document.getElementById('previewMeta');
+  const typewriter = document.getElementById('typewriter');
+  const themeButtons = Array.from(document.querySelectorAll('[data-theme-value]'));
+  const dialogLayer = document.getElementById('dialogLayer');
+  const dialog = document.getElementById('dialog');
+  const closeBtn = document.getElementById('closeBtn');
+  const doneBtn = document.getElementById('doneBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const scrim = document.getElementById('scrim');
+  const reopenBtn = document.getElementById('reopenBtn');
+  const toastEl = document.getElementById('toast');
+
+  let closeTimer = 0;
+  let toastTimer = 0;
+
+  function updateMeta() {
+    previewMeta.textContent = FONTS[fontSelect.value].name + ' · ' + sizeSelect.value + ' px';
+  }
+
+  function applyFont() {
+    stage.style.setProperty('--ui-font', FONTS[fontSelect.value].stack);
+    updateMeta();
+  }
+
+  function applySize() {
+    stage.style.setProperty('--doc-size', sizeSelect.value + 'px');
+    updateMeta();
+  }
+
+  function setTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    themeButtons.forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(btn.dataset.themeValue === theme));
+    });
+  }
+
+  function toast(message) {
+    toastEl.textContent = message;
+    toastEl.classList.add('is-visible');
+    clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => toastEl.classList.remove('is-visible'), 1800);
+  }
+
+  function openDialog() {
+    clearTimeout(closeTimer);
+    dialogLayer.hidden = false;
+    reopenBtn.hidden = true;
+    scrim.classList.remove('is-off');
+    closeBtn.focus();
+  }
+
+  function closeDialog(showToast) {
+    dialog.classList.add('is-closing');
+    scrim.classList.add('is-off');
+    clearTimeout(closeTimer);
+    closeTimer = window.setTimeout(() => {
+      dialogLayer.hidden = true;
+      dialog.classList.remove('is-closing');
+      reopenBtn.hidden = false;
+      reopenBtn.focus();
+    }, 150);
+    if (showToast) toast('设置已保存');
+  }
+
+  themeButtons.forEach((btn) => {
+    btn.addEventListener('click', () => setTheme(btn.dataset.themeValue));
+  });
+  fontSelect.addEventListener('change', applyFont);
+  sizeSelect.addEventListener('change', applySize);
+
+  resetBtn.addEventListener('click', () => {
+    setTheme(DEFAULTS.theme);
+    fontSelect.value = DEFAULTS.font;
+    sizeSelect.value = String(DEFAULTS.size);
+    typewriter.checked = DEFAULTS.typewriter;
+    applyFont();
+    applySize();
+    toast('已恢复默认设置');
+  });
+
+  doneBtn.addEventListener('click', () => closeDialog(true));
+  closeBtn.addEventListener('click', () => closeDialog(false));
+  scrim.addEventListener('click', () => {
+    if (!dialogLayer.hidden) closeDialog(false);
+  });
+  dialogLayer.addEventListener('click', (event) => {
+    if (event.target === dialogLayer) closeDialog(false);
+  });
+  reopenBtn.addEventListener('click', openDialog);
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !dialogLayer.hidden) closeDialog(false);
+  });
+
+  applyFont();
+  applySize();
+
+  // 便于直接打开深色稿：preview.html?theme=dark
+  if (new URLSearchParams(location.search).get('theme') === 'dark') setTheme('dark');
+</script>
+</body>
+</html>

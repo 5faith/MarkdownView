@@ -67,11 +67,6 @@ export function useKeyboardShortcuts() {
         e.preventDefault()
         fileOps.exportPdf()
         break
-      // Ctrl+B/Ctrl+I 不在全局拦截，交给 Milkdown 编辑器做加粗/斜体（Typora 键位）
-      case shift && e.key === 'D':
-        e.preventDefault()
-        store.toggleTheme()
-        break
       case e.key === 'r':
         e.preventDefault()
         store.toggleReadingMode()
