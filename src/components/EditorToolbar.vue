@@ -15,6 +15,7 @@
     <button class="editor-toolbar__btn" title="斜体 (Ctrl+I)" @click="runFormat('italic')"><i>I</i></button>
     <button class="editor-toolbar__btn" title="删除线" @click="runFormat('strike')"><s>S</s></button>
     <button class="editor-toolbar__btn" title="行内代码" @click="runFormat('code')"><code>&lt;/&gt;</code></button>
+    <button class="editor-toolbar__btn" title="水平线" @click="runFormat('hr')">—</button>
     <span class="editor-toolbar__sep" />
     <button class="editor-toolbar__btn" title="引用" @click="runFormat('quote')">❝</button>
     <div class="editor-toolbar__menu">
@@ -49,7 +50,32 @@
     <button class="editor-toolbar__btn" title="隐藏细节（折叠块）" @click="runFormat('details')">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /><path d="m9 12 3 3 3-3" /></svg>
     </button>
-    <button class="editor-toolbar__btn" title="水平线" @click="runFormat('hr')">—</button>
+    <button class="editor-toolbar__btn" title="插入图片" @click="runFormat('image')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+    </button>
+    <div class="editor-toolbar__menu">
+      <button
+        ref="linkBtn"
+        class="editor-toolbar__btn"
+        :class="{ 'editor-toolbar__btn--active': linkMenu }"
+        title="链接"
+        aria-haspopup="menu"
+        :aria-expanded="linkMenu"
+        @click.stop="toggleLinkMenu"
+      ><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg></button>
+      <div v-if="linkMenu" ref="linkPop" class="editor-toolbar__pop editor-toolbar__pop--form" :style="linkPopStyle">
+        <input
+          ref="linkInputEl"
+          v-model="linkHref"
+          type="text"
+          placeholder="https://…"
+          spellcheck="false"
+          @keydown.enter.prevent="confirmLink"
+          @keydown.esc.stop.prevent="closeLinkMenu"
+        />
+        <button class="editor-toolbar__ok" @click="confirmLink">确定</button>
+      </div>
+    </div>
 
     <span v-if="store.sourceMode" class="editor-toolbar__flag">源码模式</span>
     <span class="editor-toolbar__flex" />
@@ -66,7 +92,8 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import type { Ref } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { runFormat } from '../shared/editor'
 import { useFileOperation } from '../composables/useFileOperation'
@@ -84,13 +111,27 @@ const listItems = [
   { kind: 'task', icon: '', label: '任务列表' },
 ] as const
 
+/** 弹层定位：锚点按钮下方；打开后量实际尺寸，超出视口右缘时整体左移夹紧 */
+function placePop(btn: HTMLElement, style: Ref<{ top: string; left: string }>, getPop: () => HTMLElement | null) {
+  const r = btn.getBoundingClientRect()
+  style.value = { top: `${r.bottom + 4}px`, left: `${r.left}px` }
+  nextTick(() => {
+    const pr = getPop()?.getBoundingClientRect()
+    if (!pr) return
+    const over = pr.right - (window.innerWidth - 8)
+    if (over > 0) {
+      style.value = { ...style.value, left: `${Math.max(8, r.left - over)}px` }
+    }
+  })
+}
+
 /** 工具栏在 overflow 容器里，下拉菜单用 fixed 定位，避免被裁切 */
 function toggleListMenu() {
-  if (!listMenu.value && listBtn.value) {
-    const r = listBtn.value.getBoundingClientRect()
-    popStyle.value = { top: `${r.bottom + 4}px`, left: `${r.left}px` }
-  }
   listMenu.value = !listMenu.value
+  // 先置状态再定位：placePop 的 nextTick 要链在本次渲染 flush 之后才能量到弹层尺寸
+  if (listMenu.value && listBtn.value) {
+    placePop(listBtn.value, popStyle, () => listPop.value)
+  }
 }
 
 function pickList(kind: 'ul' | 'ol' | 'task') {
@@ -98,15 +139,45 @@ function pickList(kind: 'ul' | 'ol' | 'task') {
   runFormat(kind)
 }
 
+// ── 链接弹层：输入 URL 后包链接 ──
+const linkMenu = ref(false)
+const linkBtn = ref<HTMLElement | null>(null)
+const linkPop = ref<HTMLElement | null>(null)
+const linkInputEl = ref<HTMLInputElement | null>(null)
+const linkPopStyle = ref({ top: '0px', left: '0px' })
+const linkHref = ref('')
+
+function toggleLinkMenu() {
+  linkMenu.value = !linkMenu.value
+  if (linkMenu.value && linkBtn.value) {
+    placePop(linkBtn.value, linkPopStyle, () => linkPop.value)
+    nextTick(() => linkInputEl.value?.focus())
+  }
+}
+
+function closeLinkMenu() {
+  linkMenu.value = false
+  linkHref.value = ''
+}
+
+function confirmLink() {
+  const href = linkHref.value.trim()
+  if (!href) return
+  runFormat('link', { href })
+  closeLinkMenu()
+}
+
 function onDocMousedown(e: MouseEvent) {
-  if (!listMenu.value) return
   const t = e.target as Node
-  if (listBtn.value?.contains(t) || listPop.value?.contains(t)) return
-  listMenu.value = false
+  if (listMenu.value && !listBtn.value?.contains(t) && !listPop.value?.contains(t)) listMenu.value = false
+  if (linkMenu.value && !linkBtn.value?.contains(t) && !linkPop.value?.contains(t)) closeLinkMenu()
 }
 
 function onDocKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') listMenu.value = false
+  if (e.key === 'Escape') {
+    listMenu.value = false
+    closeLinkMenu()
+  }
 }
 
 onMounted(() => {
@@ -201,6 +272,57 @@ onBeforeUnmount(() => {
     border-radius: 0.571rem;
     box-shadow: 0 0.571rem 1.714rem rgba(0, 0, 0, 0.16);
     z-index: 1000;
+
+    &--form {
+      display: flex;
+      align-items: center;
+      gap: 0.429rem;
+      padding: 0.429rem;
+      /* 窄窗口时整体不超过视口，输入框收缩而不是把确定按钮挤出屏 */
+      max-width: calc(100vw - 1rem);
+
+      input {
+        flex: 1 1 auto;
+        width: 13rem;
+        min-width: 5rem;
+        height: 1.857rem;
+        padding: 0 0.571rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.429rem;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 0.857rem;
+        outline: none;
+        transition: border-color 0.12s;
+
+        &:focus {
+          border-color: var(--accent-color);
+        }
+
+        &::placeholder {
+          color: var(--text-secondary);
+        }
+      }
+    }
+  }
+
+  &__ok {
+    flex: none;
+    height: 1.857rem;
+    padding: 0 0.714rem;
+    border: none;
+    border-radius: 0.429rem;
+    background: var(--accent-color);
+    color: #fff;
+    font: inherit;
+    font-size: 0.857rem;
+    cursor: pointer;
+    transition: background 0.12s;
+
+    &:hover {
+      background: var(--drake-highlight);
+    }
   }
 
   &__item {

@@ -1,6 +1,7 @@
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { showConfirm } from './showConfirm'
 import { exportPdf } from './useExportPdf'
+import { dirname, extractImageSrcs, isDiskAbsolutePath, isWebUrl, joinPath } from '../utils/localImage'
 import type { MarkdownFile } from '../types'
 
 export function useFileOperation() {
@@ -68,7 +69,10 @@ export function useFileOperation() {
 
     if (path) {
       const content = store.content
+      // md 挪到新位置时，正文引用的相对路径图片一并复制过去，引用不断
+      const oldPath = store.activeFile?.path ?? ''
       await writeTextFile(path, content)
+      if (oldPath) await copyReferencedImages(content, oldPath, path)
       const name = path.split(/[/\\]/).pop() ?? 'Untitled'
       store.setCurrentFile({
         id: '',
@@ -143,3 +147,33 @@ async function openFolderInNewWindow(folderPath: string) {
 }
 
 export { openFolderInNewWindow }
+
+/** 另存为时把正文引用的本地相对路径图片复制到新位置（保持相同子路径） */
+async function copyReferencedImages(content: string, oldMdPath: string, newMdPath: string): Promise<void> {
+  const oldDir = dirname(oldMdPath)
+  const newDir = dirname(newMdPath)
+  if (!oldDir || oldDir === newDir) return
+  try {
+    const { exists, mkdir, copyFile } = await import('@tauri-apps/plugin-fs')
+    for (const raw of extractImageSrcs(content)) {
+      if (isDiskAbsolutePath(raw) || isWebUrl(raw)) continue // 绝对路径/远程引用原地有效
+      let rel = raw
+      try {
+        rel = decodeURIComponent(raw)
+      } catch {
+        // 含未转义 %，保留原样
+      }
+      const from = joinPath(oldDir, rel)
+      const to = joinPath(newDir, rel)
+      try {
+        if (!(await exists(from))) continue
+        await mkdir(dirname(to), { recursive: true })
+        await copyFile(from, to)
+      } catch {
+        // 单张复制失败不阻断保存
+      }
+    }
+  } catch {
+    // plugin-fs 不可用时静默跳过
+  }
+}

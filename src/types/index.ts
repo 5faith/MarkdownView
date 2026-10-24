@@ -17,6 +17,8 @@ export interface Preferences {
   searchDebounceMs: number
   /** 文件树搜索：两次搜索请求的最小间隔 */
   searchIntervalMs: number
+  /** 粘贴/上传图片的保存目录，相对当前 md 文件所在目录 */
+  imageDir: string
   workspacePath: string
 }
 
@@ -32,6 +34,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   fileTreeWidth: 240,
   searchDebounceMs: 300,
   searchIntervalMs: 800,
+  imageDir: 'assets',
   workspacePath: '',
 }
 

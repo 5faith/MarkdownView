@@ -3,10 +3,13 @@ import { Crepe } from '@milkdown/crepe'
 import { containerPlugin } from '@xz-summer/milkdown-container'
 import { editorViewCtx } from '@milkdown/kit/core'
 import type { EditorView } from '@milkdown/kit/prose/view'
+import { linkSchema } from '@milkdown/kit/preset/commonmark'
 import { replaceAll } from '@milkdown/kit/utils'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { currentEditor } from '../shared/editor'
 import { cmThemeExtension } from '../shared/cmTheme'
+import { saveImageFile } from '../utils/imageStore'
+import { toDisplayUrl } from '../utils/localImage'
 
 /**
  * Crepe 编辑器生命周期与 store 双向同步。
@@ -65,6 +68,21 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
           // 代码块语法高亮按明暗主题着色（默认亮色 token 在暗底上不可读）
           theme: cmThemeExtension(store.theme),
         },
+        [Crepe.Feature.ImageBlock]: {
+          // 粘贴/上传的图片落盘到 md 同级图片目录，markdown 里保存相对路径；
+          // 文件还没存过盘（或写失败）时退回内存 blob URL（旧行为，重启即失效）
+          onUpload: async (file) => {
+            const mdPath = store.activeFile?.path
+            if (!mdPath) return URL.createObjectURL(file)
+            try {
+              return await saveImageFile(file, mdPath, store.imageDir)
+            } catch {
+              return URL.createObjectURL(file)
+            }
+          },
+          // markdown 里的本地相对/绝对路径经 asset 协议显示；远程/内联 URL 原样
+          proxyDomURL: (url) => toDisplayUrl(url, store.activeFile?.path ?? null),
+        },
       },
     })
     currentEditor.value = crepe
@@ -72,6 +90,12 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
     // 容器指令插件（:::details 折叠块等）：Crepe 无自定义插件入口，借 addFeature 注入
     crepe.addFeature((editor) => {
       editor.use(containerPlugin)
+    })
+
+    // 链接 mark 不越过边界（inclusive: false）：光标在链接首/尾输入的新文字是普通文本，
+    // 不再被吸进链接里，方便在链接后续写（Typora 行为；链接中段输入仍正常延伸）
+    crepe.editor.config((ctx) => {
+      ctx.update(linkSchema.ctx.key, (prev) => (c) => ({ ...prev(c), inclusive: false }))
     })
 
     crepe.on((listener) => {

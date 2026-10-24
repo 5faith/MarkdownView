@@ -17,7 +17,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `src/stores/useMarkdownStore.ts` — 唯一 Pinia store，setup 语法、全 `ref()`；偏好存 localStorage `markdownview-preferences`。
 - `src/composables/` — `useFileOperation`（打开/保存/另存）、`useMilkdown`、`useExportPdf`（marked → 隐藏 iframe 打印）、`useKeyboardShortcuts`、`useDragDrop`、`useCloseConfirmation`。
 - `src/shared/` — `editor.ts`（`currentEditor` 单例 + `runFormat` 命令入口）、`cmTheme.ts`（代码块明暗高亮）。
-- `src/utils/` — `preferences.ts`（偏好读写）、`fileType.ts`（按扩展名判定展示方式）。
+- `src/utils/` — `preferences.ts`（偏好读写）、`fileType.ts`（按扩展名判定展示方式）、`localImage.ts`（本地图片路径解析 + asset 协议显示 URL，`toDisplayUrl` 是唯一入口）、`imageStore.ts`（粘贴/上传图片落盘到 md 同级图片目录，返回相对 src）。
 - `src/types/index.ts` — 共享类型（`AppTheme`、`Preferences`、`MarkdownFile`、`FileTreeNode`、`CaretPosition`）。
 - `src/assets/` — `TEMPLATE.md`（新建文件模板）。字体不内置：正文/代码字体栈默认值在 `global.scss` §4.3，用户在设置里选择本地字体（Rust `list_system_fonts` 枚举，font-kit）。
 - `src-tauri/src/lib.rs` — 全部 Rust 逻辑：`get_file_args`、`reveal_in_file_manager`、`get_data_dir`/`set_data_dir`（数据目录）、`search_workspace`（文件树筛选，Rust 侧遍历——前端逐目录 IPC 并发会挤崩 WebView，勿改回）、`list_system_fonts`（系统字体枚举）、插件注册、single-instance、ctrlc。数据目录默认 exe 旁 `data/`，exe 旁 `data-dir.txt`（一行路径）可覆盖，解析见 `resolve_data_dir`；窗口在 setup 手动创建（`tauri.conf.json` 里 `create: false`）。`main.rs` 只是入口；新增命令必须加进 `generate_handler!`，命令名 snake_case。
@@ -40,6 +40,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `currentEditor` 必须保持 `shallowRef`：Vue 深代理会让 Crepe 类的 `#private` 字段抛错。
 - `MilkdownEditor` 由 `:key="${activeId}-${theme}"` 驱动整实例重建；切文件/切主题不是增量更新。代码块高亮主题通过 `Crepe.Feature.CodeMirror` 的 `featureConfigs` 传入。
 - `store.content` 是 `activeFile.content` 的 computed；写入一律 `store.setContent()`（同时置 `saved = false`）。`watchEffect` 会监听 `activeFile` 并在标签切换时从磁盘重读。
+- 图片走 Crepe `ImageBlock` 的两个钩子（`useMilkdown.ts` 的 `featureConfigs`）：`onUpload` 落盘到 `store.imageDir`（相对 md 文件，默认 `assets/`，设置可改）并把相对路径写进 markdown；`proxyDomURL` 渲染时经 `toDisplayUrl` 换成 asset 协议 URL（`tauri.conf.json` 的 `assetProtocol` 必须保持开启）。markdown 文本里永远存相对路径，不要写 asset URL。
 
 ## 主题与样式契约（改样式前必读）
 

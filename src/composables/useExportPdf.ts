@@ -2,6 +2,7 @@ import { marked } from 'marked'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { currentEditor } from '../shared/editor'
 import { isMarkdownFile } from '../utils/fileType'
+import { toDisplayUrl } from '../utils/localImage'
 
 /**
  * Markdown → HTML → 隐藏 iframe 打印为 PDF（替代 vditor preview 方案）。
@@ -20,6 +21,17 @@ export async function exportPdf(): Promise<void> {
       .replace(/^:::details\[(.*?)\]\s*$/gm, '<details><summary>$1</summary>')
       .replace(/^:::\s*$/gm, '</details>')
     const bodyHtml = await marked.parse(htmlSource)
+
+    // iframe 是独立文档，markdown 里的本地图片相对路径解析不了，换成 asset 协议 URL
+    const mdPath = store.activeFile?.path ?? null
+    const holder = document.createElement('div')
+    holder.innerHTML = bodyHtml
+    holder.querySelectorAll('img').forEach((img) => {
+      const src = img.getAttribute('src') ?? ''
+      const display = toDisplayUrl(src, mdPath)
+      if (display && display !== src) img.setAttribute('src', display)
+    })
+    const finalBodyHtml = holder.innerHTML
 
     const cs = getComputedStyle(document.documentElement)
     // 自定义属性的 var() 链在部分内核里不会被 getComputedStyle 展开，这里手动递归
@@ -82,7 +94,7 @@ export async function exportPdf(): Promise<void> {
         .prose { max-width: none; padding: 0; }
       }
     `
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body><div class="prose">${bodyHtml}</div></body></html>`
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body><div class="prose">${finalBodyHtml}</div></body></html>`
 
     const iframe = document.createElement('iframe')
     iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:820px;height:1000px;'

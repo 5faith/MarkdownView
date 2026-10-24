@@ -117,6 +117,22 @@
                 </span>
               </label>
             </div>
+            <div class="settings-row">
+              <div class="settings-row__copy">
+                <label class="settings-row__label" for="settings-image-dir">图片保存目录</label>
+                <span class="settings-row__desc">粘贴/上传的图片落盘位置，相对 md 文件所在目录（如 assets/pic）</span>
+              </div>
+              <div class="settings-textinput">
+                <input
+                  id="settings-image-dir"
+                  v-model="store.imageDir"
+                  type="text"
+                  spellcheck="false"
+                  placeholder="assets"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
           </section>
 
           <section class="settings-group settings-group--filetree">
@@ -408,6 +424,7 @@ function reset() {
   store.typewriter = false
   store.searchDebounceMs = DEFAULT_PREFERENCES.searchDebounceMs
   store.searchIntervalMs = DEFAULT_PREFERENCES.searchIntervalMs
+  store.imageDir = DEFAULT_PREFERENCES.imageDir
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -778,6 +795,38 @@ watch(
 
   &--size select {
     width: 6.571rem;
+  }
+}
+
+.settings-textinput {
+  display: inline-flex;
+  flex: none;
+  width: 15.429rem;
+
+  input {
+    width: 100%;
+    height: 2.286rem;
+    padding: 0 0.714rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.857rem;
+    outline: none;
+    transition: background 0.12s, border-color 0.12s;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+
+    &:focus {
+      border-color: var(--accent-color);
+    }
+
+    &::placeholder {
+      color: var(--text-secondary);
+    }
   }
 }
 

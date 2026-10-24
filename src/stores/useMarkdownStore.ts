@@ -34,6 +34,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const fileTreeVersion = ref(0)
   const searchDebounceMs = ref(prefs.searchDebounceMs)
   const searchIntervalMs = ref(prefs.searchIntervalMs)
+  const imageDir = ref(prefs.imageDir)
   const caret = ref<CaretPosition>({ line: 1, col: 1 })
 
   // 字体栈：正文/界面默认系统界面栈，代码默认系统等宽栈（CSS 默认值在 global.scss §4.3）
@@ -85,6 +86,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
       fileTreeWidth: fileTreeWidth.value,
       searchDebounceMs: searchDebounceMs.value,
       searchIntervalMs: searchIntervalMs.value,
+      imageDir: imageDir.value,
       workspacePath: workspacePath.value,
     })
   })
@@ -344,6 +346,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
     fileTreeVersion,
     searchDebounceMs,
     searchIntervalMs,
+    imageDir,
     fileName,
     isSaved,
     hasUnsaved,

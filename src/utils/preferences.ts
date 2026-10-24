@@ -1,5 +1,6 @@
 import type { Preferences } from '../types'
 import { DEFAULT_PREFERENCES } from '../types'
+import { sanitizeImageDir } from './localImage'
 
 const STORAGE_KEY = 'markdownview-preferences'
 const OLD_KEY_FILETREE_WIDTH = 'markdownview-filetree-width'
@@ -21,7 +22,10 @@ function normalize(prefs: Preferences): Preferences {
   const searchIntervalMs = Number.isFinite(prefs.searchIntervalMs)
     ? Math.min(5000, Math.max(0, Math.round(prefs.searchIntervalMs)))
     : DEFAULT_PREFERENCES.searchIntervalMs
-  return { ...prefs, font, fontSize, searchDebounceMs, searchIntervalMs }
+  const imageDir = typeof prefs.imageDir === 'string'
+    ? sanitizeImageDir(prefs.imageDir)
+    : DEFAULT_PREFERENCES.imageDir
+  return { ...prefs, font, fontSize, searchDebounceMs, searchIntervalMs, imageDir }
 }
 
 export function loadPreferences(): Preferences {

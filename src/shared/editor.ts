@@ -12,6 +12,7 @@ import {
   orderedListSchema,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
+  toggleLinkCommand,
   toggleStrongCommand,
   wrapInBlockquoteCommand,
   wrapInBulletListCommand,
@@ -22,12 +23,20 @@ import { insertTableCommand, toggleStrikethroughCommand } from '@milkdown/kit/pr
 import { redoCommand, undoCommand } from '@milkdown/kit/plugin/history'
 import { detailsContentSchema, detailsSchema, detailsSummarySchema } from '@xz-summer/milkdown-container'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import { saveImageFile } from '../utils/imageStore'
+import { basename, dirname, encodeMdPath, joinPath, sanitizeImageDir } from '../utils/localImage'
 
 export type FormatKind =
   | 'undo' | 'redo'
   | 'h1' | 'h2' | 'h3'
   | 'bold' | 'italic' | 'strike' | 'code'
   | 'quote' | 'ul' | 'ol' | 'task' | 'table' | 'codeblock' | 'hr' | 'details'
+  | 'link' | 'image'
+
+/** link 需要 href；image 无额外参数（自己弹文件选择框） */
+export interface FormatPayload {
+  href?: string
+}
 
 /** 当前 Milkdown Crepe 实例单例（工具栏/菜单/PDF 导出共用）。
  *  必须用 shallowRef：Vue 深代理会让带 #private 字段的 class getter 报 "Cannot read from private field"。 */
@@ -214,6 +223,61 @@ export function focusEditor(): void {
   })
 }
 
+/** 工具栏「插入图片」：选图 → 复制进图片目录 → 插入图片块（源码模式插 markdown 文本）。
+ *  所选图片已在图片目录里时直接引用，不产生重复副本；文件未保存过盘时引用绝对路径。 */
+async function insertImageFromPicker(): Promise<void> {
+  const store = useMarkdownStore()
+  const { open } = await import('@tauri-apps/plugin-dialog')
+  const selected = await open({
+    multiple: false,
+    title: '插入图片',
+    filters: [
+      { name: '图片', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'avif'] },
+      { name: '所有文件', extensions: ['*'] },
+    ],
+  })
+  if (typeof selected !== 'string') return
+
+  const mdPath = store.activeFile?.path
+  let src: string
+  const alt = basename(selected).replace(/\.[^.]+$/, '').replace(/[[\]]/g, '')
+  if (!mdPath) {
+    // 未保存的文件没有落盘位置：引用绝对路径（asset 协议能显示）
+    src = encodeMdPath(selected.replace(/\\/g, '/'))
+  } else {
+    const dirName = sanitizeImageDir(store.imageDir)
+    const imgDir = joinPath(dirname(mdPath), dirName)
+    if (dirname(selected) === imgDir) {
+      src = encodeMdPath(`${dirName}/${basename(selected)}`)
+    } else {
+      const { readFile } = await import('@tauri-apps/plugin-fs')
+      const bytes = await readFile(selected)
+      const file = new File([bytes], basename(selected))
+      src = await saveImageFile(file, mdPath, store.imageDir)
+    }
+  }
+
+  if (store.sourceMode || !currentEditor.value) {
+    const api = sourceEditorApi.value
+    if (!api) return
+    const { start, end } = api.getSelection()
+    api.replaceRange(start, end, `![${alt}](${src})`, start, start)
+    return
+  }
+
+  const crepe = currentEditor.value
+  if (crepe.readonly) return
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const nodeType = view.state.schema.nodes['image-block']
+    if (!nodeType) return
+    // alt 由 ratio 序列化而来（image-block 约定），caption → title
+    const node = nodeType.create({ src, caption: '', ratio: 1 })
+    view.dispatch(view.state.tr.replaceSelectionWith(node).scrollIntoView())
+  })
+  focusEditor()
+}
+
 /* ─────────────────────────── 源码模式文本操作 ─────────────────────────── */
 
 const INLINE_MARKS: Partial<Record<FormatKind, { m: string; ph: string }>> = {
@@ -243,7 +307,7 @@ function lineBounds(content: string, start: number, end: number): { ls: number; 
   return { ls, le }
 }
 
-function applySourceFormat(kind: FormatKind): void {
+function applySourceFormat(kind: FormatKind, payload?: FormatPayload): void {
   const store = useMarkdownStore()
   const api = sourceEditorApi.value
   if (!api) return
@@ -287,6 +351,16 @@ function applySourceFormat(kind: FormatKind): void {
     return
   }
 
+  // 链接：带 href 时包 [文本](href)，空选区用占位文本
+  if (kind === 'link') {
+    const href = (payload?.href ?? '').trim()
+    if (!href) return
+    const sel = content.slice(start, end) || '链接文本'
+    const mid = `[${sel}](${href})`
+    api.replaceRange(start, end, mid, start + 1, start + 1 + sel.length)
+    return
+  }
+
   // 块插入
   if (kind === 'hr') {
     api.replaceRange(start, end, '\n---\n', start + 1, start + 4)
@@ -312,12 +386,18 @@ function applySourceFormat(kind: FormatKind): void {
 
 /* ─────────────────────────── 统一入口 ─────────────────────────── */
 
-export function runFormat(kind: FormatKind): void {
+export function runFormat(kind: FormatKind, payload?: FormatPayload): void {
   const store = useMarkdownStore()
+
+  // 插入图片：异步流程（弹文件框），源码/所见即所得由流程内部判定
+  if (kind === 'image') {
+    void insertImageFromPicker()
+    return
+  }
 
   // 源码模式：对 markdown 文本直接操作
   if (store.sourceMode) {
-    applySourceFormat(kind)
+    applySourceFormat(kind, payload)
     return
   }
 
@@ -352,6 +432,26 @@ export function runFormat(kind: FormatKind): void {
     case 'code':
       withSelection(crepe, () => act(crepe, toggleInlineCodeCommand.key))
       break
+    case 'link': {
+      const href = (payload?.href ?? '').trim()
+      if (!href) break
+      withSelection(crepe, () => {
+        // 空选区时 toggleMark 只写 stored mark（屏幕上无任何变化），改为插入带链接的占位文本
+        crepe.editor.action((ctx) => {
+          const view = ctx.get(editorViewCtx)
+          if (view.state.selection.empty) {
+            const linkType = view.state.schema.marks.link
+            if (!linkType) return
+            const text = view.state.schema.text('链接文本', [linkType.create({ href })])
+            // inheritMarks=false：保留节点自带的 link mark（默认 true 会丢 mark）
+            view.dispatch(view.state.tr.replaceSelectionWith(text, false).scrollIntoView())
+          } else {
+            act(crepe, toggleLinkCommand.key, { href })
+          }
+        })
+      })
+      break
+    }
     case 'quote':
       withSelection(crepe, () => act(crepe, wrapInBlockquoteCommand.key))
       break
