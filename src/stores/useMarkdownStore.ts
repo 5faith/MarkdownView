@@ -32,6 +32,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const readingMode = ref(false)
   const fileTreeWidth = ref(prefs.fileTreeWidth)
   const fileTreeVersion = ref(0)
+  const searchDebounceMs = ref(prefs.searchDebounceMs)
+  const searchIntervalMs = ref(prefs.searchIntervalMs)
   const caret = ref<CaretPosition>({ line: 1, col: 1 })
 
   // 非默认字体方案：text 作用于正文/标题，mono 作用于代码与源码模式
@@ -81,6 +83,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
       showFileTree: showFileTree.value,
       outlineWidth: outlineWidth.value,
       fileTreeWidth: fileTreeWidth.value,
+      searchDebounceMs: searchDebounceMs.value,
+      searchIntervalMs: searchIntervalMs.value,
       workspacePath: workspacePath.value,
     })
   })
@@ -338,6 +342,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     readingMode,
     fileTreeWidth,
     fileTreeVersion,
+    searchDebounceMs,
+    searchIntervalMs,
     fileName,
     isSaved,
     hasUnsaved,

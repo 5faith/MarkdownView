@@ -10,6 +10,49 @@
 
     <div class="file-tree__search">
       <input v-model="query" placeholder="筛选文件…" aria-label="筛选文件" />
+      <div class="file-tree__filters" role="group" aria-label="筛选选项">
+        <button
+          type="button"
+          class="file-tree__filter"
+          :class="{ 'file-tree__filter--on': filterType === 'file' }"
+          title="仅匹配文件"
+          :aria-pressed="filterType === 'file'"
+          @click="toggleType('file')"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4 1.5h5.5L13 5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2.5a1 1 0 0 1 1-1z" />
+            <path d="M9.5 1.5V5H13" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="file-tree__filter"
+          :class="{ 'file-tree__filter--on': filterType === 'directory' }"
+          title="仅匹配目录"
+          :aria-pressed="filterType === 'directory'"
+          @click="toggleType('directory')"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M1.5 3.5a1 1 0 0 1 1-1h3.2l1.6 2h6.2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="file-tree__filter file-tree__filter--text"
+          :class="{ 'file-tree__filter--on': useRegex }"
+          title="正则表达式匹配"
+          :aria-pressed="useRegex"
+          @click="useRegex = !useRegex"
+        >.*</button>
+        <button
+          type="button"
+          class="file-tree__filter file-tree__filter--text"
+          :class="{ 'file-tree__filter--on': caseSensitive }"
+          title="区分大小写"
+          :aria-pressed="caseSensitive"
+          @click="caseSensitive = !caseSensitive"
+        >Aa</button>
+      </div>
     </div>
 
     <div class="file-tree__body">
@@ -28,7 +71,9 @@
           </span>
           <span class="file-tree__hit-name">{{ node.name }}</span>
         </div>
-        <div v-if="searchResults.length === 0" class="file-tree__empty">无匹配文件</div>
+        <div v-if="searching" class="file-tree__empty">搜索中…</div>
+        <div v-else-if="regexInvalid" class="file-tree__empty">正则表达式无效</div>
+        <div v-else-if="searchResults.length === 0" class="file-tree__empty">无匹配文件</div>
       </template>
       <template v-else>
         <FileTreeNode
@@ -76,6 +121,11 @@ const store = useMarkdownStore()
 const rootNodes = ref<FileTreeNodeType[]>([])
 const query = ref('')
 const searchResults = ref<FileTreeNodeType[]>([])
+const searching = ref(false)
+const filterType = ref<'all' | 'file' | 'directory'>('all')
+const useRegex = ref(false)
+const caseSensitive = ref(false)
+const regexInvalid = ref(false)
 const renamingPath = ref('')
 
 const menuVisible = ref(false)
@@ -83,7 +133,6 @@ const menuX = ref(0)
 const menuY = ref(0)
 const menuNode = ref<FileTreeNodeType | null>(null)
 
-let searchTimer: ReturnType<typeof setTimeout> | null = null
 let resizing = false
 
 function onResizeStart(e: MouseEvent) {
@@ -120,6 +169,7 @@ onBeforeUnmount(() => {
     document.body.style.userSelect = ''
   }
   if (searchTimer) clearTimeout(searchTimer)
+  searchSeq++
 })
 
 const folderName = computed(() => {
@@ -152,48 +202,83 @@ async function loadRoot() {
   }
 }
 
-// 搜索时递归扫工作区（跳过依赖目录），平铺展示命中项
-const SEARCH_SKIP = new Set(['node_modules', '.git', '.svn', 'dist', '.obsidian'])
-const SEARCH_MAX_DEPTH = 8
+// 搜索在 Rust 侧遍历（search_workspace 命令），前端一次 IPC 拿全部命中。
+// 不要改回前端逐目录 readDir：数千次并发 IPC 会把 WebView 消息桥挤崩。
+// 输入防抖 + 节流：连续输入时最多每 searchIntervalMs 发起一次请求（设置中可调）。
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+let searchSeq = 0
+let lastSearchAt = 0
 
-async function walk(dir: string, depth: number, out: FileTreeNodeType[]) {
-  if (depth > SEARCH_MAX_DEPTH) return
-  let entries
-  try {
-    entries = await readDir(dir)
-  } catch {
+function resetSearch() {
+  searchSeq++
+  searching.value = false
+  regexInvalid.value = false
+  searchResults.value = []
+}
+
+/** 文件/目录二选一：再次点击已选中项取消 */
+function toggleType(t: 'file' | 'directory') {
+  filterType.value = filterType.value === t ? 'all' : t
+}
+
+function triggerSearch(delay = store.searchDebounceMs) {
+  if (searchTimer) clearTimeout(searchTimer)
+  if (!query.value) {
+    resetSearch()
     return
   }
-  for (const entry of entries) {
-    const name = entry.name ?? ''
-    if (!name || SEARCH_SKIP.has(name)) continue
-    const path = `${dir}/${name}`
-    const node: FileTreeNodeType = {
-      name,
-      path,
-      type: entry.isDirectory ? 'directory' : 'file',
+  searchTimer = setTimeout(runSearch, delay)
+}
+
+async function runSearch() {
+  if (!store.workspacePath) return
+  const wait = store.searchIntervalMs - (Date.now() - lastSearchAt)
+  if (wait > 0) {
+    searchTimer = setTimeout(runSearch, wait)
+    return
+  }
+  lastSearchAt = Date.now()
+  const token = ++searchSeq
+  searching.value = true
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    const hits: Array<{ name: string; path: string; isDir: boolean }> = await invoke(
+      'search_workspace',
+      {
+        root: store.workspacePath,
+        query: query.value,
+        isRegex: useRegex.value,
+        caseSensitive: caseSensitive.value,
+        fileType: filterType.value,
+      },
+    )
+    if (token !== searchSeq) return
+    searching.value = false
+    hits.sort((a, b) => {
+      if (a.isDir !== b.isDir) return a.isDir ? -1 : 1
+      return a.name.localeCompare(b.name)
+    })
+    searchResults.value = hits
+      .slice(0, 200)
+      .map((h) => ({ name: h.name, path: h.path, type: h.isDir ? 'directory' : 'file' }))
+  } catch {
+    if (token !== searchSeq) return
+    searching.value = false
+    // 命令侧唯一的业务错误是正则无效；其余错误静默为空结果
+    if (useRegex.value) {
+      regexInvalid.value = true
+      searchResults.value = []
+    } else {
+      searchResults.value = []
     }
-    if (name.toLowerCase().includes(query.value.toLowerCase())) out.push(node)
-    if (entry.isDirectory) await walk(path, depth + 1, out)
   }
 }
 
-watch(query, (q) => {
-  if (searchTimer) clearTimeout(searchTimer)
-  if (!q) {
-    searchResults.value = []
-    return
-  }
-  searchTimer = setTimeout(async () => {
-    if (!store.workspacePath) return
-    const out: FileTreeNodeType[] = []
-    await walk(store.workspacePath, 0, out)
-    out.sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
-      return a.name.localeCompare(b.name)
-    })
-    searchResults.value = out.slice(0, 200)
-  }, 200)
+watch(query, () => triggerSearch())
+
+// 开关变化立即重搜（仍受最小间隔约束）
+watch([filterType, useRegex, caseSensitive], () => {
+  if (query.value) triggerSearch(0)
 })
 
 async function openFile(path: string) {
@@ -415,6 +500,56 @@ watch(() => store.fileTreeVersion, () => {
       &:focus {
         border-color: var(--accent-color);
       }
+    }
+  }
+
+  &__filters {
+    display: flex;
+    gap: 0.286rem;
+    margin-top: 0.357rem;
+  }
+
+  &__filter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.857rem;
+    height: 1.571rem;
+    padding: 0 0.429rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.357rem;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-family: var(--monospace);
+    font-size: 0.786rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+
+    svg {
+      width: 0.857rem;
+      height: 0.857rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    &:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+
+    &:focus-visible {
+      outline: 0.143rem solid var(--accent-color);
+      outline-offset: 1px;
+    }
+
+    &--on {
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+      font-weight: 600;
     }
   }
 

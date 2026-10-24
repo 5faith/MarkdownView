@@ -2010,6 +2010,7 @@ name = "markdown-view"
 version = "1.0.0"
 dependencies = [
  "ctrlc",
+ "regex",
  "serde",
  "serde_json",
  "tauri",

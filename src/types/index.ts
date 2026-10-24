@@ -13,6 +13,10 @@ export interface Preferences {
   showFileTree: boolean
   outlineWidth: number
   fileTreeWidth: number
+  /** 文件树搜索：输入防抖（输入停顿后触发搜索的等待） */
+  searchDebounceMs: number
+  /** 文件树搜索：两次搜索请求的最小间隔 */
+  searchIntervalMs: number
   workspacePath: string
 }
 
@@ -26,6 +30,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   showFileTree: false,
   outlineWidth: 220,
   fileTreeWidth: 240,
+  searchDebounceMs: 300,
+  searchIntervalMs: 800,
   workspacePath: '',
 }
 

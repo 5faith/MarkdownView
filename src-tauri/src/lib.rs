@@ -147,6 +147,113 @@ fn set_data_dir(path: Option<String>) -> Result<(), String> {
     }
 }
 
+/// 文件树搜索时跳过的生成目录（大小写不敏感）
+const SEARCH_SKIP: &[&str] = &[
+    "node_modules",
+    ".git",
+    ".svn",
+    "dist",
+    ".obsidian",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".idea",
+    ".cache",
+    ".mypy_cache",
+    ".pytest_cache",
+    "target",
+    "build",
+];
+const SEARCH_MAX_DEPTH: usize = 8;
+/// 返回给前端的命中上限（前端排序后只展示前 200）
+const SEARCH_MAX_HITS: usize = 1000;
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SearchHit {
+    name: String,
+    path: String,
+    is_dir: bool,
+}
+
+/// 深度优先遍历；want_dirs 为 None 时不过滤类型，Some(b) 只保留目录/文件
+fn walk_search(
+    dir: &Path,
+    matcher: &dyn Fn(&str) -> bool,
+    want_dirs: Option<bool>,
+    depth: usize,
+    out: &mut Vec<SearchHit>,
+) {
+    if depth > SEARCH_MAX_DEPTH || out.len() >= SEARCH_MAX_HITS {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let mut sub_dirs = Vec::new();
+    for entry in entries.flatten() {
+        let Ok(name) = entry.file_name().into_string() else {
+            continue;
+        };
+        if SEARCH_SKIP.iter().any(|s| s.eq_ignore_ascii_case(&name)) {
+            continue;
+        }
+        // file_type() 不跟随符号链接，避免软链环导致死循环
+        let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
+        if (want_dirs.is_none() || want_dirs == Some(is_dir)) && matcher(&name) {
+            out.push(SearchHit {
+                name: name.clone(),
+                path: dir.join(&name).to_string_lossy().into_owned(),
+                is_dir,
+            });
+            if out.len() >= SEARCH_MAX_HITS {
+                return;
+            }
+        }
+        if is_dir {
+            sub_dirs.push(entry.path());
+        }
+    }
+    for sub in sub_dirs {
+        walk_search(&sub, matcher, want_dirs, depth + 1, out);
+        if out.len() >= SEARCH_MAX_HITS {
+            return;
+        }
+    }
+}
+
+/// 文件树筛选：在 Rust 侧遍历工作区。前端逐目录 IPC 并发扇出会把 WebView
+/// 消息桥挤崩（软件崩溃），这里一次调用完成全部遍历与匹配。
+#[tauri::command]
+fn search_workspace(
+    root: String,
+    query: String,
+    is_regex: bool,
+    case_sensitive: bool,
+    file_type: String,
+) -> Result<Vec<SearchHit>, String> {
+    let matcher: Box<dyn Fn(&str) -> bool> = if is_regex {
+        let re = regex::RegexBuilder::new(&query)
+            .case_insensitive(!case_sensitive)
+            .build()
+            .map_err(|_| "正则表达式无效".to_string())?;
+        Box::new(move |name: &str| re.is_match(name))
+    } else if case_sensitive {
+        Box::new(move |name: &str| name.contains(&query))
+    } else {
+        let needle = query.to_lowercase();
+        Box::new(move |name: &str| name.to_lowercase().contains(&needle))
+    };
+    let want_dirs = match file_type.as_str() {
+        "file" => Some(false),
+        "directory" => Some(true),
+        _ => None,
+    };
+    let mut hits = Vec::new();
+    walk_search(Path::new(&root), matcher.as_ref(), want_dirs, 0, &mut hits);
+    Ok(hits)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -176,7 +283,8 @@ pub fn run() {
             get_file_args,
             reveal_in_file_manager,
             get_data_dir,
-            set_data_dir
+            set_data_dir,
+            search_workspace
         ])
         .setup(|app| {
             let window_config = app

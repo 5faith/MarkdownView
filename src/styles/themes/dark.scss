@@ -53,6 +53,7 @@ html[data-theme='dark'] {
   --text-secondary: rgba(214, 214, 214, 0.6);
   --border-color: #282828;            /* 与 --window-border 一致 */
   --drag-overlay: rgba(233, 95, 89, 0.15);
+  --color-scheme: dark;              /* 原生控件（select 弹出层等）配色方案 */
 
   /* ── §4.2 Typora 内置变量（深色专有，必须覆盖） ── */
   --mermaid-theme: night;

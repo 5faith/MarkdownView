@@ -11,7 +11,13 @@ function normalize(prefs: Preferences): Preferences {
   const fontSize = Number.isFinite(prefs.fontSize)
     ? Math.min(20, Math.max(12, Math.round(prefs.fontSize)))
     : DEFAULT_PREFERENCES.fontSize
-  return { ...prefs, font, fontSize }
+  const searchDebounceMs = Number.isFinite(prefs.searchDebounceMs)
+    ? Math.min(2000, Math.max(0, Math.round(prefs.searchDebounceMs)))
+    : DEFAULT_PREFERENCES.searchDebounceMs
+  const searchIntervalMs = Number.isFinite(prefs.searchIntervalMs)
+    ? Math.min(5000, Math.max(0, Math.round(prefs.searchIntervalMs)))
+    : DEFAULT_PREFERENCES.searchIntervalMs
+  return { ...prefs, font, fontSize, searchDebounceMs, searchIntervalMs }
 }
 
 export function loadPreferences(): Preferences {

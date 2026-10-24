@@ -94,6 +94,34 @@
             </div>
           </section>
 
+          <section class="settings-group settings-group--filetree">
+            <h2 class="settings-group__title">文件树</h2>
+            <div class="settings-row">
+              <div class="settings-row__copy">
+                <label class="settings-row__label" for="settings-search-debounce">搜索防抖</label>
+                <span class="settings-row__desc">输入停顿后触发筛选的等待时间</span>
+              </div>
+              <div class="settings-select">
+                <select id="settings-search-debounce" v-model.number="store.searchDebounceMs">
+                  <option v-for="ms in SEARCH_DEBOUNCE_OPTIONS" :key="ms" :value="ms">{{ ms }} ms</option>
+                </select>
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" /></svg>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row__copy">
+                <label class="settings-row__label" for="settings-search-interval">搜索间隔</label>
+                <span class="settings-row__desc">两次搜索请求之间的最小间隔</span>
+              </div>
+              <div class="settings-select">
+                <select id="settings-search-interval" v-model.number="store.searchIntervalMs">
+                  <option v-for="ms in SEARCH_INTERVAL_OPTIONS" :key="ms" :value="ms">{{ ms }} ms</option>
+                </select>
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" /></svg>
+              </div>
+            </div>
+          </section>
+
           <section class="settings-group settings-group--storage">
             <h2 class="settings-group__title">存储</h2>
             <div class="settings-row">
@@ -139,6 +167,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { showConfirm } from '../composables/showConfirm'
+import { DEFAULT_PREFERENCES } from '../types'
 import type { AppFont, AppTheme } from '../types'
 
 const props = defineProps<{ open: boolean }>()
@@ -230,6 +259,8 @@ const THEME_OPTIONS: Array<{ value: AppTheme; label: string }> = [
   { value: 'dark', label: '深色' },
 ]
 const FONT_SIZES = [12, 13, 14, 15, 16, 17, 18, 19, 20]
+const SEARCH_DEBOUNCE_OPTIONS = [100, 300, 500, 1000]
+const SEARCH_INTERVAL_OPTIONS = [300, 800, 1500, 3000]
 
 const activeFontShort = computed(() => {
   const option = FONT_OPTIONS.find((item) => item.value === store.font)
@@ -245,6 +276,8 @@ function reset() {
   store.font = 'maple'
   store.fontSize = 14
   store.typewriter = false
+  store.searchDebounceMs = DEFAULT_PREFERENCES.searchDebounceMs
+  store.searchIntervalMs = DEFAULT_PREFERENCES.searchIntervalMs
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -431,6 +464,7 @@ watch(
   }
 
   &--editor,
+  &--filetree,
   &--storage {
     margin-top: 1.143rem;
   }
@@ -577,6 +611,12 @@ watch(
     &:focus-visible {
       outline: 0.143rem solid var(--accent-color);
       outline-offset: 1px;
+    }
+
+    /* 原生弹出层不跟随 color-scheme（WebView2），显式给 option 上色才能随主题 */
+    option {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
     }
   }
 

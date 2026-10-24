@@ -82,6 +82,7 @@
 
 /* ─────────── 派生别名层（应用扩展：旧 UI 变量 → 契约变量，单向映射） ─────────── */
 :root {
+  color-scheme: var(--color-scheme, light);   /* 原生控件（select 弹出层、滚动条）配色跟随主题 */
   --bg-primary: var(--bg-color);
   --bg-secondary: var(--side-bar-bg-color);
   --bg-raised: var(--bg-color);
