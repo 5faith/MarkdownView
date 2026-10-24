@@ -139,9 +139,9 @@ vite ^6 + @vitejs/plugin-vue、typescript ^5 + vue-tsc（`pnpm build` 先类型�
 - ctrlc 处理器
 
 ### 关键配置
-- `tauri.conf.json`：窗口 1200×800（min 800×600）、文件关联、NSIS hooks、devUrl `http://localhost:14200`
+- `tauri.conf.json`：窗口 1200×800（min 800×600）、文件关联、NSIS hooks、devUrl `http://localhost:14220`
 - `capabilities/default.json`：权限 `"windows": ["*"]`，dialog/fs/process 权限集合
-- `vite.config.ts`：端口 14200（strict）、`vditorPatch()` 插件（CDN URL 重写）、`@/` 别名、src-tauri 排除 watch
+- `vite.config.ts`：端口 14220（strict）、`vditorPatch()` 插件（CDN URL 重写）、`@/` 别名、src-tauri 排除 watch
 - `scripts/patch-vditor.cjs`：拷贝 vditor dist 到 `public/vditor/dist` + 重写 unpkg CDN → 本地（predev/prebuild/postinstall 三时机）
 
 ## 四、重构注意事项（代码无法自明的约束）
@@ -153,7 +153,7 @@ vite ^6 + @vitejs/plugin-vue、typescript ^5 + vue-tsc（`pnpm build` 先类型�
 5. **多窗口约定**：`?workspace=` 参数是窗口与工作区绑定的唯一通道；capabilities 对所有窗口生效。
 6. **关闭流程**：必须用 `win.destroy()` 而非 `exit(0)`（多窗口下只关当前窗口）。
 7. **Vditor ↔ store 双向同步**靠 `externalUpdate` 标志防回环，`useVditor` 内四处 watch + App.vue 的 `:key` 重建策略是核心同步机制，重构时需整体理解。
-8. **dev 端口 14200**（strict），HMR 14201 仅 `TAURI_DEV_HOST` 时启用。
+8. **dev 端口 14220**（strict），HMR 14221 仅 `TAURI_DEV_HOST` 时启用。
 9. 无测试、无 lint、无 formatter 配置（重构时可考虑补齐）。
 
 ## 五、重构方向参考（prd/PLAN.md 已记录）

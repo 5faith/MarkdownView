@@ -7,7 +7,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `pnpm tauri dev` — 唯一能跑全功能的开发方式。单独 `pnpm dev` 只是 Vite，页面能开但所有 `@tauri-apps/*` 调用都会失败。
 - `pnpm build` — 唯一的类型检查（`vue-tsc -b && vite build`）。仓库**没有** lint / test 脚本，也没有测试框架；改动靠 build + `pnpm tauri dev` 手动验证。
 - `pnpm tauri build` — 打安装包（`beforeBuildCommand` 会再跑一次 `pnpm build`）。
-- Vite 端口 14200 是 `strictPort`，改端口必须同步 `src-tauri/tauri.conf.json` 的 `devUrl`。
+- Vite 端口 14220 是 `strictPort`，改端口必须同步 `src-tauri/tauri.conf.json` 的 `devUrl`。
 
 ## 结构
 
