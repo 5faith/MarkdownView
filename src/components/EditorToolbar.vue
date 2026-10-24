@@ -17,11 +17,38 @@
     <button class="editor-toolbar__btn" title="行内代码" @click="runFormat('code')"><code>&lt;/&gt;</code></button>
     <span class="editor-toolbar__sep" />
     <button class="editor-toolbar__btn" title="引用" @click="runFormat('quote')">❝</button>
-    <button class="editor-toolbar__btn" title="无序列表" @click="runFormat('ul')">• ≡</button>
-    <button class="editor-toolbar__btn" title="有序列表" @click="runFormat('ol')">1. ≡</button>
-    <button class="editor-toolbar__btn" title="任务列表（勾选框）" @click="runFormat('task')">☑ ≡</button>
-    <button class="editor-toolbar__btn" title="插入表格" @click="runFormat('table')">表格</button>
+    <div class="editor-toolbar__menu">
+      <button
+        ref="listBtn"
+        class="editor-toolbar__btn"
+        :class="{ 'editor-toolbar__btn--active': listMenu }"
+        title="列表"
+        aria-haspopup="menu"
+        :aria-expanded="listMenu"
+        @click.stop="toggleListMenu"
+      ><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01" /></svg></button>
+      <div v-if="listMenu" ref="listPop" class="editor-toolbar__pop" role="menu" aria-label="列表" :style="popStyle">
+        <button
+          v-for="item in listItems"
+          :key="item.kind"
+          class="editor-toolbar__item"
+          role="menuitem"
+          @click="pickList(item.kind)"
+        >
+          <span class="editor-toolbar__item-icon" :class="`editor-toolbar__item-icon--${item.kind}`">
+            <svg v-if="item.kind === 'task'" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="m8 12 3 3 5-6" /></svg>
+            <template v-else>{{ item.icon }}</template>
+          </span>{{ item.label }}
+        </button>
+      </div>
+    </div>
+    <button class="editor-toolbar__btn" title="插入表格" @click="runFormat('table')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M3 15h18M9 10v10" /></svg>
+    </button>
     <button class="editor-toolbar__btn" title="插入代码块" @click="runFormat('codeblock')">{ }</button>
+    <button class="editor-toolbar__btn" title="隐藏细节（折叠块）" @click="runFormat('details')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /><path d="m9 12 3 3 3-3" /></svg>
+    </button>
     <button class="editor-toolbar__btn" title="水平线" @click="runFormat('hr')">—</button>
 
     <span v-if="store.sourceMode" class="editor-toolbar__flag">源码模式</span>
@@ -39,12 +66,58 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { runFormat } from '../shared/editor'
 import { useFileOperation } from '../composables/useFileOperation'
 
 const store = useMarkdownStore()
 const fileOps = useFileOperation()
+
+const listMenu = ref(false)
+const listBtn = ref<HTMLElement | null>(null)
+const listPop = ref<HTMLElement | null>(null)
+const popStyle = ref({ top: '0px', left: '0px' })
+const listItems = [
+  { kind: 'ul', icon: '•', label: '无序列表' },
+  { kind: 'ol', icon: '1.', label: '有序列表' },
+  { kind: 'task', icon: '', label: '任务列表' },
+] as const
+
+/** 工具栏在 overflow 容器里，下拉菜单用 fixed 定位，避免被裁切 */
+function toggleListMenu() {
+  if (!listMenu.value && listBtn.value) {
+    const r = listBtn.value.getBoundingClientRect()
+    popStyle.value = { top: `${r.bottom + 4}px`, left: `${r.left}px` }
+  }
+  listMenu.value = !listMenu.value
+}
+
+function pickList(kind: 'ul' | 'ol' | 'task') {
+  listMenu.value = false
+  runFormat(kind)
+}
+
+function onDocMousedown(e: MouseEvent) {
+  if (!listMenu.value) return
+  const t = e.target as Node
+  if (listBtn.value?.contains(t) || listPop.value?.contains(t)) return
+  listMenu.value = false
+}
+
+function onDocKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') listMenu.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', onDocMousedown, true)
+  document.addEventListener('keydown', onDocKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', onDocMousedown, true)
+  document.removeEventListener('keydown', onDocKeydown)
+})
 </script>
 
 <style scoped lang="scss">
@@ -112,6 +185,69 @@ const fileOps = useFileOperation()
     background: var(--border-color);
     margin: 0 0.429rem;
     flex-shrink: 0;
+  }
+
+  &__menu {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  &__pop {
+    position: fixed;
+    min-width: 8.571rem;
+    padding: 0.286rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.571rem;
+    box-shadow: 0 0.571rem 1.714rem rgba(0, 0, 0, 0.16);
+    z-index: 1000;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 0.571rem;
+    width: 100%;
+    padding: 0.429rem 0.571rem;
+    border: none;
+    border-radius: 0.429rem;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.929rem;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+  }
+
+  &__item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.143rem;
+    color: var(--text-secondary);
+    font-size: 0.786rem;
+    line-height: 1;
+    text-align: center;
+
+    // 圆点字符本身偏小，回退到菜单字号；数字「1.」保持小一号
+    &--ul {
+      font-size: 0.929rem;
+    }
+
+    svg {
+      width: 0.929rem;
+      height: 0.929rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
   }
 
   &__flag {

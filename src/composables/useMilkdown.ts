@@ -1,5 +1,6 @@
 import { onBeforeUnmount, watch } from 'vue'
 import { Crepe } from '@milkdown/crepe'
+import { containerPlugin } from '@xz-summer/milkdown-container'
 import { editorViewCtx } from '@milkdown/kit/core'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { replaceAll } from '@milkdown/kit/utils'
@@ -67,6 +68,11 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
       },
     })
     currentEditor.value = crepe
+
+    // 容器指令插件（:::details 折叠块等）：Crepe 无自定义插件入口，借 addFeature 注入
+    crepe.addFeature((editor) => {
+      editor.use(containerPlugin)
+    })
 
     crepe.on((listener) => {
       listener.markdownUpdated((_ctx, markdown, prevMarkdown) => {

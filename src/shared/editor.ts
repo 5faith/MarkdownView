@@ -20,13 +20,14 @@ import {
 } from '@milkdown/kit/preset/commonmark'
 import { insertTableCommand, toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
 import { redoCommand, undoCommand } from '@milkdown/kit/plugin/history'
+import { detailsContentSchema, detailsSchema, detailsSummarySchema } from '@xz-summer/milkdown-container'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 
 export type FormatKind =
   | 'undo' | 'redo'
   | 'h1' | 'h2' | 'h3'
   | 'bold' | 'italic' | 'strike' | 'code'
-  | 'quote' | 'ul' | 'ol' | 'task' | 'table' | 'codeblock' | 'hr'
+  | 'quote' | 'ul' | 'ol' | 'task' | 'table' | 'codeblock' | 'hr' | 'details'
 
 /** 当前 Milkdown Crepe 实例单例（工具栏/菜单/PDF 导出共用）。
  *  必须用 shallowRef：Vue 深代理会让带 #private 字段的 class getter 报 "Cannot read from private field"。 */
@@ -174,6 +175,36 @@ function convertOrWrapList(kind: 'ul' | 'ol'): void {
   })
 }
 
+/** 插入 :::details 折叠块（schema 来自容器插件），占位标题处于选中态，直接输入即可覆盖 */
+function insertDetails(): void {
+  const crepe = currentEditor.value
+  if (!crepe || crepe.readonly) return
+
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const { schema } = view.state
+    const paragraph = schema.nodes.paragraph
+    if (!paragraph) return
+    const summaryType = detailsSummarySchema.type(ctx)
+    const title = '摘要'
+    const node = detailsSchema.type(ctx).create({ open: true }, [
+      summaryType.create(null, schema.text(title)),
+      detailsContentSchema.type(ctx).create(null, [paragraph.create(null, schema.text('正文'))]),
+    ])
+    const tr = view.state.tr.replaceSelectionWith(node)
+    // 摘要文本位置按插入后的文档实测，别用 from+偏移算（会落在外层 details 节点上）
+    let summaryStart = -1
+    tr.doc.descendants((n, pos) => {
+      if (summaryStart < 0 && n.type === summaryType) summaryStart = pos + 1
+      return summaryStart < 0
+    })
+    if (summaryStart >= 0) {
+      tr.setSelection(TextSelection.create(tr.doc, summaryStart, summaryStart + title.length))
+    }
+    view.dispatch(tr.scrollIntoView())
+  })
+}
+
 /** 编辑器重新聚焦，让菜单操作期间选区保持可见 */
 export function focusEditor(): void {
   const crepe = currentEditor.value
@@ -272,6 +303,11 @@ function applySourceFormat(kind: FormatKind): void {
     api.replaceRange(start, end, mid, start + 2, start + 6)
     return
   }
+  if (kind === 'details') {
+    const mid = '\n:::details[摘要]\n正文\n:::\n'
+    api.replaceRange(start, end, mid, start + 12, start + 14)
+    return
+  }
 }
 
 /* ─────────────────────────── 统一入口 ─────────────────────────── */
@@ -336,6 +372,9 @@ export function runFormat(kind: FormatKind): void {
       break
     case 'hr':
       withSelection(crepe, () => act(crepe, insertHrCommand.key))
+      break
+    case 'details':
+      insertDetails()
       break
   }
 

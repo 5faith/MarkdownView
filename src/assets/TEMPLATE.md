@@ -149,10 +149,9 @@ public class HelloWorld {
 
 ### 隐藏细节
 
-<details>
-<summary>这里是摘要部分。</summary>
+:::details[这里是摘要部分。]
 这里是细节部分。
-</details>
+:::
 
 ### 段落
 

@@ -114,6 +114,7 @@ const menus = computed<Array<{ label: string; items: Array<MenuItem | '-'> }>>((
       { label: '任务列表', disabled: fmtDisabled.value, run: () => runFormat('task') },
       { label: '插入表格', disabled: fmtDisabled.value, run: () => runFormat('table') },
       { label: '插入代码块', disabled: fmtDisabled.value, run: () => runFormat('codeblock') },
+      { label: '隐藏细节', disabled: fmtDisabled.value, run: () => runFormat('details') },
       { label: '水平线', disabled: fmtDisabled.value, run: () => runFormat('hr') },
     ],
   },

@@ -15,7 +15,11 @@ export async function exportPdf(): Promise<void> {
   store.loading = true
   try {
     const markdown = crepe.getMarkdown()
-    const bodyHtml = await marked.parse(markdown)
+    // marked 不认 :::details 指令，导出前还原为原生 <details>
+    const htmlSource = markdown
+      .replace(/^:::details\[(.*?)\]\s*$/gm, '<details><summary>$1</summary>')
+      .replace(/^:::\s*$/gm, '</details>')
+    const bodyHtml = await marked.parse(htmlSource)
 
     const cs = getComputedStyle(document.documentElement)
     // 自定义属性的 var() 链在部分内核里不会被 getComputedStyle 展开，这里手动递归
