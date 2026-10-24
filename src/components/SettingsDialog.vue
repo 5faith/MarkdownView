@@ -94,6 +94,35 @@
             </div>
           </section>
 
+          <section class="settings-group settings-group--storage">
+            <h2 class="settings-group__title">存储</h2>
+            <div class="settings-row">
+              <div class="settings-row__copy">
+                <span class="settings-row__label">数据目录</span>
+                <span class="settings-row__desc">偏好设置与缓存所在位置，修改后重启应用生效</span>
+                <span v-if="dataDir" class="settings-storage-path" :title="dataDir.path">
+                  {{ dataDir.path }}<template v-if="dataDir.custom">（自定义）</template>
+                </span>
+                <span v-else class="settings-row__desc">读取中…</span>
+              </div>
+              <div class="settings-storage-actions">
+                <button
+                  type="button"
+                  class="settings-mini-btn"
+                  :disabled="dataDirBusy"
+                  @click="changeDataDir"
+                >修改…</button>
+                <button
+                  v-if="dataDir?.custom"
+                  type="button"
+                  class="settings-mini-btn"
+                  :disabled="dataDirBusy"
+                  @click="resetDataDir"
+                >恢复默认</button>
+              </div>
+            </div>
+          </section>
+
           <p class="settings-dialog__hint">字体同时作用于界面与编辑器，代码块始终等宽；选择会保存在本机。</p>
         </div>
 
@@ -109,6 +138,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import { showConfirm } from '../composables/showConfirm'
 import type { AppFont, AppTheme } from '../types'
 
 const props = defineProps<{ open: boolean }>()
@@ -116,6 +146,79 @@ const emit = defineEmits<{ close: [] }>()
 
 const store = useMarkdownStore()
 const dialogEl = ref<HTMLElement | null>(null)
+
+interface DataDirInfo {
+  path: string
+  default_path: string
+  custom: boolean
+}
+
+const dataDir = ref<DataDirInfo | null>(null)
+const dataDirBusy = ref(false)
+
+async function loadDataDir() {
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    dataDir.value = await invoke<DataDirInfo>('get_data_dir')
+  } catch {
+    dataDir.value = null
+  }
+}
+
+async function restartToApply() {
+  const { relaunch } = await import('@tauri-apps/plugin-process')
+  relaunch()
+}
+
+async function showDataDirError(text: string) {
+  const { message } = await import('@tauri-apps/plugin-dialog')
+  await message(text, { title: '数据目录', kind: 'error' })
+}
+
+async function changeDataDir() {
+  if (dataDirBusy.value) return
+  dataDirBusy.value = true
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog')
+    const dir = await open({ directory: true, multiple: false, title: '选择数据目录' })
+    if (typeof dir !== 'string' || dir === dataDir.value?.path) return
+    const confirmed = await showConfirm({
+      title: '修改数据目录',
+      message: '重启应用后生效；未保存的修改会丢失，原目录的数据不会自动迁移。',
+      confirmLabel: '重启应用',
+      cancelLabel: '取消',
+    })
+    if (!confirmed) return
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('set_data_dir', { path: dir })
+    await restartToApply()
+  } catch (e) {
+    await showDataDirError(String(e))
+  } finally {
+    dataDirBusy.value = false
+  }
+}
+
+async function resetDataDir() {
+  if (dataDirBusy.value) return
+  dataDirBusy.value = true
+  try {
+    const confirmed = await showConfirm({
+      title: '恢复默认数据目录',
+      message: '将恢复为程序目录下的 data 文件夹，重启应用后生效。',
+      confirmLabel: '重启应用',
+      cancelLabel: '取消',
+    })
+    if (!confirmed) return
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('set_data_dir', { path: null })
+    await restartToApply()
+  } catch (e) {
+    await showDataDirError(String(e))
+  } finally {
+    dataDirBusy.value = false
+  }
+}
 
 const FONT_OPTIONS: Array<{ value: AppFont; label: string; short: string }> = [
   { value: 'maple', label: 'Maple Mono（内置）', short: 'Maple Mono' },
@@ -151,11 +254,14 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(() => document.addEventListener('keydown', onKeydown))
 onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 
-// 打开时把焦点移进弹窗，Esc 有落点且不抢关闭按钮的高亮
+// 打开时把焦点移进弹窗并读取数据目录信息，Esc 有落点且不抢关闭按钮的高亮
 watch(
   () => props.open,
   (open) => {
-    if (open) nextTick(() => dialogEl.value?.focus())
+    if (open) {
+      nextTick(() => dialogEl.value?.focus())
+      void loadDataDir()
+    }
   },
 )
 </script>
@@ -324,8 +430,52 @@ watch(
     color: var(--text-secondary);
   }
 
-  &--editor {
+  &--editor,
+  &--storage {
     margin-top: 1.143rem;
+  }
+}
+
+.settings-storage-path {
+  font-family: var(--monospace);
+  font-size: 0.786rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  word-break: break-all;
+  user-select: text;
+}
+
+.settings-storage-actions {
+  display: inline-flex;
+  flex: none;
+  gap: 0.429rem;
+}
+
+.settings-mini-btn {
+  height: 1.857rem;
+  padding: 0 0.857rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.857rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 0.143rem solid var(--accent-color);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
   }
 }
 

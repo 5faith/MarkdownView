@@ -20,7 +20,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `src/utils/` — `preferences.ts`（偏好读写）、`fileType.ts`（按扩展名判定展示方式）。
 - `src/types/index.ts` — 共享类型（`AppTheme`、`Preferences`、`MarkdownFile`、`FileTreeNode`、`CaretPosition`）。
 - `src/assets/` — `TEMPLATE.md`（新建文件模板）、`fonts/`（内置 Maple Mono NF CN woff2 + OFL 许可）。
-- `src-tauri/src/lib.rs` — 全部 Rust 逻辑：`get_file_args`、`reveal_in_file_manager`、插件注册、single-instance、ctrlc。`main.rs` 只是入口；新增命令必须加进 `generate_handler!`，命令名 snake_case。
+- `src-tauri/src/lib.rs` — 全部 Rust 逻辑：`get_file_args`、`reveal_in_file_manager`、`get_data_dir`/`set_data_dir`（数据目录）、插件注册、single-instance、ctrlc。数据目录默认 exe 旁 `data/`，exe 旁 `data-dir.txt`（一行路径）可覆盖，解析见 `resolve_data_dir`；窗口在 setup 手动创建（`tauri.conf.json` 里 `create: false`）。`main.rs` 只是入口；新增命令必须加进 `generate_handler!`，命令名 snake_case。
 - `src-tauri/` — `tauri.conf.json` 管窗口、构建与 `devUrl`；`capabilities/default.json` 管 Tauri 权限白名单。
 - `src/styles/global.scss` — 骨架层（与主题无关）；`src/styles/themes/<name>.scss` — 每主题一个变量文件；规则见「主题与样式契约」，标准来源 `prd/style.md`。
 - `prd/` — 需求目录，每个需求一个 `prd/{yyyyMMdd}-{需求名}/`，见「需求文档（prd/）」；`version/` — 需求计划与修改记录，命名 `{yyyyMMdd}-{需求名}-plan.md` / `-modification.md`。

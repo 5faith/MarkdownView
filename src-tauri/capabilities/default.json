@@ -23,6 +23,7 @@
     "fs:write-all",
     "process:default",
     "process:allow-exit",
+    "process:allow-restart",
     "core:event:default",
     "core:event:allow-listen",
     "core:event:allow-emit",

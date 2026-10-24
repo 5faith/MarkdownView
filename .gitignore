@@ -99,6 +99,7 @@ openspec
 .zcode/
 .operator/
 .openchamber
+.mimosa
 
 opencode.jsonc
 kilo.jsonc
