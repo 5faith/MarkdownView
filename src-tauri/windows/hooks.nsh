@@ -12,3 +12,10 @@
 
   cache_done:
 !macroend
+
+; 文件关联使用独立的文档图标：Tauri 默认把 .md 的 DefaultIcon 指向 exe，
+; 这里改指随包安装的 file-icon.ico（bundle.resources 会拷到 $INSTDIR\icons）
+!macro NSIS_HOOK_POSTINSTALL
+  WriteRegStr SHCTX "Software\Classes\Markdown\DefaultIcon" "" "$INSTDIR\icons\style3-dark-file-icon.ico,0"
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0x1000, i 0, i 0)'
+!macroend
