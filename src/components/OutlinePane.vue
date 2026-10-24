@@ -147,7 +147,7 @@ function onResizeStart(e: MouseEvent) {
 
   function onMouseMove(e: MouseEvent) {
     if (!resizing) return
-    const delta = startX - e.clientX
+    const delta = e.clientX - startX
     const newWidth = Math.min(400, Math.max(160, startWidth + delta))
     store.setOutlineWidth(newWidth)
   }
