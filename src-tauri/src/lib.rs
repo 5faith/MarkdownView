@@ -168,6 +168,17 @@ const SEARCH_MAX_DEPTH: usize = 8;
 /// 返回给前端的命中上限（前端排序后只展示前 200）
 const SEARCH_MAX_HITS: usize = 1000;
 
+/// 枚举系统已安装的字体族名（设置中的字体下拉）。大小写不敏感排序去重。
+#[tauri::command]
+fn list_system_fonts() -> Result<Vec<String>, String> {
+    let mut families = font_kit::source::SystemSource::new()
+        .all_families()
+        .map_err(|e| format!("枚举系统字体失败：{}", e))?;
+    families.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+    families.dedup();
+    Ok(families)
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SearchHit {
@@ -284,7 +295,8 @@ pub fn run() {
             reveal_in_file_manager,
             get_data_dir,
             set_data_dir,
-            search_workspace
+            search_workspace,
+            list_system_fonts
         ])
         .setup(|app| {
             let window_config = app

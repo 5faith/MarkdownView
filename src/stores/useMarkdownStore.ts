@@ -36,32 +36,32 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const searchIntervalMs = ref(prefs.searchIntervalMs)
   const caret = ref<CaretPosition>({ line: 1, col: 1 })
 
-  // 非默认字体方案：text 作用于正文/标题，mono 作用于代码与源码模式
-  const FONT_STACKS: Record<Exclude<AppFont, 'maple'>, { text: string; mono: string }> = {
-    system: {
-      text: 'system-ui, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif',
-      mono: 'Consolas, "Courier New", monospace',
-    },
-    mono: {
-      text: 'Consolas, "Courier New", monospace',
-      mono: 'Consolas, "Courier New", monospace',
-    },
-  }
+  // 字体栈：正文/界面默认系统界面栈，代码默认系统等宽栈（CSS 默认值在 global.scss §4.3）
+  const SYSTEM_STACK = 'system-ui, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif'
+  const MONO_STACK = 'Consolas, "Courier New", "JetBrains Mono", monospace'
 
-  // 外观设置写成根元素内联变量；maple 是 CSS 默认值，移除内联覆盖即可（避免两处维护字体栈）
+  // 外观设置写成根元素内联变量；''（系统默认）移除内联覆盖，走 CSS 默认值
   function applyAppearance() {
     const root = document.documentElement
     root.style.setProperty('--text-size', `${fontSize.value}px`)
-    if (font.value === 'maple') {
+    if (font.value === 'mono') {
+      root.style.setProperty('--text-font', MONO_STACK)
+      root.style.setProperty('--title-font', MONO_STACK)
+      root.style.setProperty('--monospace', MONO_STACK)
+      return
+    }
+    if (font.value === '') {
       root.style.removeProperty('--text-font')
       root.style.removeProperty('--title-font')
       root.style.removeProperty('--monospace')
       return
     }
-    const stack = FONT_STACKS[font.value]
-    root.style.setProperty('--text-font', stack.text)
-    root.style.setProperty('--title-font', stack.text)
-    root.style.setProperty('--monospace', stack.mono)
+    // 本地字体：正文/界面用所选字体（带系统栈兜底），代码保持等宽
+    const family = font.value.replace(/"/g, '')
+    const textStack = `"${family}", ${SYSTEM_STACK}`
+    root.style.setProperty('--text-font', textStack)
+    root.style.setProperty('--title-font', textStack)
+    root.style.setProperty('--monospace', MONO_STACK)
   }
   applyAppearance()
 

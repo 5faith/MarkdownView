@@ -19,8 +19,8 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `src/shared/` — `editor.ts`（`currentEditor` 单例 + `runFormat` 命令入口）、`cmTheme.ts`（代码块明暗高亮）。
 - `src/utils/` — `preferences.ts`（偏好读写）、`fileType.ts`（按扩展名判定展示方式）。
 - `src/types/index.ts` — 共享类型（`AppTheme`、`Preferences`、`MarkdownFile`、`FileTreeNode`、`CaretPosition`）。
-- `src/assets/` — `TEMPLATE.md`（新建文件模板）、`fonts/`（内置 Maple Mono NF CN woff2 + OFL 许可）。
-- `src-tauri/src/lib.rs` — 全部 Rust 逻辑：`get_file_args`、`reveal_in_file_manager`、`get_data_dir`/`set_data_dir`（数据目录）、`search_workspace`（文件树筛选，Rust 侧遍历——前端逐目录 IPC 并发会挤崩 WebView，勿改回）、插件注册、single-instance、ctrlc。数据目录默认 exe 旁 `data/`，exe 旁 `data-dir.txt`（一行路径）可覆盖，解析见 `resolve_data_dir`；窗口在 setup 手动创建（`tauri.conf.json` 里 `create: false`）。`main.rs` 只是入口；新增命令必须加进 `generate_handler!`，命令名 snake_case。
+- `src/assets/` — `TEMPLATE.md`（新建文件模板）。字体不内置：正文/代码字体栈默认值在 `global.scss` §4.3，用户在设置里选择本地字体（Rust `list_system_fonts` 枚举，font-kit）。
+- `src-tauri/src/lib.rs` — 全部 Rust 逻辑：`get_file_args`、`reveal_in_file_manager`、`get_data_dir`/`set_data_dir`（数据目录）、`search_workspace`（文件树筛选，Rust 侧遍历——前端逐目录 IPC 并发会挤崩 WebView，勿改回）、`list_system_fonts`（系统字体枚举）、插件注册、single-instance、ctrlc。数据目录默认 exe 旁 `data/`，exe 旁 `data-dir.txt`（一行路径）可覆盖，解析见 `resolve_data_dir`；窗口在 setup 手动创建（`tauri.conf.json` 里 `create: false`）。`main.rs` 只是入口；新增命令必须加进 `generate_handler!`，命令名 snake_case。
 - `src-tauri/` — `tauri.conf.json` 管窗口、构建与 `devUrl`；`capabilities/default.json` 管 Tauri 权限白名单。
 - `src/styles/global.scss` — 骨架层（与主题无关）；`src/styles/themes/<name>.scss` — 每主题一个变量文件；规则见「主题与样式契约」，标准来源 `prd/style.md`。
 - `prd/` — 需求目录，每个需求一个 `prd/{yyyyMMdd}-{需求名}/`，见「需求文档（prd/）」；`version/` — 需求计划与修改记录，命名 `{yyyyMMdd}-{需求名}-plan.md` / `-modification.md`。
@@ -49,7 +49,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 
 - `src/styles/global.scss` — **骨架层**，与主题无关：§4.3 排版尺度（等价 Drake 的 `font.css`）→ 应用扩展（派生别名 + `--crepe-*` 映射）→ §5 骨架各段 → 应用基线。这里**不允许出现主题色字面值**（含 `--drag-overlay` 这类带色别名）。
 - **§5 分段顺序固定**：global.scss 内的骨架段按 `style.md` §5 的段号排列，分段注释用规范里的英文标记（`/*code block*/`、`/*code snippet*/`、`/*variable*/`、`/*quote block*/`、`/*link*/`、`/* height light */`、`/*YAML*/`、`/*sidebar*/`）；本仓库没有对应 UI 的段（LaTeX/mermaid/时序图/raw block/脚注/checkbox/insert table/偏好设置）在文件头一次性列出，不写空段。
-- `src/assets/fonts/` — 本地字体资产：Maple Mono NF CN 的 woff2（400/500/600/700 + 斜体）+ OFL 许可。新增字重或换字体只改 `global.scss` 的 `@font-face` 与 `--monospace`（§4.3 唯一入口），主题文件不参与。
+- 字体不打包进应用（减体积）：`global.scss` §4.3 只定义字体栈默认值（正文系统界面栈 / 代码等宽栈）；设置里的「字体」可选系统默认、系统等宽或本地字体族名（Rust `list_system_fonts` 枚举），由 store 写根元素内联变量覆盖默认值，主题文件不参与。
 - `src/styles/themes/<name>.scss` — **变量层**，一个主题一个文件，只放颜色/背景/边框。默认主题 `light.scss` 用 `:root`（兼作 `data-theme` 写入前的首帧兜底）；其余主题用 `html[data-theme='<name>']`（特异性 0,1,1，高于 `:root` 的 0,1,0，因此与文件加载顺序无关）。**不要**给新主题写 `:root`。
 - 主题文件头按 §3 写 3 段：来源/许可、导出字体（本仓库为「无」，不走 `@include-when-export`）、变量范围；文件末尾固定一段 `/* code render */` 注释，指向 `src/shared/cmTheme.ts`（§5 段 23 的等价实现）。
 - `src/styles/themes.ts` — `import.meta.glob('./themes/*.scss', { eager: true })`。不要改成手工 `@use`/`import` 列表，否则“加主题只加一个文件”失效。

@@ -16,62 +16,13 @@
 
 /* ─────────── 共享排版尺度（§4.3，等价 Drake 的 drake/font.css，全局唯一） ─────────── */
 
-/* 本地字体：Maple Mono NF CN（OFL，许可见 assets/fonts/MapleMono-LICENSE.txt）。
- * 字重覆盖项目实际用量：400 正文 / 500 大纲与次级 / 600 菜单与树 / 700 标题与加粗；
- * 斜体供 Markdown em 使用。新增字重必须同时改这里的 @font-face 与 --monospace。 */
-@font-face {
-  font-family: 'Maple Mono NF CN';
-  src: url('../assets/fonts/MapleMono-NF-CN-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Maple Mono NF CN';
-  src: url('../assets/fonts/MapleMono-NF-CN-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Maple Mono NF CN';
-  src: url('../assets/fonts/MapleMono-NF-CN-SemiBold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Maple Mono NF CN';
-  src: url('../assets/fonts/MapleMono-NF-CN-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Maple Mono NF CN';
-  src: url('../assets/fonts/MapleMono-NF-CN-Italic.woff2') format('woff2');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Maple Mono NF CN';
-  src: url('../assets/fonts/MapleMono-NF-CN-BoldItalic.woff2') format('woff2');
-  font-weight: 700;
-  font-style: italic;
-  font-display: swap;
-}
-
+/* 字体不内置（减体积）：正文/界面默认系统界面栈，代码默认系统等宽栈。
+ * 用户在设置里选择的本地字体由 store 写根元素内联变量覆盖这里的默认值。 */
 :root {
-  --monospace: "Maple Mono NF CN", "Iosevka Curly", "JetBrains Mono", Consolas, "Courier New", monospace;
-  --text-font: var(--monospace);
-  --title-font: var(--monospace);
-  --latex-font: var(--monospace);
+  --monospace: Consolas, "Courier New", "JetBrains Mono", monospace;
+  --text-font: system-ui, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --title-font: var(--text-font);
+  --latex-font: var(--text-font);
   --text-line-height: 1.6;
   --code-line-height: 1.6;
   --p-spacing: 0.8rem;

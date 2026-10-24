@@ -41,15 +41,40 @@
             <div class="settings-row">
               <div class="settings-row__copy">
                 <label class="settings-row__label" for="settings-font">字体</label>
-                <span class="settings-row__desc">界面与正文共用，代码块始终等宽</span>
+                <span class="settings-row__desc">可输入搜索，界面与正文共用，代码块始终等宽</span>
               </div>
-              <div class="settings-select">
-                <select id="settings-font" v-model="store.font">
-                  <option v-for="item in FONT_OPTIONS" :key="item.value" :value="item.value">
-                    {{ item.label }}
-                  </option>
-                </select>
-                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" /></svg>
+              <div class="settings-combo">
+                <input
+                  ref="fontInputEl"
+                  v-model="fontQuery"
+                  type="text"
+                  role="combobox"
+                  :aria-expanded="fontListOpen"
+                  aria-label="字体"
+                  placeholder="搜索字体…"
+                  autocomplete="off"
+                  @focus="showFontList"
+                  @input="onFontInput"
+                  @keydown.down.prevent="moveFontHighlight(1)"
+                  @keydown.up.prevent="moveFontHighlight(-1)"
+                  @keydown.enter.prevent="applyFontHighlight"
+                  @keydown.esc.stop="closeFontList"
+                />
+                <svg viewBox="0 0 12 12" aria-hidden="true" @click="toggleFontList"><path d="M3 4.5 6 7.5 9 4.5" /></svg>
+                <div v-if="fontListOpen" ref="fontListEl" class="settings-combo__list">
+                  <div v-if="filteredFontOptions.length === 0" class="settings-combo__empty">无匹配字体</div>
+                  <div
+                    v-for="(opt, i) in filteredFontOptions"
+                    :key="opt.value + i"
+                    class="settings-combo__option"
+                    :class="{
+                      'settings-combo__option--active': i === fontHighlight,
+                      'settings-combo__option--selected': opt.value === store.font,
+                    }"
+                    @mousedown.prevent="selectFont(opt)"
+                    @mousemove="fontHighlight = i"
+                  >{{ opt.label }}</div>
+                </div>
               </div>
             </div>
 
@@ -70,7 +95,7 @@
           <div class="settings-preview">
             <div class="settings-preview__head">
               <span class="settings-preview__label">实时预览</span>
-              <span class="settings-preview__meta">{{ activeFontShort }} · {{ store.fontSize }} px</span>
+              <span class="settings-preview__meta">{{ fontLabel }} · {{ store.fontSize }} px</span>
             </div>
             <div class="settings-preview__body">
               <p class="settings-preview__title">标题 Heading</p>
@@ -168,7 +193,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { showConfirm } from '../composables/showConfirm'
 import { DEFAULT_PREFERENCES } from '../types'
-import type { AppFont, AppTheme } from '../types'
+import type { AppTheme } from '../types'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -249,11 +274,121 @@ async function resetDataDir() {
   }
 }
 
-const FONT_OPTIONS: Array<{ value: AppFont; label: string; short: string }> = [
-  { value: 'maple', label: 'Maple Mono（内置）', short: 'Maple Mono' },
-  { value: 'system', label: '系统界面', short: '系统界面' },
-  { value: 'mono', label: '系统等宽', short: '系统等宽' },
+const systemFonts = ref<string[]>([])
+
+// 当前偏好值不在系统字体列表里（旧数据 / 已卸载字体）时补一个选项，避免下拉显示空白
+const customFontMissing = computed(() => {
+  const f = store.font
+  return f !== '' && f !== 'mono' && !systemFonts.value.includes(f)
+})
+
+const fontLabel = computed(() => {
+  if (store.font === '') return '系统默认'
+  if (store.font === 'mono') return '系统等宽'
+  return store.font
+})
+
+async function loadSystemFonts() {
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    systemFonts.value = await invoke<string[]>('list_system_fonts')
+  } catch {
+    systemFonts.value = []
+  }
+}
+
+// ── 字体可搜索下拉（combobox） ──
+interface FontOption {
+  value: string
+  label: string
+}
+const FONT_SPECIAL_OPTIONS: FontOption[] = [
+  { value: '', label: '系统默认' },
+  { value: 'mono', label: '系统等宽' },
 ]
+
+const fontInputEl = ref<HTMLInputElement | null>(null)
+const fontListEl = ref<HTMLElement | null>(null)
+const fontListOpen = ref(false)
+const fontQuery = ref('')
+const fontHighlight = ref(0)
+
+const fontOptions = computed<FontOption[]>(() => {
+  const list = [...FONT_SPECIAL_OPTIONS]
+  if (customFontMissing.value) list.push({ value: store.font, label: store.font })
+  for (const f of systemFonts.value) list.push({ value: f, label: f })
+  return list
+})
+
+const filteredFontOptions = computed<FontOption[]>(() => {
+  const q = fontQuery.value.trim().toLowerCase()
+  if (!q) return fontOptions.value
+  return fontOptions.value.filter((o) => o.label.toLowerCase().includes(q))
+})
+
+// 关闭时输入框显示当前选中项，打开时清空作为搜索词
+watch([fontListOpen, () => store.font], () => {
+  if (!fontListOpen.value) fontQuery.value = fontLabel.value
+})
+
+watch(fontHighlight, async () => {
+  await nextTick()
+  fontListEl.value?.querySelector('.settings-combo__option--active')?.scrollIntoView({ block: 'nearest' })
+})
+
+function showFontList() {
+  fontQuery.value = ''
+  fontHighlight.value = Math.max(
+    0,
+    fontOptions.value.findIndex((o) => o.value === store.font),
+  )
+  fontListOpen.value = true
+}
+
+/** 输入时若列表未开（如 Esc 关闭后继续打字）只需确保打开，不能清掉刚输入的搜索词 */
+function onFontInput() {
+  if (!fontListOpen.value) {
+    fontHighlight.value = 0
+    fontListOpen.value = true
+  }
+}
+
+function toggleFontList() {
+  fontInputEl.value?.focus()
+  if (fontListOpen.value) closeFontList()
+  else showFontList()
+}
+
+function closeFontList() {
+  fontListOpen.value = false
+}
+
+function moveFontHighlight(delta: number) {
+  if (!fontListOpen.value) {
+    showFontList()
+    return
+  }
+  const max = filteredFontOptions.value.length - 1
+  if (max < 0) return
+  fontHighlight.value = Math.min(max, Math.max(0, fontHighlight.value + delta))
+}
+
+function applyFontHighlight() {
+  const opt = filteredFontOptions.value[fontHighlight.value]
+  if (opt) selectFont(opt)
+}
+
+function selectFont(opt: FontOption) {
+  store.font = opt.value
+  closeFontList()
+  fontInputEl.value?.blur()
+}
+
+// 点击下拉外部时收起
+function onFontOutsideClick(e: MouseEvent) {
+  const combo = e.target as HTMLElement | null
+  if (fontListOpen.value && !combo?.closest('.settings-combo')) closeFontList()
+}
 const THEME_OPTIONS: Array<{ value: AppTheme; label: string }> = [
   { value: 'light', label: '浅色' },
   { value: 'dark', label: '深色' },
@@ -262,18 +397,13 @@ const FONT_SIZES = [12, 13, 14, 15, 16, 17, 18, 19, 20]
 const SEARCH_DEBOUNCE_OPTIONS = [100, 300, 500, 1000]
 const SEARCH_INTERVAL_OPTIONS = [300, 800, 1500, 3000]
 
-const activeFontShort = computed(() => {
-  const option = FONT_OPTIONS.find((item) => item.value === store.font)
-  return option?.short ?? 'Maple Mono'
-})
-
 function close() {
   emit('close')
 }
 
 function reset() {
   store.theme = 'light'
-  store.font = 'maple'
+  store.font = DEFAULT_PREFERENCES.font
   store.fontSize = 14
   store.typewriter = false
   store.searchDebounceMs = DEFAULT_PREFERENCES.searchDebounceMs
@@ -284,8 +414,15 @@ function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && props.open) close()
 }
 
-onMounted(() => document.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
+  document.addEventListener('mousedown', onFontOutsideClick)
+  fontQuery.value = fontLabel.value
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKeydown)
+  document.removeEventListener('mousedown', onFontOutsideClick)
+})
 
 // 打开时把焦点移进弹窗并读取数据目录信息，Esc 有落点且不抢关闭按钮的高亮
 watch(
@@ -294,6 +431,7 @@ watch(
     if (open) {
       nextTick(() => dialogEl.value?.focus())
       void loadDataDir()
+      void loadSystemFonts()
     }
   },
 )
@@ -391,6 +529,11 @@ watch(
     min-height: 0;
     padding: 0.143rem 1.571rem 0.286rem;
     overflow-y: auto;
+  }
+
+  /* 供下拉弹层溢出行内容器显示（settings-body 可滚动，绝对定位弹层跟随内容滚动即可） */
+  .settings-combo {
+    position: relative;
   }
 
   &__hint {
@@ -635,6 +778,95 @@ watch(
 
   &--size select {
     width: 6.571rem;
+  }
+}
+
+.settings-combo {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 15.429rem;
+
+  input {
+    width: 100%;
+    height: 2.286rem;
+    padding: 0 2rem 0 0.714rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.857rem;
+    outline: none;
+    transition: background 0.12s, border-color 0.12s;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+
+    &:focus {
+      border-color: var(--accent-color);
+    }
+
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+  }
+
+  > svg {
+    position: absolute;
+    right: 0.643rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0.786rem;
+    height: 0.786rem;
+    fill: none;
+    stroke: var(--text-secondary);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  &__list {
+    position: absolute;
+    top: calc(100% + 0.286rem);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    max-height: 14.286rem;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    box-shadow: 0 0.571rem 1.714rem rgba(0, 0, 0, 0.2);
+  }
+
+  &__option {
+    padding: 0.357rem 0.714rem;
+    font-size: 0.857rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: background 0.1s;
+
+    &--active {
+      background: var(--bg-hover);
+    }
+
+    &--selected {
+      color: var(--accent-color);
+      font-weight: 600;
+    }
+  }
+
+  &__empty {
+    padding: 0.5rem 0.714rem;
+    font-size: 0.857rem;
+    color: var(--text-secondary);
   }
 }
 
