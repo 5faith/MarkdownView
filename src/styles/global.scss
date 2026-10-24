@@ -191,7 +191,9 @@ html {
 .milkdown .ProseMirror {
   max-width: var(--prose-width);
   margin: 0 auto;
-  padding: 2.857rem 2.286rem 7.143rem;
+  /* 左右留槽给 Crepe 块手柄：手柄宽 66px + 偏移 16px = 82px（第三方固定 px），
+     6.5rem 在最小字号 13px 时仍有 84.5px，否则加号会被 overflow-x 裁掉 */
+  padding: 2.857rem 6.5rem 7.143rem;
 }
 
 /* ─────────── 12 标题与段落节奏 ─────────── */
