@@ -1,4 +1,4 @@
-import type { Preferences } from '../types'
+import type { FileIcon, Preferences } from '../types'
 import { DEFAULT_PREFERENCES } from '../types'
 import { sanitizeImageDir } from './localImage'
 
@@ -25,7 +25,8 @@ function normalize(prefs: Preferences): Preferences {
   const imageDir = typeof prefs.imageDir === 'string'
     ? sanitizeImageDir(prefs.imageDir)
     : DEFAULT_PREFERENCES.imageDir
-  return { ...prefs, font, fontSize, searchDebounceMs, searchIntervalMs, imageDir }
+  const fileIcon: FileIcon = prefs.fileIcon === 'doc' ? 'doc' : 'app'
+  return { ...prefs, font, fontSize, searchDebounceMs, searchIntervalMs, imageDir, fileIcon }
 }
 
 export function loadPreferences(): Preferences {

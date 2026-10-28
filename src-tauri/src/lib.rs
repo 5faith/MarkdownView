@@ -147,6 +147,110 @@ fn set_data_dir(path: Option<String>) -> Result<(), String> {
     }
 }
 
+/// 文件关联 ProgId（与 tauri.conf.json fileAssociations、windows/hooks.nsh 保持一致）
+#[cfg(windows)]
+const FILE_ASSOCS: [(&str, &str); 4] = [
+    ("MarkdownView.md", ".md"),
+    ("MarkdownView.markdown", ".markdown"),
+    ("MarkdownView.mdown", ".mdown"),
+    ("MarkdownView.mkd", ".mkd"),
+];
+
+/// 文档图标：exe 里只有 app 图标，需要运行时写成独立文件供 Explorer 读取
+#[cfg(windows)]
+const FILE_ICON: &[u8] = include_bytes!("../icons/style3-dark-file-icon.ico");
+#[cfg(windows)]
+const FILE_ICON_NAME: &str = "style3-dark-file-icon.ico";
+
+#[cfg(windows)]
+#[link(name = "shell32")]
+extern "system" {
+    fn SHChangeNotify(event: i32, flags: u32, item1: *const std::ffi::c_void, item2: *const std::ffi::c_void);
+}
+
+/// 图标落盘目录：优先 exe 旁 icons/（便携），不可写时退回数据目录
+#[cfg(windows)]
+fn icon_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
+    if let Some(base) = exe_dir() {
+        let dir = base.join("icons");
+        if probe_dir(&dir) {
+            return Some(dir);
+        }
+    }
+    let base = resolve_data_dir().or_else(|| app.path().app_local_data_dir().ok())?;
+    let dir = base.join("icons");
+    probe_dir(&dir).then_some(dir)
+}
+
+/// 资源管理器中 Markdown 文件的图标：true = 文档图标（写 icons/style3-dark-file-icon.ico），
+/// false = 软件图标（回指 exe）。同时注册 HKCU ProgId 与「打开方式」项。
+/// UserChoice 有 hash 保护无法代写：首次生效仍需在 .md 右键 → 打开方式里选一次 ProgId。
+#[tauri::command]
+fn set_file_icon(app: tauri::AppHandle, use_file_icon: bool) -> Result<(), String> {
+    #[cfg(not(windows))]
+    {
+        let _ = (app, use_file_icon);
+        return Ok(());
+    }
+
+    #[cfg(windows)]
+    {
+        use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE, REG_NONE};
+        use winreg::{RegKey, RegValue};
+
+        // 调试版拒绝：exe 在 target/debug 下，改写会把 .md 关联指到临时程序
+        if cfg!(debug_assertions) {
+            return Err("文件图标只在正式版生效，调试版会覆盖已注册的 .md 关联".into());
+        }
+
+        let exe = env::current_exe().map_err(|e| format!("无法定位程序路径：{e}"))?;
+        let icon = if use_file_icon {
+            let dir = icon_dir(&app).ok_or("无法创建图标目录")?;
+            let path = dir.join(FILE_ICON_NAME);
+            std::fs::write(&path, FILE_ICON).map_err(|e| format!("写入图标失败：{e}"))?;
+            format!("\"{}\",0", path.display())
+        } else {
+            format!("\"{}\",0", exe.display())
+        };
+        let command = format!("\"{}\" \"%1\"", exe.display());
+
+        let classes = RegKey::predef(HKEY_CURRENT_USER)
+            .open_subkey_with_flags("Software\\Classes", KEY_READ | KEY_WRITE)
+            .map_err(|e| format!("打开注册表失败：{e}"))?;
+
+        for (prog_id, ext) in FILE_ASSOCS {
+            let (prog, _) = classes.create_subkey(prog_id).map_err(|e| e.to_string())?;
+            prog.set_value("", &"MarkdownView Markdown 文档").map_err(|e| e.to_string())?;
+            let (icon_key, _) = prog.create_subkey("DefaultIcon").map_err(|e| e.to_string())?;
+            icon_key.set_value("", &icon).map_err(|e| e.to_string())?;
+            let (cmd_key, _) = prog.create_subkey("shell\\open\\command").map_err(|e| e.to_string())?;
+            cmd_key.set_value("", &command).map_err(|e| e.to_string())?;
+            let (open_with, _) = classes
+                .create_subkey(format!("{ext}\\OpenWithProgids"))
+                .map_err(|e| e.to_string())?;
+            open_with
+                .set_raw_value(prog_id, &RegValue { bytes: Vec::new(), vtype: REG_NONE })
+                .map_err(|e| e.to_string())?;
+
+            // 回读校验：写失败要报给设置界面，而不是静默无效
+            let icon_written: String = classes
+                .open_subkey(format!("{prog_id}\\DefaultIcon"))
+                .and_then(|k| k.get_value(""))
+                .map_err(|e| format!("校验图标写入失败：{e}"))?;
+            if icon_written != icon {
+                return Err("图标写入校验失败".into());
+            }
+        }
+
+        // 通知资源管理器刷新关联图标
+        unsafe {
+            SHChangeNotify(0x0800_0000, 0, std::ptr::null(), std::ptr::null());
+        }
+    }
+
+    Ok(())
+}
+
 /// 文件树搜索时跳过的生成目录（大小写不敏感）
 const SEARCH_SKIP: &[&str] = &[
     "node_modules",
@@ -295,6 +399,7 @@ pub fn run() {
             reveal_in_file_manager,
             get_data_dir,
             set_data_dir,
+            set_file_icon,
             search_workspace,
             list_system_fonts
         ])

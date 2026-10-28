@@ -3,10 +3,14 @@ export type AppTheme = 'light' | 'dark'
 /** 字体偏好：'' 系统默认（正文系统界面栈、代码等宽栈），'mono' 全等宽，其它为本地字体族名 */
 export type AppFont = string
 
+/** 文件关联图标：app 软件图标（exe 内嵌），doc 文档图标（运行时生成 icons/style3-dark-file-icon.ico） */
+export type FileIcon = 'app' | 'doc'
+
 export interface Preferences {
   theme: AppTheme
   font: AppFont
   fontSize: number
+  fileIcon: FileIcon
   sourceMode: boolean
   typewriter: boolean
   showOutline: boolean
@@ -26,6 +30,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'light',
   font: '',
   fontSize: 14,
+  fileIcon: 'app',
   sourceMode: false,
   typewriter: false,
   showOutline: true,

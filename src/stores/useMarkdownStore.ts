@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watchEffect } from 'vue'
 import DEFAULT_CONTENT from '../assets/TEMPLATE.md?raw'
-import type { AppFont, AppTheme, CaretPosition, MarkdownFile } from '../types'
+import type { AppFont, AppTheme, CaretPosition, FileIcon, MarkdownFile } from '../types'
 import { loadPreferences, savePreferences } from '../utils/preferences'
 import { showConfirm } from '../composables/showConfirm'
 
@@ -22,6 +22,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const theme = ref<AppTheme>(prefs.theme)
   const font = ref<AppFont>(prefs.font)
   const fontSize = ref(prefs.fontSize)
+  const fileIcon = ref<FileIcon>(prefs.fileIcon)
   const sourceMode = ref(prefs.sourceMode)
   const typewriter = ref(prefs.typewriter)
   const showOutline = ref(prefs.showOutline)
@@ -78,6 +79,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
       theme: theme.value,
       font: font.value,
       fontSize: fontSize.value,
+      fileIcon: fileIcon.value,
       sourceMode: sourceMode.value,
       typewriter: typewriter.value,
       showOutline: showOutline.value,
@@ -93,6 +95,24 @@ export const useMarkdownStore = defineStore('markdown', () => {
 
   // 字体/字号变化立即写回根元素，无需重建组件
   watchEffect(applyAppearance)
+
+  // 文件关联图标：Windows 侧写 HKCU ProgId 与 icons/ 图标；非 Windows 由 Rust 端 no-op
+  async function applyFileIcon() {
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('set_file_icon', { useFileIcon: fileIcon.value === 'doc' })
+  }
+
+  async function setFileIcon(value: FileIcon) {
+    const prev = fileIcon.value
+    fileIcon.value = value
+    try {
+      await applyFileIcon()
+    } catch (e) {
+      fileIcon.value = prev
+      const { message } = await import('@tauri-apps/plugin-dialog')
+      await message(`设置文件图标失败：${e}`, { title: '文件图标', kind: 'error' })
+    }
+  }
 
   let unwatchFile: (() => void) | null = null
 
@@ -333,6 +353,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
     theme,
     font,
     fontSize,
+    fileIcon,
     sourceMode,
     typewriter,
     caret,
@@ -375,5 +396,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
     setOutlineWidth,
     reloadActiveFile,
     refreshFileTree,
+    applyFileIcon,
+    setFileIcon,
   }
 })

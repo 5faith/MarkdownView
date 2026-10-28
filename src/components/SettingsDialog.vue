@@ -192,6 +192,33 @@
             </div>
           </section>
 
+          <section v-if="IS_WINDOWS" class="settings-group settings-group--assoc">
+            <h2 class="settings-group__title">文件关联</h2>
+            <div class="settings-row">
+              <div class="settings-row__copy">
+                <span id="settings-file-icon-label" class="settings-row__label">文件图标</span>
+                <span class="settings-row__desc">
+                  {{ store.fileIcon === 'doc'
+                    ? '已生成 icons 文件夹；在 .md 右键 → 打开方式 → 选 “MarkdownView Markdown 文档” 并勾选“始终”后生效'
+                    : '资源管理器里 .md 文件的图标，默认使用软件图标' }}
+                </span>
+              </div>
+              <div class="settings-segmented" role="group" aria-labelledby="settings-file-icon-label">
+                <button
+                  v-for="item in FILE_ICON_OPTIONS"
+                  :key="item.value"
+                  type="button"
+                  :aria-label="item.label"
+                  :title="item.label"
+                  :aria-pressed="store.fileIcon === item.value"
+                  @click="store.setFileIcon(item.value)"
+                >
+                  <img class="settings-segmented__icon" :src="item.icon" alt="" />
+                </button>
+              </div>
+            </div>
+          </section>
+
           <p class="settings-dialog__hint">字体同时作用于界面与编辑器，代码块始终等宽；选择会保存在本机。</p>
         </div>
 
@@ -206,10 +233,12 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import appIcon from '../../src-tauri/icons/style3-dark-app-icon.ico'
+import fileIcon from '../../src-tauri/icons/style3-dark-file-icon.ico'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { showConfirm } from '../composables/showConfirm'
 import { DEFAULT_PREFERENCES } from '../types'
-import type { AppTheme } from '../types'
+import type { AppTheme, FileIcon } from '../types'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -409,6 +438,11 @@ const THEME_OPTIONS: Array<{ value: AppTheme; label: string }> = [
   { value: 'light', label: '浅色' },
   { value: 'dark', label: '深色' },
 ]
+const IS_WINDOWS = navigator.userAgent.includes('Windows')
+const FILE_ICON_OPTIONS: Array<{ value: FileIcon; label: string; icon: string }> = [
+  { value: 'app', label: '软件图标', icon: appIcon },
+  { value: 'doc', label: '文档图标', icon: fileIcon },
+]
 const FONT_SIZES = [12, 13, 14, 15, 16, 17, 18, 19, 20]
 const SEARCH_DEBOUNCE_OPTIONS = [100, 300, 500, 1000]
 const SEARCH_INTERVAL_OPTIONS = [300, 800, 1500, 3000]
@@ -425,6 +459,7 @@ function reset() {
   store.searchDebounceMs = DEFAULT_PREFERENCES.searchDebounceMs
   store.searchIntervalMs = DEFAULT_PREFERENCES.searchIntervalMs
   store.imageDir = DEFAULT_PREFERENCES.imageDir
+  void store.setFileIcon(DEFAULT_PREFERENCES.fileIcon)
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -625,7 +660,8 @@ watch(
 
   &--editor,
   &--filetree,
-  &--storage {
+  &--storage,
+  &--assoc {
     margin-top: 1.143rem;
   }
 }
@@ -714,8 +750,11 @@ watch(
   background: var(--bg-secondary);
 
   button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     height: 1.857rem;
-    padding: 0 0.857rem;
+    padding: 0 0.714rem;
     border: 0;
     border-radius: 0.357rem;
     background: transparent;
@@ -740,6 +779,22 @@ watch(
       font-weight: 600;
       box-shadow: inset 0 0 0 1px var(--accent-color);
     }
+  }
+
+  &__icon {
+    display: block;
+    width: 3.429rem;
+    height: 3.429rem;
+  }
+}
+
+/* 文件图标：按 Windows「中图标」48px 预览，按钮随之放大 */
+.settings-group--assoc .settings-segmented button {
+  height: 4.286rem;
+  padding: 0 0.429rem;
+
+  &[aria-pressed='true'] {
+    box-shadow: inset 0 0 0 0.143rem var(--accent-color);
   }
 }
 

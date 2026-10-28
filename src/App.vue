@@ -140,6 +140,8 @@ async function openFilesFromPaths(paths: string[]) {
 
 onMounted(async () => {
   store.initDefault()
+  // 便携版换目录后自愈图标路径；仅用户显式选过文档图标时才写注册表
+  if (store.fileIcon === 'doc') store.applyFileIcon().catch(() => {})
   await dragDrop.setup()
   await setupCloseConfirmation()
 
