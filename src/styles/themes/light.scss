@@ -54,6 +54,17 @@
   --text-secondary: rgba(31, 35, 40, 0.75);
   --border-color: var(--table-border-color);   /* chrome 边框 */
   --drag-overlay: rgba(233, 95, 89, 0.15);     /* 拖放蒙层：--drake-accent 的 15% */
+  /* GitHub 告警块（Alerts）五色 */
+  --alert-note-color: #0969da;
+  --alert-note-bg: #ddf4ff;
+  --alert-tip-color: #1a7f37;
+  --alert-tip-bg: #dafbe1;
+  --alert-important-color: #8250df;
+  --alert-important-bg: #fbefff;
+  --alert-warning-color: #9a6700;
+  --alert-warning-bg: #fff8c5;
+  --alert-caution-color: #cf222e;
+  --alert-caution-bg: #ffebe9;
   --color-scheme: light;              /* 原生控件（select 弹出层等）配色方案 */
 }
 

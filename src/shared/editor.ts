@@ -19,9 +19,16 @@ import {
   wrapInHeadingCommand,
   wrapInOrderedListCommand,
 } from '@milkdown/kit/preset/commonmark'
-import { insertTableCommand, toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
+import { insertTableCommand, toggleStrikethroughCommand, footnoteDefinitionSchema, footnoteReferenceSchema } from '@milkdown/kit/preset/gfm'
 import { redoCommand, undoCommand } from '@milkdown/kit/plugin/history'
-import { detailsContentSchema, detailsSchema, detailsSummarySchema } from '@xz-summer/milkdown-container'
+import { detailsContentSchema, detailsSchema, detailsSummarySchema } from './milkdown/details'
+import { alertSchema } from './milkdown/alert'
+import {
+  definitionDescriptionSchema,
+  definitionListSchema,
+  definitionTermSchema,
+} from './milkdown/definitionList'
+import { emojiSchema } from './milkdown/emoji'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { saveImageFile } from '../utils/imageStore'
 import { basename, dirname, encodeMdPath, joinPath, sanitizeImageDir } from '../utils/localImage'
@@ -31,11 +38,14 @@ export type FormatKind =
   | 'h1' | 'h2' | 'h3'
   | 'bold' | 'italic' | 'strike' | 'code'
   | 'quote' | 'ul' | 'ol' | 'task' | 'table' | 'codeblock' | 'hr' | 'details'
+  | 'footnote' | 'deflist' | 'emoji' | 'alert'
   | 'link' | 'image'
 
-/** link 需要 href；image 无额外参数（自己弹文件选择框） */
+/** link 需要 href；emoji 需要短代码名；alert 需要类型；image 无额外参数（自己弹文件选择框） */
 export interface FormatPayload {
   href?: string
+  emojiName?: string
+  alertType?: string
 }
 
 /** 当前 Milkdown Crepe 实例单例（工具栏/菜单/PDF 导出共用）。
@@ -184,7 +194,7 @@ function convertOrWrapList(kind: 'ul' | 'ol'): void {
   })
 }
 
-/** 插入 :::details 折叠块（schema 来自容器插件），占位标题处于选中态，直接输入即可覆盖 */
+/** 插入 `<details>` 折叠块（GitHub 语法），占位摘要处于选中态，直接输入即可覆盖 */
 function insertDetails(): void {
   const crepe = currentEditor.value
   if (!crepe || crepe.readonly) return
@@ -211,6 +221,93 @@ function insertDetails(): void {
       tr.setSelection(TextSelection.create(tr.doc, summaryStart, summaryStart + title.length))
     }
     view.dispatch(tr.scrollIntoView())
+  })
+}
+
+/** 插入脚注：正文里放引用节点，文末补定义（编号自动取现有最大 + 1） */
+function insertFootnote(): void {
+  const crepe = currentEditor.value
+  if (!crepe || crepe.readonly) return
+
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const { schema } = view.state
+    const refType = footnoteReferenceSchema.type(ctx)
+    const defType = footnoteDefinitionSchema.type(ctx)
+    const paragraph = schema.nodes.paragraph
+    if (!refType || !defType || !paragraph) return
+
+    let next = 1
+    view.state.doc.descendants((node) => {
+      if (node.type.name !== 'footnote_definition' && node.type.name !== 'footnote_reference') return
+      const matched = /(\d+)/.exec(String(node.attrs.label ?? ''))
+      if (matched) next = Math.max(next, Number(matched[1]) + 1)
+    })
+    const label = String(next)
+    const tr = view.state.tr.replaceSelectionWith(refType.create({ label }))
+    tr.insert(
+      tr.doc.content.size,
+      defType.create({ label }, [paragraph.create(null, schema.text('脚注内容。'))]),
+    )
+    view.dispatch(tr.scrollIntoView())
+  })
+}
+
+/** 插入告警块（GitHub Alerts），默认带一句占位正文 */
+function insertAlert(alertType: string): void {
+  const crepe = currentEditor.value
+  if (!crepe || crepe.readonly) return
+
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const { schema } = view.state
+    const paragraph = schema.nodes.paragraph
+    if (!paragraph) return
+    const node = alertSchema.type(ctx).create({ type: alertType }, [
+      paragraph.create(null, schema.text('补充信息。')),
+    ])
+    view.dispatch(view.state.tr.replaceSelectionWith(node).scrollIntoView())
+  })
+}
+
+/** 插入定义列表：术语行 + 一条释义，光标落在术语上 */
+function insertDefinitionList(): void {
+  const crepe = currentEditor.value
+  if (!crepe || crepe.readonly) return
+
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const { schema } = view.state
+    const paragraph = schema.nodes.paragraph
+    if (!paragraph) return
+    const term = '术语'
+    const node = definitionListSchema.type(ctx).create(null, [
+      definitionTermSchema.type(ctx).create(null, schema.text(term)),
+      definitionDescriptionSchema.type(ctx).create(null, [paragraph.create(null, schema.text('释义'))]),
+    ])
+    const tr = view.state.tr.replaceSelectionWith(node)
+    let termStart = -1
+    tr.doc.descendants((n, pos) => {
+      if (termStart < 0 && n.type.name === 'definition_term') termStart = pos + 1
+      return termStart < 0
+    })
+    if (termStart >= 0) {
+      tr.setSelection(TextSelection.create(tr.doc, termStart, termStart + term.length))
+    }
+    view.dispatch(tr.scrollIntoView())
+  })
+}
+
+/** 插入表情（行内原子节点；源文件回写 `:name:`） */
+function insertEmoji(name: string): void {
+  const crepe = currentEditor.value
+  if (!crepe || crepe.readonly) return
+
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const type = emojiSchema.type(ctx)
+    if (!type) return
+    view.dispatch(view.state.tr.replaceSelectionWith(type.create({ name })).scrollIntoView())
   })
 }
 
@@ -378,8 +475,29 @@ function applySourceFormat(kind: FormatKind, payload?: FormatPayload): void {
     return
   }
   if (kind === 'details') {
-    const mid = '\n:::details[摘要]\n正文\n:::\n'
-    api.replaceRange(start, end, mid, start + 12, start + 14)
+    const mid = '\n<details>\n<summary>摘要</summary>\n\n正文\n\n</details>\n'
+    api.replaceRange(start, end, mid, start + 20, start + 22)
+    return
+  }
+  if (kind === 'footnote') {
+    const mid = '[^1]'
+    api.replaceRange(start, end, mid, start + mid.length, start + mid.length)
+    return
+  }
+  if (kind === 'deflist') {
+    const mid = '\n术语\n: 释义\n'
+    api.replaceRange(start, end, mid, start + 2, start + 4)
+    return
+  }
+  if (kind === 'emoji') {
+    const mid = payload?.emojiName ? `:${payload.emojiName}:` : ':smile:'
+    api.replaceRange(start, end, mid, start + mid.length, start + mid.length)
+    return
+  }
+  if (kind === 'alert') {
+    const type = (payload?.alertType ?? 'note').toUpperCase()
+    const mid = `\n> [!${type}]\n> 补充信息。\n`
+    api.replaceRange(start, end, mid, start + 15, start + 21)
     return
   }
 }
@@ -475,6 +593,18 @@ export function runFormat(kind: FormatKind, payload?: FormatPayload): void {
       break
     case 'details':
       insertDetails()
+      break
+    case 'footnote':
+      insertFootnote()
+      break
+    case 'deflist':
+      insertDefinitionList()
+      break
+    case 'emoji':
+      insertEmoji(payload?.emojiName ?? 'smile')
+      break
+    case 'alert':
+      insertAlert(payload?.alertType ?? 'note')
       break
   }
 

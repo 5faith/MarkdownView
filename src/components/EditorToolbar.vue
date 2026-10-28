@@ -47,9 +47,50 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M3 15h18M9 10v10" /></svg>
     </button>
     <button class="editor-toolbar__btn" title="插入代码块" @click="runFormat('codeblock')">{ }</button>
-    <button class="editor-toolbar__btn" title="隐藏细节（折叠块）" @click="runFormat('details')">
-      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /><path d="m9 12 3 3 3-3" /></svg>
-    </button>
+    <div class="editor-toolbar__menu">
+      <button
+        ref="insertBtn"
+        class="editor-toolbar__btn"
+        :class="{ 'editor-toolbar__btn--active': insertMenu }"
+        title="插入"
+        aria-haspopup="menu"
+        :aria-expanded="insertMenu"
+        @click.stop="toggleInsertMenu"
+      >
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
+      <div
+        v-if="insertMenu"
+        ref="insertPop"
+        class="editor-toolbar__pop editor-toolbar__pop--insert"
+        role="menu"
+        aria-label="插入"
+        :style="insertStyle"
+      >
+        <div class="editor-toolbar__group">表情符号</div>
+        <div class="editor-toolbar__emoji">
+          <button
+            v-for="emoji in EMOJI_MENU"
+            :key="emoji.name"
+            class="editor-toolbar__emoji-item"
+            :title="`:${emoji.name}:`"
+            @click="pickInsert('emoji', { emojiName: emoji.name })"
+          >{{ emoji.emoji }}</button>
+        </div>
+        <button class="editor-toolbar__more" @click="openEmojiSheet">查看完整表情表 ↗</button>
+        <div class="editor-toolbar__group">告警块</div>
+        <button
+          v-for="alert in ALERT_OPTIONS"
+          :key="alert.type"
+          class="editor-toolbar__item"
+          role="menuitem"
+          @click="pickInsert('alert', { alertType: alert.type })"
+        >{{ alert.title }}（{{ alert.label }}）</button>
+        <div class="editor-toolbar__group">其他</div>
+        <button class="editor-toolbar__item" role="menuitem" @click="pickInsert('details')">折叠内容</button>
+        <button class="editor-toolbar__item" role="menuitem" @click="pickInsert('footnote')">脚注</button>
+      </div>
+    </div>
     <button class="editor-toolbar__btn" title="插入图片" @click="runFormat('image')">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
     </button>
@@ -96,6 +137,10 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { runFormat } from '../shared/editor'
+import type { FormatKind, FormatPayload } from '../shared/editor'
+import { EMOJI_MENU } from '../shared/milkdown/emoji'
+import { ALERT_OPTIONS } from '../shared/milkdown/alert'
+import { EMOJI_SHEET_URL, openExternal } from '../shared/openExternal'
 import { useFileOperation } from '../composables/useFileOperation'
 
 const store = useMarkdownStore()
@@ -109,6 +154,7 @@ const listItems = [
   { kind: 'ul', icon: '•', label: '无序列表' },
   { kind: 'ol', icon: '1.', label: '有序列表' },
   { kind: 'task', icon: '', label: '任务列表' },
+  { kind: 'deflist', icon: '::', label: '定义列表' },
 ] as const
 
 /** 弹层定位：锚点按钮下方；打开后量实际尺寸，超出视口右缘时整体左移夹紧 */
@@ -134,9 +180,32 @@ function toggleListMenu() {
   }
 }
 
-function pickList(kind: 'ul' | 'ol' | 'task') {
+function pickList(kind: 'ul' | 'ol' | 'task' | 'deflist') {
   listMenu.value = false
   runFormat(kind)
+}
+
+// ── 插入弹层：表情 / 告警块 / 折叠内容 / 脚注 ──
+const insertMenu = ref(false)
+const insertBtn = ref<HTMLElement | null>(null)
+const insertPop = ref<HTMLElement | null>(null)
+const insertStyle = ref({ top: '0px', left: '0px' })
+
+function toggleInsertMenu() {
+  insertMenu.value = !insertMenu.value
+  if (insertMenu.value && insertBtn.value) {
+    placePop(insertBtn.value, insertStyle, () => insertPop.value)
+  }
+}
+
+function pickInsert(kind: FormatKind, payload?: FormatPayload) {
+  insertMenu.value = false
+  runFormat(kind, payload)
+}
+
+function openEmojiSheet() {
+  insertMenu.value = false
+  void openExternal(EMOJI_SHEET_URL)
 }
 
 // ── 链接弹层：输入 URL 后包链接 ──
@@ -171,11 +240,13 @@ function onDocMousedown(e: MouseEvent) {
   const t = e.target as Node
   if (listMenu.value && !listBtn.value?.contains(t) && !listPop.value?.contains(t)) listMenu.value = false
   if (linkMenu.value && !linkBtn.value?.contains(t) && !linkPop.value?.contains(t)) closeLinkMenu()
+  if (insertMenu.value && !insertBtn.value?.contains(t) && !insertPop.value?.contains(t)) insertMenu.value = false
 }
 
 function onDocKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     listMenu.value = false
+    insertMenu.value = false
     closeLinkMenu()
   }
 }
@@ -280,7 +351,6 @@ onBeforeUnmount(() => {
       padding: 0.429rem;
       /* 窄窗口时整体不超过视口，输入框收缩而不是把确定按钮挤出屏 */
       max-width: calc(100vw - 1rem);
-
       input {
         flex: 1 1 auto;
         width: 13rem;
@@ -304,6 +374,63 @@ onBeforeUnmount(() => {
           color: var(--text-secondary);
         }
       }
+    }
+
+    &--insert {
+      width: 15.714rem;
+      max-height: 22rem;
+      overflow-y: auto;
+    }
+  }
+
+  &__group {
+    padding: 0.429rem 0.571rem 0.214rem;
+    color: var(--text-secondary);
+    font-size: 0.786rem;
+    user-select: none;
+  }
+
+  &__emoji {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.143rem;
+    padding: 0 0.286rem 0.286rem;
+  }
+
+  &__emoji-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.857rem;
+    height: 1.857rem;
+    border: none;
+    border-radius: 0.357rem;
+    background: transparent;
+    font-size: 1.143rem;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+  }
+
+  &__more {
+    width: 100%;
+    margin-top: 0.143rem;
+    padding: 0.357rem 0.571rem;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    border-radius: 0;
+    background: transparent;
+    color: var(--a-color);
+    font: inherit;
+    font-size: 0.821rem;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--bg-hover);
     }
   }
 

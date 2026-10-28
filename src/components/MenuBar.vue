@@ -15,6 +15,35 @@
       <div v-if="openMenu === menu.label" class="menu-bar__pop" role="menu" :aria-label="menu.label">
         <template v-for="(item, i) in menu.items" :key="i">
           <div v-if="item === '-'" class="menu-bar__sep" role="separator" />
+          <div v-else-if="item.children?.length" class="menu-bar__sub-wrap">
+            <button
+              role="menuitem"
+              class="menu-bar__item"
+              :disabled="item.disabled"
+              aria-haspopup="menu"
+              :aria-expanded="openSub === item.label"
+              @click.stop="toggleSub(item.label)"
+              @mouseenter="onSubHover(item.label)"
+            >
+              <span class="menu-bar__chk" aria-hidden="true" />
+              <span>{{ item.label }}</span>
+              <span class="menu-bar__sc">▸</span>
+            </button>
+            <div v-if="openSub === item.label" class="menu-bar__pop menu-bar__pop--sub" role="menu" :aria-label="item.label">
+              <button
+                v-for="(child, j) in item.children"
+                :key="j"
+                role="menuitem"
+                class="menu-bar__item"
+                :disabled="child.disabled"
+                @click="runItem(child)"
+              >
+                <span class="menu-bar__chk" aria-hidden="true">{{ child.checked ? '✓' : '' }}</span>
+                <span>{{ child.label }}</span>
+                <span v-if="child.sc" class="menu-bar__sc">{{ child.sc }}</span>
+              </button>
+            </div>
+          </div>
           <button
             v-else
             role="menuitem"
@@ -43,6 +72,9 @@ import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { useFileOperation } from '../composables/useFileOperation'
 import { showConfirm } from '../composables/showConfirm'
 import { focusEditor, runFormat } from '../shared/editor'
+import { EMOJI_MENU } from '../shared/milkdown/emoji'
+import { ALERT_OPTIONS } from '../shared/milkdown/alert'
+import { EMOJI_SHEET_URL, openExternal } from '../shared/openExternal'
 import { isMarkdownFile } from '../utils/fileType'
 import pkg from '../../package.json'
 
@@ -66,12 +98,14 @@ interface MenuItem {
   sc?: string
   checked?: boolean
   disabled?: boolean
-  run: () => void
+  children?: MenuItem[]
+  run?: () => void
 }
 
 const store = useMarkdownStore()
 const fileOps = useFileOperation()
 const openMenu = ref<string | null>(null)
+const openSub = ref<string | null>(null)
 const settingsOpen = ref(false)
 
 const mdActive = computed(
@@ -114,8 +148,34 @@ const menus = computed<Array<{ label: string; items: Array<MenuItem | '-'> }>>((
       { label: '任务列表', disabled: fmtDisabled.value, run: () => runFormat('task') },
       { label: '插入表格', disabled: fmtDisabled.value, run: () => runFormat('table') },
       { label: '插入代码块', disabled: fmtDisabled.value, run: () => runFormat('codeblock') },
-      { label: '隐藏细节', disabled: fmtDisabled.value, run: () => runFormat('details') },
       { label: '水平线', disabled: fmtDisabled.value, run: () => runFormat('hr') },
+    ],
+  },
+  {
+    label: '插入',
+    items: [
+      {
+        label: '表情符号',
+        disabled: fmtDisabled.value,
+        children: [
+          ...EMOJI_MENU.map((emoji) => ({
+            label: `${emoji.emoji}  ${emoji.name}`,
+            run: () => runFormat('emoji', { emojiName: emoji.name }),
+          })),
+          { label: '查看完整表情表 ↗', run: () => void openExternal(EMOJI_SHEET_URL) },
+        ],
+      },
+      {
+        label: '告警块',
+        disabled: fmtDisabled.value,
+        children: ALERT_OPTIONS.map((alert) => ({
+          label: `${alert.title}（${alert.label}）`,
+          run: () => runFormat('alert', { alertType: alert.type }),
+        })),
+      },
+      { label: '折叠内容', disabled: fmtDisabled.value, run: () => runFormat('details') },
+      { label: '脚注', disabled: fmtDisabled.value, run: () => runFormat('footnote') },
+      { label: '定义列表', disabled: fmtDisabled.value, run: () => runFormat('deflist') },
     ],
   },
   {
@@ -143,10 +203,20 @@ const menus = computed<Array<{ label: string; items: Array<MenuItem | '-'> }>>((
 function toggleMenu(label: string) {
   const opening = openMenu.value !== label
   openMenu.value = opening ? label : null
+  openSub.value = null
   // 打开菜单时让编辑器重新聚焦，选中文字保持高亮可见
   if (opening && mdActive.value && !store.sourceMode && !store.readingMode) {
     focusEditor()
   }
+}
+
+/** 二级菜单：点开/收起，悬停到另一个同类项时直接切换 */
+function toggleSub(label: string) {
+  openSub.value = openSub.value === label ? null : label
+}
+
+function onSubHover(label: string) {
+  if (openSub.value && openSub.value !== label) openSub.value = label
 }
 
 // 菜单已展开时横移即切换，与桌面应用习惯一致
@@ -159,19 +229,22 @@ function onHover(label: string) {
 function runItem(item: MenuItem) {
   if (item.disabled) return
   openMenu.value = null
-  item.run()
+  openSub.value = null
+  item.run?.()
 }
 
 function onOutsideMousedown(e: MouseEvent) {
   const bar = document.querySelector('.menu-bar')
   if (openMenu.value && bar && !bar.contains(e.target as Node)) {
     openMenu.value = null
+    openSub.value = null
   }
 }
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && openMenu.value) {
-    openMenu.value = null
+    if (openSub.value) openSub.value = null
+    else openMenu.value = null
   }
 }
 
@@ -234,6 +307,20 @@ onBeforeUnmount(() => {
     box-shadow: 0 0.714rem 2.143rem rgba(0, 0, 0, 0.16);
     padding: 0.357rem;
     z-index: 1000;
+  }
+
+  /* 二级菜单：贴着一级项右侧展开 */
+  &__pop--sub {
+    top: -0.357rem;
+    left: 100%;
+    margin: 0 0 0 0.286rem;
+    min-width: 14.286rem;
+    max-height: 22rem;
+    overflow-y: auto;
+  }
+
+  &__sub-wrap {
+    position: relative;
   }
 
   &__item {

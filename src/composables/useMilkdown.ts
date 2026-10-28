@@ -1,12 +1,12 @@
 import { onBeforeUnmount, watch } from 'vue'
 import { Crepe } from '@milkdown/crepe'
-import { containerPlugin } from '@xz-summer/milkdown-container'
 import { editorViewCtx } from '@milkdown/kit/core'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { linkSchema } from '@milkdown/kit/preset/commonmark'
 import { replaceAll } from '@milkdown/kit/utils'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { currentEditor } from '../shared/editor'
+import { milkdownSyntaxPlugins } from '../shared/milkdown'
 import { cmThemeExtension } from '../shared/cmTheme'
 import { saveImageFile } from '../utils/imageStore'
 import { toDisplayUrl } from '../utils/localImage'
@@ -87,9 +87,9 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
     })
     currentEditor.value = crepe
 
-    // 容器指令插件（:::details 折叠块等）：Crepe 无自定义插件入口，借 addFeature 注入
+    // 扩展语法（<details>、告警块、定义列表、表情、原始 HTML 兜底）：Crepe 无自定义插件入口，借 addFeature 注入
     crepe.addFeature((editor) => {
-      editor.use(containerPlugin)
+      editor.use(milkdownSyntaxPlugins)
     })
 
     // 链接 mark 不越过边界（inclusive: false）：光标在链接首/尾输入的新文字是普通文本，

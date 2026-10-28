@@ -1,6 +1,8 @@
-import { marked } from 'marked'
+import { editorViewCtx } from '@milkdown/kit/core'
+import { DOMSerializer } from '@milkdown/kit/prose/model'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { currentEditor } from '../shared/editor'
+import { replaceEmojiInElement } from '../shared/milkdown/emoji'
 import { isMarkdownFile } from '../utils/fileType'
 import { toDisplayUrl } from '../utils/localImage'
 
@@ -15,12 +17,17 @@ export async function exportPdf(): Promise<void> {
 
   store.loading = true
   try {
-    const markdown = crepe.getMarkdown()
-    // marked 不认 :::details 指令，导出前还原为原生 <details>
-    const htmlSource = markdown
-      .replace(/^:::details\[(.*?)\]\s*$/gm, '<details><summary>$1</summary>')
-      .replace(/^:::\s*$/gm, '</details>')
-    const bodyHtml = await marked.parse(htmlSource)
+    // 直接序列化当前 ProseMirror 文档（各节点 toDOM），保证折叠块/告警块/脚注/定义列表
+    // 在 PDF 里和编辑区完全一致；表情短代码在文本节点上替换成 emoji
+    const bodyHtml = crepe.editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      const container = document.createElement('div')
+      container.appendChild(
+        DOMSerializer.fromSchema(view.state.schema).serializeFragment(view.state.doc.content),
+      )
+      replaceEmojiInElement(container)
+      return container.innerHTML
+    })
 
     // iframe 是独立文档，markdown 里的本地图片相对路径解析不了，换成 asset 协议 URL
     const mdPath = store.activeFile?.path ?? null
@@ -42,6 +49,17 @@ export async function exportPdf(): Promise<void> {
       if (!ref || depth >= 5) return value
       return v(ref[1] ?? name, ref[2] ?? fallback, depth + 1)
     }
+
+    // 告警块五色（编辑区用 CSS 变量，导出时按当前主题取值写死）
+    const alertCss = (['note', 'tip', 'important', 'warning', 'caution'] as const)
+      .map((type) => {
+        const color = v(`--alert-${type}-color`, '#0969da')
+        const bg = v(`--alert-${type}-bg`, '#ddf4ff')
+        return `
+      .prose .mdv-alert--${type} { border-color: ${color}; background: ${bg}; }
+      .prose .mdv-alert--${type} .mdv-alert__title { color: ${color}; }`
+      })
+      .join('')
 
     // iframe 是独立文档，拿不到应用样式表里的 @font-face：把内置字体声明复制过去，
     // 否则导出 PDF 会回退到系统 monospace。跨源样式表读不到规则时跳过。
@@ -81,6 +99,23 @@ export async function exportPdf(): Promise<void> {
       .prose blockquote { border-left: 0.25rem solid ${v('--blockquote-border-color', '#e95f59')};
         background: ${v('--blockquote-bg-color', '#fdefee')}; color: ${v('--blockquote-color', '#333333')};
         padding: 0.2rem 1rem; border-radius: 0 0.429rem 0.429rem 0; }
+      .prose details { border: 0.071rem solid ${v('--border-color', '#d0d7de')}; border-radius: 0.429rem;
+        padding: 0.429rem 0.857rem; margin: ${v('--p-spacing', '0.8rem')} 0; }
+      .prose summary { cursor: pointer; color: ${v('--title-color', '#273849')}; font-weight: 600; }
+      .prose .mdv-alert { margin: ${v('--p-spacing', '0.8rem')} 0; padding: 0.571rem 0.857rem;
+        border-left: 0.286rem solid; border-radius: 0 0.429rem 0.429rem 0; }
+      .prose .mdv-alert__title { display: flex; align-items: center; gap: 0.357rem; font-weight: 600;
+        margin-bottom: 0.214rem; }
+      ${alertCss}
+      .prose sup[data-type='footnote_reference'] { color: ${v('--a-color', '#d63200')};
+        font-size: 0.714rem; vertical-align: super; }
+      .prose dl[data-type='footnote_definition'] { margin: ${v('--p-spacing', '0.8rem')} 0;
+        color: ${v('--text-secondary', '#6a737d')}; font-size: 0.929rem; }
+      .prose dl[data-type='footnote_definition'] dt { font-weight: 600; }
+      .prose dl[data-type='footnote_definition'] dd { margin-left: 1.214rem; }
+      .prose .mdv-deflist { margin: ${v('--p-spacing', '0.8rem')} 0; }
+      .prose .mdv-deflist dt { color: ${v('--strong-color', '#273849')}; font-weight: 600; }
+      .prose .mdv-deflist dd { margin: 0 0 0.429rem 1.714rem; }
       .prose a { color: ${v('--a-color', '#d63200')}; }
       .prose hr { border: none; border-top: 0.1em solid ${v('--horizontal-divider-color', '#273849')}; margin: 1.6em 0; }
       .prose img { max-width: 100%; border-radius: 0.429rem; }

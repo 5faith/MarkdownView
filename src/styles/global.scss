@@ -134,6 +134,112 @@ html {
   color: var(--a-color);
 }
 
+/* ─────────── 扩展语法（应用扩展，不在 §5 骨架内） ─────────── */
+/* 折叠块：<details> */
+.milkdown .mdv-details {
+  border: 1px solid var(--border-color);
+  border-radius: 0.429rem;
+  padding: 0.429rem 0.857rem;
+  margin: var(--p-spacing) 0;
+}
+
+.milkdown .mdv-details__summary {
+  cursor: pointer;
+  color: var(--title-color);
+  font-weight: 600;
+  user-select: none;
+}
+
+.milkdown .mdv-details__content > :first-child {
+  margin-top: 0.429rem;
+}
+
+/* 告警块：五色左边框 + 标题图标 */
+.milkdown .mdv-alert {
+  margin: var(--p-spacing) 0;
+  padding: 0.571rem 0.857rem;
+  border-left: 0.286rem solid var(--alert-note-color);
+  background: var(--alert-note-bg);
+  border-radius: 0 0.429rem 0.429rem 0;
+}
+
+.milkdown .mdv-alert__title {
+  display: flex;
+  align-items: center;
+  gap: 0.357rem;
+  margin-bottom: 0.214rem;
+  font-weight: 600;
+  color: var(--alert-note-color);
+}
+
+.milkdown .mdv-alert__title svg {
+  flex: none;
+}
+
+.milkdown .mdv-alert--tip { border-left-color: var(--alert-tip-color); background: var(--alert-tip-bg); }
+.milkdown .mdv-alert--tip .mdv-alert__title { color: var(--alert-tip-color); }
+.milkdown .mdv-alert--important { border-left-color: var(--alert-important-color); background: var(--alert-important-bg); }
+.milkdown .mdv-alert--important .mdv-alert__title { color: var(--alert-important-color); }
+.milkdown .mdv-alert--warning { border-left-color: var(--alert-warning-color); background: var(--alert-warning-bg); }
+.milkdown .mdv-alert--warning .mdv-alert__title { color: var(--alert-warning-color); }
+.milkdown .mdv-alert--caution { border-left-color: var(--alert-caution-color); background: var(--alert-caution-bg); }
+.milkdown .mdv-alert--caution .mdv-alert__title { color: var(--alert-caution-color); }
+
+/* 脚注：引用上标 + 文末定义（GFM 内置节点） */
+.milkdown sup[data-type='footnote_reference'] {
+  color: var(--a-color);
+  font-size: 0.714rem;
+  vertical-align: super;
+}
+
+.milkdown dl[data-type='footnote_definition'] {
+  margin: var(--p-spacing) 0;
+  color: var(--text-secondary);
+  font-size: 0.929rem;
+}
+
+.milkdown dl[data-type='footnote_definition'] dt {
+  font-weight: 600;
+}
+
+.milkdown dl[data-type='footnote_definition'] dd {
+  margin-left: 1.214rem;
+}
+
+/* 定义列表 */
+.milkdown .mdv-deflist {
+  margin: var(--p-spacing) 0;
+}
+
+.milkdown .mdv-deflist__term {
+  color: var(--strong-color);
+  font-weight: 600;
+}
+
+.milkdown .mdv-deflist__description {
+  margin: 0 0 0.429rem 1.714rem;
+}
+
+/* 表情：行内原子节点，直接显示 emoji 字符 */
+.milkdown .mdv-emoji {
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+  line-height: 1;
+  cursor: text;
+}
+
+/* 未识别的原始 HTML 兜底：等宽文本，不执行 */
+.milkdown pre.mdv-raw-html {
+  margin: var(--p-spacing) 0;
+  padding: 0.8rem 1rem;
+  border-radius: 0.571rem;
+  background: var(--code-block-bg-color);
+  color: var(--code-block-color);
+  font-family: var(--monospace);
+  font-size: 0.929rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
 /* ─────────── 10/11 图片与内容区宽度 ─────────── */
 .milkdown img {
   border-radius: 0.429rem;
