@@ -24,7 +24,7 @@
 - `src/components/MenuBar.vue` — `MenuItem` 支持 `children` 二级下拉；新增「插入」菜单（表情符号 ▸ / 告警块 ▸ / 折叠内容 / 脚注 / 定义列表）；「格式」里的「隐藏细节」移除。
 - `src/components/EditorToolbar.vue` — 工具栏原「折叠内容」按钮换成「插入」下拉（表情符号网格 / 告警块五项 / 折叠内容 / 脚注）；表情网格下方带「查看完整表情表 ↗」链接（emoji-cheat-sheet），「列表」下拉新增「定义列表」。
 - `src/shared/openExternal.ts` — `openExternal()`（Tauri 走 `@tauri-apps/plugin-opener`，浏览器退回 `window.open`）+ `EMOJI_SHEET_URL`。
-- `src-tauri` — 新增 `tauri-plugin-opener`（Cargo、`lib.rs` 注册、capabilities 加 `opener:default` / `opener:allow-open-url`）。版本必须与 NPM 侧成对：当前项目 tauri 核心是 2.11.5，`tauri-plugin-opener` 只能解析到 **2.5.5**（2.7.x 要求 tauri ≥2.12），因此 `package.json` 把 `@tauri-apps/plugin-opener` 精确锁在 **2.5.5**，避免 Tauri 构建时的版本校验报错。
+- `src-tauri` — 新增 `tauri-plugin-opener`（Cargo、`lib.rs` 注册、capabilities 加 `opener:default` / `opener:allow-open-url`）。版本必须与 NPM 侧成对：随本次升级整体对齐到 tauri 2.12 / opener 2.7.2（`package.json` 的 `@tauri-apps/*` 全部锁成精确版本，避免 Tauri 构建时的版本校验因漂移报错）。
 - `src/composables/useExportPdf.ts` — `marked` → `DOMSerializer` 序列化当前文档 + `replaceEmojiInElement`；补折叠块/告警块/脚注/定义列表的打印样式（告警五色读主题变量）。
 - `src/styles/global.scss` — 新增五类语法的骨架样式（折叠块、告警块五色、脚注、定义列表、表情、原始 HTML 兜底），全部走主题变量 + rem。
 - `src/styles/themes/light.scss` / `dark.scss` — 新增 5 组告警色变量（`--alert-*-color` / `--alert-*-bg`）。
