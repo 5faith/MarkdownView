@@ -76,7 +76,13 @@ jobs:
           $sourceDir = "src-tauri/target/release"
           $zipPath = Join-Path $sourceDir $zipName
 
-          Compress-Archive -Path "$sourceDir/markdown-view.exe" -DestinationPath $zipPath -Force
+          # exe + icons/（文档图标 ico，放在 exe 旁供「文件关联」功能直接使用）
+          $stage = Join-Path $sourceDir "portable-stage"
+          Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path "$stage/icons" -Force | Out-Null
+          Copy-Item "$sourceDir/markdown-view.exe" $stage
+          Copy-Item "src-tauri/icons/style3-dark-file-icon.ico" "$stage/icons/"
+          Compress-Archive -Path "$stage/*" -DestinationPath $zipPath -Force
 
           if (Test-Path $zipPath) {
             Write-Host "Created $zipName"
