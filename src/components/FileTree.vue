@@ -4,7 +4,12 @@
       <span class="file-tree__header-label">目录</span>
       <span class="file-tree__header-name" :title="store.workspacePath">{{ folderName }}</span>
       <button class="file-tree__act" title="新建文件" aria-label="新建文件" @click="createFile">＋</button>
-      <button class="file-tree__act" title="新建文件夹" aria-label="新建文件夹" @click="createFolder">⊞</button>
+      <button class="file-tree__act" title="新建文件夹" aria-label="新建文件夹" @click="createFolder">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M2 4h4l1.5 1.5H14V12H2z" />
+          <path d="M8 7.2v3.2M6.4 8.8h3.2" />
+        </svg>
+      </button>
       <button class="file-tree__act" title="关闭目录树" aria-label="关闭目录树" @click="store.clearWorkspace">✕</button>
     </div>
 
@@ -475,6 +480,16 @@ watch(() => store.fileTreeVersion, () => {
     font-size: 0.929rem;
     flex-shrink: 0;
     transition: background 0.15s, color 0.15s;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
 
     &:hover {
       background: var(--bg-hover);
