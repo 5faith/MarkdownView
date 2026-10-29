@@ -15,6 +15,7 @@
 - `alert.ts` — `remarkAlerts` 识别引用首行 `[!TYPE]`；`alert` 节点（attr `type`），`toDOM` 输出五色块 + `createElementNS` 内联 SVG 图标 + 英文标题。
 - `definitionList.ts` — `remarkDefinitionList` + `definition_list` / `definition_term` / `definition_description` 三个 schema。
 - `emoji.ts` — gemoji 短代码表、行内原子节点 `emoji`（渲染 emoji 字符、回写 `:name:`）、`remarkEmoji`（文本拆节点）、输入规则（输入 `:tada:` 即时转换）、导出用文本替换、菜单列表 `EMOJI_MENU`。
+- `mermaid.ts` — Mermaid 图表：`mermaid` 节点 + NodeView（默认渲染 SVG，点「源码」切回文本编辑）、`remarkMermaid`（```mermaid 围栏 → 节点）、10 个图表骨架 `MERMAID_TEMPLATES`（脑图/流程图/时序图/甘特图/XY 图表/类图/状态图/E-R 图/饼图/用户旅程图）。mermaid 动态加载，渲染结果缓存供导出 PDF 的 `toDOM` 取用，切主题自动重渲染。
 
 ## 修改
 
@@ -22,7 +23,8 @@
 - `src/main.ts` — 去掉容器插件 CSS。
 - `src/shared/editor.ts` — `insertDetails` 改用新 schema；新增 `insertFootnote` / `insertAlert` / `insertDefinitionList` / `insertEmoji`；`FormatKind` 增加 `footnote` / `deflist` / `emoji` / `alert`，源码模式插入对应文本。
 - `src/components/MenuBar.vue` — `MenuItem` 支持 `children` 二级下拉；新增「插入」菜单（表情符号 ▸ / 告警块 ▸ / 折叠内容 / 脚注 / 定义列表）；「格式」里的「隐藏细节」移除。
-- `src/components/EditorToolbar.vue` — 工具栏原「折叠内容」按钮换成「插入」下拉（表情符号网格 / 告警块五项 / 折叠内容 / 脚注）；表情网格下方带「查看完整表情表 ↗」链接（emoji-cheat-sheet），「列表」下拉新增「定义列表」。
+- `src/components/EditorToolbar.vue` — 工具栏原「折叠内容」按钮换成「插入」下拉（表情符号网格 / 告警块五项 / 折叠内容 / 脚注）；表情网格下方带「查看完整表情表 ↗」链接（emoji-cheat-sheet），「列表」下拉新增「定义列表」；新增「图表」按钮（折线图图标）下拉 10 种 Mermaid 图表。
+- `src/assets/TEMPLATE.md` — 新增「图表（Mermaid）」一节，10 种图表各一个示例（骨架与 `MERMAID_TEMPLATES` 一致）。
 - `src/shared/openExternal.ts` — `openExternal()`（Tauri 走 `@tauri-apps/plugin-opener`，浏览器退回 `window.open`）+ `EMOJI_SHEET_URL`。
 - `src-tauri` — 新增 `tauri-plugin-opener`（Cargo、`lib.rs` 注册、capabilities 加 `opener:default` / `opener:allow-open-url`）。版本必须与 NPM 侧成对：随本次升级整体对齐到 tauri 2.12 / opener 2.7.2（`package.json` 的 `@tauri-apps/*` 全部锁成精确版本，避免 Tauri 构建时的版本校验因漂移报错）。
 - `src/composables/useExportPdf.ts` — `marked` → `DOMSerializer` 序列化当前文档 + `replaceEmojiInElement`；补折叠块/告警块/脚注/定义列表的打印样式（告警五色读主题变量）。

@@ -16,7 +16,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `src/components/` — UI 组件：`MenuBar`、`SettingsDialog`、`EditorToolbar`、`MilkdownEditor`、`SourceEditor`、`CodeMirrorEditor`、`FileTree*`、`FileTabs`、`OutlinePane`、`StatusBar`、`FileIcon`、`ConfirmDialog`。
 - `src/stores/useMarkdownStore.ts` — 唯一 Pinia store，setup 语法、全 `ref()`；偏好存 localStorage `markdownview-preferences`。
 - `src/composables/` — `useFileOperation`（打开/保存/另存）、`useMilkdown`、`useExportPdf`（DOMSerializer 序列化当前文档 → 隐藏 iframe 打印）、`useKeyboardShortcuts`、`useDragDrop`、`useCloseConfirmation`。
-- `src/shared/` — `editor.ts`（`currentEditor` 单例 + `runFormat` 命令入口）、`cmTheme.ts`（代码块明暗高亮）、`milkdown/`（扩展语法：`html` 兜底、`details`、`alert`、`definitionList`、`emoji`，统一由 `index.ts` 的 `milkdownSyntaxPlugins` 注册；remark 转换必须排在 commonmark 预设的 remarkHtmlTransformer 之前）。
+- `src/shared/` — `editor.ts`（`currentEditor` 单例 + `runFormat` 命令入口）、`cmTheme.ts`（代码块明暗高亮）、`milkdown/`（扩展语法：`html` 兜底、`details`、`alert`、`definitionList`、`emoji`、`mermaid`，统一由 `index.ts` 的 `milkdownSyntaxPlugins` 注册；remark 转换必须排在 commonmark 预设的 remarkHtmlTransformer 之前）。
 - `src/utils/` — `preferences.ts`（偏好读写）、`fileType.ts`（按扩展名判定展示方式）、`localImage.ts`（本地图片路径解析 + asset 协议显示 URL，`toDisplayUrl` 是唯一入口）、`imageStore.ts`（粘贴/上传图片落盘到 md 同级图片目录，返回相对 src）。
 - `src/types/index.ts` — 共享类型（`AppTheme`、`Preferences`、`MarkdownFile`、`FileTreeNode`、`CaretPosition`）。
 - `src/assets/` — `TEMPLATE.md`（新建文件模板）。字体不内置：正文/代码字体栈默认值在 `global.scss` §4.3，用户在设置里选择本地字体（Rust `list_system_fonts` 枚举，font-kit）。
@@ -49,7 +49,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 ### 文件与层次
 
 - `src/styles/global.scss` — **骨架层**，与主题无关：§4.3 排版尺度（等价 Drake 的 `font.css`）→ 应用扩展（派生别名 + `--crepe-*` 映射）→ §5 骨架各段 → 应用基线。这里**不允许出现主题色字面值**（含 `--drag-overlay` 这类带色别名）。
-- **§5 分段顺序固定**：global.scss 内的骨架段按 `style.md` §5 的段号排列，分段注释用规范里的英文标记（`/*code block*/`、`/*code snippet*/`、`/*variable*/`、`/*quote block*/`、`/*link*/`、`/* height light */`、`/*YAML*/`、`/*sidebar*/`）；本仓库没有对应 UI 的段（LaTeX/mermaid/时序图/checkbox/insert table/偏好设置）在文件头一次性列出，不写空段。
+- **§5 分段顺序固定**：global.scss 内的骨架段按 `style.md` §5 的段号排列，分段注释用规范里的英文标记（`/*code block*/`、`/*code snippet*/`、`/*variable*/`、`/*quote block*/`、`/*link*/`、`/* height light */`、`/*YAML*/`、`/*sidebar*/`）；本仓库没有对应 UI 的段（LaTeX/checkbox/insert table/偏好设置）在文件头一次性列出，不写空段。
 - 字体不打包进应用（减体积）：`global.scss` §4.3 只定义字体栈默认值（正文系统界面栈 / 代码等宽栈）；设置里的「字体」可选系统默认、系统等宽或本地字体族名（Rust `list_system_fonts` 枚举），由 store 写根元素内联变量覆盖默认值，主题文件不参与。
 - `src/styles/themes/<name>.scss` — **变量层**，一个主题一个文件，只放颜色/背景/边框。默认主题 `light.scss` 用 `:root`（兼作 `data-theme` 写入前的首帧兜底）；其余主题用 `html[data-theme='<name>']`（特异性 0,1,1，高于 `:root` 的 0,1,0，因此与文件加载顺序无关）。**不要**给新主题写 `:root`。
 - 主题文件头按 §3 写 3 段：来源/许可、导出字体（本仓库为「无」，不走 `@include-when-export`）、变量范围；文件末尾固定一段 `/* code render */` 注释，指向 `src/shared/cmTheme.ts`（§5 段 23 的等价实现）。
@@ -88,7 +88,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 ### 不适用（Typora 专属，勿照搬）
 
 - `@import ./drake/font.css`、`@include-when-export`、`img/thumbnail-*.png`、README 预览表：桌面应用无对应物。本地字体已内置 woff2（`src/assets/fonts/` + `global.scss` 的 `@font-face`），`--monospace` 用它打头、系统字体兜底。
-- §5 里依赖 Typora DOM 的选择器（`#write`、`.md-fences`、`.md-diagram-panel-preview`、`[id^=mermaidChart]` 等）由 Crepe / 组件替代；Mermaid、任务列表当前无 UI。
+- §5 里依赖 Typora DOM 的选择器（`#write`、`.md-fences`、`.md-diagram-panel-preview`、`[id^=mermaidChart]` 等）由 Crepe / 组件替代；Mermaid 已支持（`shared/milkdown/mermaid.ts` 渲染）。
 - §2 的「骨架三处结构性修改要在 12 个主题文件中同步」不适用：本仓库骨架只有 `global.scss` 一份，天然同步。
 
 ## 容易踩的坑

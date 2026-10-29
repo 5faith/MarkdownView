@@ -37,6 +37,7 @@
     "codemirror": "^6.0.2",
     "gemoji": "^8.1.0",
     "material-file-icons": "^2.4.0",
+    "mermaid": "^12.2.0",
     "pinia": "^3.0.3",
     "remark-definition-list": "^2.0.1",
     "vue": "^3.5.13",

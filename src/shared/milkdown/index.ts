@@ -15,6 +15,7 @@ import {
   remarkDefinitionListPlugin,
 } from './definitionList'
 import { emojiInputRule, emojiSchema, remarkEmoji } from './emoji'
+import { mermaidNodeView, mermaidSchema, remarkMermaid } from './mermaid'
 
 /**
  * 扩展语法插件集合：原始 HTML 兜底、GitHub 折叠块、告警块、定义列表、表情短代码。
@@ -32,6 +33,7 @@ function prependRemarkSyntax(): (ctx: any) => () => Promise<() => void> {
         remarkDetails(tree)
         remarkAlerts(tree)
         remarkEmoji(tree)
+        remarkMermaid(tree)
       },
       options: {},
     }
@@ -54,4 +56,6 @@ export const milkdownSyntaxPlugins: any[] = [
   definitionDescriptionSchema,
   emojiSchema,
   emojiInputRule,
+  mermaidSchema,
+  mermaidNodeView,
 ]

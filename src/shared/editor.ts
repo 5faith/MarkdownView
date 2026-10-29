@@ -29,6 +29,7 @@ import {
   definitionTermSchema,
 } from './milkdown/definitionList'
 import { emojiSchema } from './milkdown/emoji'
+import { mermaidSchema } from './milkdown/mermaid'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { saveImageFile } from '../utils/imageStore'
 import { basename, dirname, encodeMdPath, joinPath, sanitizeImageDir } from '../utils/localImage'
@@ -38,14 +39,15 @@ export type FormatKind =
   | 'h1' | 'h2' | 'h3'
   | 'bold' | 'italic' | 'strike' | 'code'
   | 'quote' | 'ul' | 'ol' | 'task' | 'table' | 'codeblock' | 'hr' | 'details'
-  | 'footnote' | 'deflist' | 'emoji' | 'alert'
+  | 'footnote' | 'deflist' | 'emoji' | 'alert' | 'mermaid'
   | 'link' | 'image'
 
-/** link 需要 href；emoji 需要短代码名；alert 需要类型；image 无额外参数（自己弹文件选择框） */
+/** link 需要 href；emoji 需要短代码名；alert 需要类型；mermaid 需要图表源码；image 无额外参数（自己弹文件选择框） */
 export interface FormatPayload {
   href?: string
   emojiName?: string
   alertType?: string
+  mermaidCode?: string
 }
 
 /** 当前 Milkdown Crepe 实例单例（工具栏/菜单/PDF 导出共用）。
@@ -311,6 +313,21 @@ function insertEmoji(name: string): void {
   })
 }
 
+/** 插入 Mermaid 图表（```mermaid 围栏，编辑区渲染成图） */
+function insertMermaid(code: string): void {
+  const crepe = currentEditor.value
+  if (!crepe || crepe.readonly) return
+
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const { schema } = view.state
+    const type = mermaidSchema.type(ctx)
+    if (!type) return
+    const node = type.create(null, code ? schema.text(code) : null)
+    view.dispatch(view.state.tr.replaceSelectionWith(node).scrollIntoView())
+  })
+}
+
 /** 编辑器重新聚焦，让菜单操作期间选区保持可见 */
 export function focusEditor(): void {
   const crepe = currentEditor.value
@@ -500,6 +517,12 @@ function applySourceFormat(kind: FormatKind, payload?: FormatPayload): void {
     api.replaceRange(start, end, mid, start + 15, start + 21)
     return
   }
+  if (kind === 'mermaid') {
+    const code = payload?.mermaidCode ?? 'flowchart TD\n    A[开始] --> B[结束]'
+    const mid = `\n\`\`\`mermaid\n${code}\n\`\`\`\n`
+    api.replaceRange(start, end, mid, start + mid.length, start + mid.length)
+    return
+  }
 }
 
 /* ─────────────────────────── 统一入口 ─────────────────────────── */
@@ -605,6 +628,9 @@ export function runFormat(kind: FormatKind, payload?: FormatPayload): void {
       break
     case 'alert':
       insertAlert(payload?.alertType ?? 'note')
+      break
+    case 'mermaid':
+      insertMermaid(payload?.mermaidCode ?? '')
       break
   }
 

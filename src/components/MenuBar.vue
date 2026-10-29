@@ -74,6 +74,7 @@ import { showConfirm } from '../composables/showConfirm'
 import { focusEditor, runFormat } from '../shared/editor'
 import { EMOJI_MENU } from '../shared/milkdown/emoji'
 import { ALERT_OPTIONS } from '../shared/milkdown/alert'
+import { MERMAID_TEMPLATES } from '../shared/milkdown/mermaid'
 import { EMOJI_SHEET_URL, openExternal } from '../shared/openExternal'
 import { isMarkdownFile } from '../utils/fileType'
 import pkg from '../../package.json'
@@ -171,6 +172,14 @@ const menus = computed<Array<{ label: string; items: Array<MenuItem | '-'> }>>((
         children: ALERT_OPTIONS.map((alert) => ({
           label: `${alert.title}（${alert.label}）`,
           run: () => runFormat('alert', { alertType: alert.type }),
+        })),
+      },
+      {
+        label: '图表',
+        disabled: fmtDisabled.value,
+        children: MERMAID_TEMPLATES.map((item) => ({
+          label: item.label,
+          run: () => runFormat('mermaid', { mermaidCode: item.code }),
         })),
       },
       { label: '折叠内容', disabled: fmtDisabled.value, run: () => runFormat('details') },

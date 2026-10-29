@@ -43,6 +43,29 @@
         </button>
       </div>
     </div>
+    <div class="editor-toolbar__menu">
+      <button
+        ref="chartBtn"
+        class="editor-toolbar__btn"
+        :class="{ 'editor-toolbar__btn--active': chartMenu }"
+        title="图表"
+        aria-haspopup="menu"
+        :aria-expanded="chartMenu"
+        @click.stop="toggleChartMenu"
+      >
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>
+      </button>
+      <div v-if="chartMenu" ref="chartPop" class="editor-toolbar__pop" role="menu" aria-label="图表" :style="chartStyle">
+        <button
+          v-for="item in MERMAID_TEMPLATES"
+          :key="item.type"
+          class="editor-toolbar__item"
+          role="menuitem"
+          @click="pickChart(item.code)"
+        >{{ item.label }}</button>
+      </div>
+    </div>
+
     <button class="editor-toolbar__btn" title="插入表格" @click="runFormat('table')">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M3 15h18M9 10v10" /></svg>
     </button>
@@ -140,6 +163,7 @@ import { runFormat } from '../shared/editor'
 import type { FormatKind, FormatPayload } from '../shared/editor'
 import { EMOJI_MENU } from '../shared/milkdown/emoji'
 import { ALERT_OPTIONS } from '../shared/milkdown/alert'
+import { MERMAID_TEMPLATES } from '../shared/milkdown/mermaid'
 import { EMOJI_SHEET_URL, openExternal } from '../shared/openExternal'
 import { useFileOperation } from '../composables/useFileOperation'
 
@@ -208,6 +232,24 @@ function openEmojiSheet() {
   void openExternal(EMOJI_SHEET_URL)
 }
 
+// ── 图表弹层：Mermaid 图表骨架 ──
+const chartMenu = ref(false)
+const chartBtn = ref<HTMLElement | null>(null)
+const chartPop = ref<HTMLElement | null>(null)
+const chartStyle = ref({ top: '0px', left: '0px' })
+
+function toggleChartMenu() {
+  chartMenu.value = !chartMenu.value
+  if (chartMenu.value && chartBtn.value) {
+    placePop(chartBtn.value, chartStyle, () => chartPop.value)
+  }
+}
+
+function pickChart(code: string) {
+  chartMenu.value = false
+  runFormat('mermaid', { mermaidCode: code })
+}
+
 // ── 链接弹层：输入 URL 后包链接 ──
 const linkMenu = ref(false)
 const linkBtn = ref<HTMLElement | null>(null)
@@ -241,12 +283,14 @@ function onDocMousedown(e: MouseEvent) {
   if (listMenu.value && !listBtn.value?.contains(t) && !listPop.value?.contains(t)) listMenu.value = false
   if (linkMenu.value && !linkBtn.value?.contains(t) && !linkPop.value?.contains(t)) closeLinkMenu()
   if (insertMenu.value && !insertBtn.value?.contains(t) && !insertPop.value?.contains(t)) insertMenu.value = false
+  if (chartMenu.value && !chartBtn.value?.contains(t) && !chartPop.value?.contains(t)) chartMenu.value = false
 }
 
 function onDocKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     listMenu.value = false
     insertMenu.value = false
+    chartMenu.value = false
     closeLinkMenu()
   }
 }

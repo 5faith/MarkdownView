@@ -227,6 +227,78 @@ html {
   cursor: text;
 }
 
+/* Mermaid 图表：默认显示渲染结果，点「源码」切回文本编辑 */
+.milkdown figure.mdv-mermaid {
+  margin: var(--p-spacing) 0;
+  border: 1px solid var(--border-color);
+  border-radius: 0.571rem;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.milkdown .mdv-mermaid__view {
+  padding: 0.857rem;
+  overflow-x: auto;
+  text-align: center;
+
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.milkdown .mdv-mermaid__source {
+  display: none;
+  margin: 0;
+  padding: 0.857rem 1rem;
+  background: var(--code-block-bg-color);
+  color: var(--code-block-color);
+  font-family: var(--monospace);
+  font-size: 0.929rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.milkdown .mdv-mermaid--edit .mdv-mermaid__view {
+  display: none;
+}
+
+.milkdown .mdv-mermaid--edit .mdv-mermaid__source {
+  display: block;
+}
+
+.milkdown .mdv-mermaid__bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.286rem 0.571rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.milkdown .mdv-mermaid__toggle {
+  border: none;
+  border-radius: 0.357rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.786rem;
+  padding: 0.214rem 0.571rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+}
+
+.milkdown .mdv-mermaid--error .mdv-mermaid__view {
+  color: var(--alert-caution-color);
+  text-align: left;
+  font-family: var(--monospace);
+  font-size: 0.857rem;
+  white-space: pre-wrap;
+}
+
 /* 未识别的原始 HTML 兜底：等宽文本，不执行 */
 .milkdown pre.mdv-raw-html {
   margin: var(--p-spacing) 0;
