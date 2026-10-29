@@ -1,6 +1,6 @@
 # 设置窗口改版（基础样式设置）— 修改记录
 
-> 计划：`20261023-settings-dialog-plan.md`；设计稿：`preview.html`。
+> 计划：`20261023-settings-dialog-plan.md`；设计稿：`20261023-settings-dialog-preview.html`。
 
 ## 结果
 

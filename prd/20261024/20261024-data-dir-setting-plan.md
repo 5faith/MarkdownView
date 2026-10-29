@@ -1,6 +1,6 @@
 # 数据目录设置（默认 exe 旁，可在设置中修改）
 
-> 实现记录：同目录 `20261024-data-dir-setting-modification.md`。前置需求：`prd/20261024-portable-data/`（便携化数据目录）。
+> 实现记录：同目录 `20261024-data-dir-setting-modification.md`。前置需求：同目录 `20261024-portable-data-*`（便携化数据目录）。
 
 ## 目标
 

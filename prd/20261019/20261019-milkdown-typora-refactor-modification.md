@@ -64,7 +64,7 @@
 
 ## 浅色配色定稿（20261021，用户选定）
 
-三方案对比预览：`prd/20261019-milkdown-typora-refactor/20261019-milkdown-typora-refactor-preview-light.html`（A 清爽微灰 / B 暖纸米白 / C 高对比冷灰）。**用户选定方案 A（清爽微灰）**，已落地 `global.scss` 浅色 `:root`：
+三方案对比预览：`prd/20261019/20261019-milkdown-typora-refactor-preview-light.html`（A 清爽微灰 / B 暖纸米白 / C 高对比冷灰）。**用户选定方案 A（清爽微灰）**，已落地 `global.scss` 浅色 `:root`：
 `--text-color #2e2e2e`、`--side-bar-bg-color #f5f5f6`（chrome 面板与编辑区白底区分）、`--table-border-color #d9d9d9`、`--table-header-bg-color #eaeaea`、`--table-n2-bg-color #f1f1f2`、`--item-hover-bg-color #e6e6e6b3`。深色主题不变。
 
 ## 代码块高亮按主题着色（20261021）

@@ -1,7 +1,7 @@
 # 扩展 Markdown 语法：表情 / 告警块 / 脚注 / 定义列表 / `<details>`
 
 > 实现记录：同目录 `20261028-markdown-syntax-extensions-modification.md`。
-> 取代 `prd/20261024-details-container/`（`:::details` 写法废弃）。
+> 取代 `prd/20261024/20261024-details-container-*`（`:::details` 写法废弃）。
 
 ## 目标
 

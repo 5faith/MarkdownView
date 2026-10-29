@@ -1,6 +1,6 @@
 # 设置窗口改版（基础样式设置）
 
-> 设计稿：`preview.html`（同目录）；实现与验证见同目录 `20261023-settings-dialog-modification.md`。
+> 设计稿：`20261023-settings-dialog-preview.html`（同目录）；实现与验证见同目录 `20261023-settings-dialog-modification.md`。
 
 ## 目标
 
@@ -20,7 +20,7 @@
 - 改 `src/components/SettingsDialog.vue`：沿用 `store.font` / `store.fontSize` / `store.theme` / `store.typewriter`，不新增 store 字段与偏好项。
 - 设置已有的项不再在外部重复提供：菜单、状态栏、快捷键中的主题 / 打字机入口移除，统一走设置弹窗。
 - 预览区字体随 `store.font`、字号随 `store.fontSize`；主题切换走现有 `store.theme`（`data-theme` 由 store 写入）。
-- `preview.html` 支持 `?theme=dark` 直接查看深色稿；字体按相对路径读取 `src/assets/fonts/`，加载失败时回退系统等宽。
+- `20261023-settings-dialog-preview.html` 支持 `?theme=dark` 直接查看深色稿；字体按相对路径读取 `src/assets/fonts/`，加载失败时回退系统等宽。
 
 ## 验证
 

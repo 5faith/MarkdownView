@@ -1,6 +1,6 @@
 # 文件树筛选：类型 / 正则 / 大小写开关
 
-> 实现记录：同目录 `20261024-filetree-filter-options-modification.md`。前置：`prd/20261024-filetree-search-perf/`（筛选性能修复）。
+> 实现记录：同目录 `20261024-filetree-filter-options-modification.md`。前置：同目录 `20261024-filetree-search-perf-*`（筛选性能修复）。
 
 ## 目标
 

@@ -23,13 +23,13 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `src-tauri/src/lib.rs` — 全部 Rust 逻辑：`get_file_args`、`reveal_in_file_manager`、`get_data_dir`/`set_data_dir`（数据目录）、`search_workspace`（文件树筛选，Rust 侧遍历——前端逐目录 IPC 并发会挤崩 WebView，勿改回）、`list_system_fonts`（系统字体枚举）、插件注册、single-instance、ctrlc。数据目录默认 exe 旁 `data/`，exe 旁 `data-dir.txt`（一行路径）可覆盖，解析见 `resolve_data_dir`；窗口在 setup 手动创建（`tauri.conf.json` 里 `create: false`）。`main.rs` 只是入口；新增命令必须加进 `generate_handler!`，命令名 snake_case。
 - `src-tauri/` — `tauri.conf.json` 管窗口、构建与 `devUrl`；`capabilities/default.json` 管 Tauri 权限白名单。
 - `src/styles/global.scss` — 骨架层（与主题无关）；`src/styles/themes/<name>.scss` — 每主题一个变量文件；规则见「主题与样式契约」，标准来源 `prd/style.md`。
-- `prd/` — 需求目录，每个需求一个 `prd/{yyyyMMdd}-{需求名}/`，见「需求文档（prd/）」；`version/` — 需求计划与修改记录，命名 `{yyyyMMdd}-{需求名}-plan.md` / `-modification.md`。
+- `prd/` — 需求文档，按日期分桶 `prd/{yyyyMMdd}/`（同日期需求共用目录，文件名自带需求名），见「需求文档（prd/）」；`version/` — 需求计划与修改记录，命名 `{yyyyMMdd}-{需求名}-plan.md` / `-modification.md`。
 
 ## 需求文档（prd/）
 
-- 在 `prd/` 下新建文件**默认视为新增需求**：先创建 `prd/{yyyyMMdd}-{需求名}/` 目录，再在目录内写 `{yyyyMMdd}-{需求名}-plan.md` 作为需求/修改计划，实现后补 `-modification.md`；不要把需求 md 平铺在 `prd/` 根目录。
-- 只有极小的改动（文案、样式微调）可跳过目录直接在 `prd/` 建文件；拿不准一律按需求目录走。
-- 需求目录内存放该需求的全部产物：计划、修改记录、预览 HTML、设计稿。
+- 在 `prd/` 下新建文件**默认视为新增需求**：放进对应日期目录 `prd/{yyyyMMdd}/`，命名 `{yyyyMMdd}-{需求名}-plan.md` 作为需求/修改计划，实现后补 `-modification.md`；不要把需求 md 平铺在 `prd/` 根目录。同日期多个需求共用该目录，文件名（含预览/设计稿，如 `{yyyyMMdd}-{需求名}-preview.html`）必须带需求名前缀以区分。
+- 只有极小的改动（文案、样式微调）可跳过日期目录直接在 `prd/` 建文件；拿不准一律按需求走。
+- 日期目录内存放该日期各需求的全部产物：计划、修改记录、预览 HTML、设计稿。
 
 ## 编辑器同步契约（改编辑器、工具栏、菜单前先读）
 

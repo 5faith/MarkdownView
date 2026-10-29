@@ -1,7 +1,7 @@
 # MarkdownView 重构计划：Vditor → Milkdown (Crepe)，Typora 风格
 
 > 需求：将编辑器从 Vditor 迁移到 Milkdown，页面风格参考 Typora，精简功能。
-> 完成情况记录到 `prd/20261019-milkdown-typora-refactor/20261019-milkdown-typora-refactor-modification.md`。
+> 完成情况记录到同目录 `20261019-milkdown-typora-refactor-modification.md`。
 
 ## 范围修订（20261020，用户确认）
 

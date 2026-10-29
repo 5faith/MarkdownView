@@ -1,6 +1,6 @@
 # 文件树筛选迁移到 Rust 侧（修复搜索崩溃）
 
-> 实现记录：同目录 `20261024-filetree-search-rust-modification.md`。前置：`prd/20261024-filetree-search-perf/`、`prd/20261024-filetree-filter-options/`。
+> 实现记录：同目录 `20261024-filetree-search-rust-modification.md`。前置：同目录 `20261024-filetree-search-perf-*`、`20261024-filetree-filter-options-*`。
 
 ## 问题
 
