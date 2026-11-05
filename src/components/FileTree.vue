@@ -1,5 +1,12 @@
 <template>
-  <div class="file-tree" :style="{ width: store.fileTreeWidth + 'px' }">
+  <div
+    ref="treeRoot"
+    class="file-tree"
+    tabindex="0"
+    :style="{ width: store.fileTreeWidth + 'px' }"
+    @mousedown="focusTree"
+    @keydown="onTreeKeydown"
+  >
     <div class="file-tree__header">
       <span class="file-tree__header-label">目录</span>
       <span class="file-tree__header-name" :title="store.workspacePath">{{ folderName }}</span>
@@ -123,7 +130,9 @@
           :renaming-path="renamingPath"
           :reveal="store.revealRequest"
           :expand-all-dirs="expandAllDirs"
+          :selected-path="selectedPath"
           @open-file="openFile"
+          @select="selectedPath = $event"
           @node-contextmenu="onNodeContextmenu"
           @start-rename="renamingPath = $event"
           @renamed="loadRoot"
@@ -156,6 +165,10 @@ import FileTreeContextMenu from './FileTreeContextMenu.vue'
 import FileIcon from './FileIcon.vue'
 
 const store = useMarkdownStore()
+
+const treeRoot = ref<HTMLElement | null>(null)
+/** 树里当前选中的行（键盘 ←/→ 的作用对象），与「活动文件」分开：目录也能选中 */
+const selectedPath = ref('')
 
 const rootNodes = ref<FileTreeNodeType[]>([])
 const query = ref('')
@@ -192,6 +205,44 @@ function revealActiveFile() {
   // 搜索模式下树被结果列表替换，先退出搜索才能看到定位结果
   query.value = ''
   store.revealInFileTree(store.activeFile?.path ?? '')
+}
+
+/** 点击树里任意位置都把焦点交给树容器，否则 ←/→ 会被编辑器吃掉 */
+function focusTree(e: MouseEvent) {
+  if ((e.target as HTMLElement).closest('input, textarea')) return
+  treeRoot.value?.focus()
+}
+
+/** ← 折叠当前目录/所在目录，→ 展开目录（选中行为由行元素上的 data-* 决定） */
+function onTreeKeydown(e: KeyboardEvent) {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+  if (!selectedPath.value || !treeRoot.value) return
+  if ((e.target as HTMLElement).closest('input, textarea')) return
+
+  const rows = Array.from(treeRoot.value.querySelectorAll<HTMLElement>('.tree-node__row'))
+  const idx = rows.findIndex((row) => row.dataset.path === selectedPath.value)
+  if (idx === -1) return
+  const row = rows[idx]!
+  const isDir = row.dataset.type === 'directory'
+  const isOpen = row.dataset.expanded === '1'
+
+  e.preventDefault()
+  if (e.key === 'ArrowRight') {
+    if (isDir && !isOpen) row.click()
+    return
+  }
+  if (isDir && isOpen) {
+    row.click()
+    return
+  }
+  // 文件或已收起的目录：折叠它所在的目录（往上找深度小 1 的那一行）
+  const depth = Number(row.dataset.depth)
+  for (let i = idx - 1; i >= 0; i--) {
+    if (Number(rows[i]!.dataset.depth) === depth - 1) {
+      rows[i]!.click()
+      return
+    }
+  }
 }
 
 function collapseAll() {
@@ -525,6 +576,11 @@ watch(() => store.workspacePath, () => {
 watch(() => store.fileTreeVersion, () => {
   loadRoot()
 })
+
+// 从标签/文件树打开文件时，让选中行跟着走，←/→ 立刻可用
+watch(() => store.activeFile?.path, (path) => {
+  if (path) selectedPath.value = normPath(path)
+}, { immediate: true })
 </script>
 
 <style scoped lang="scss">
@@ -538,6 +594,11 @@ watch(() => store.fileTreeVersion, () => {
   overflow: hidden;
   user-select: none;
   position: relative;
+
+  /* 容器可获得焦点（←/→ 只在树内生效），但不画默认焦点框 */
+  &:focus {
+    outline: none;
+  }
 
   &__header {
     display: flex;

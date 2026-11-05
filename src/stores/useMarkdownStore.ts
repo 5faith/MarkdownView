@@ -205,6 +205,22 @@ export const useMarkdownStore = defineStore('markdown', () => {
     activeId.value = id
   }
 
+  /** 关闭 id 左侧的全部标签（id 本身保留） */
+  function closeTabsToLeft(id: string): void {
+    const idx = tabs.value.findIndex((t) => t.id === id)
+    if (idx <= 0) return
+    tabs.value.splice(0, idx)
+    if (!tabs.value.find((t) => t.id === activeId.value)) activeId.value = id
+  }
+
+  /** 关闭 id 右侧的全部标签（id 本身保留） */
+  function closeTabsToRight(id: string): void {
+    const idx = tabs.value.findIndex((t) => t.id === id)
+    if (idx === -1 || idx >= tabs.value.length - 1) return
+    tabs.value.splice(idx + 1)
+    if (!tabs.value.find((t) => t.id === activeId.value)) activeId.value = id
+  }
+
   function closeAllTabs(): void {
     tabs.value = []
     activeId.value = ''
@@ -392,6 +408,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     addTab,
     closeTab,
     closeOtherTabs,
+    closeTabsToLeft,
+    closeTabsToRight,
     closeAllTabs,
     closeTabsInWorkspace,
     closeTabsUnderPath,

@@ -18,6 +18,20 @@
         Close Others
       </div>
       <div
+        v-if="canCloseLeft"
+        class="tab-context-menu__item"
+        @click="$emit('close-left')"
+      >
+        Close Tabs to the Left
+      </div>
+      <div
+        v-if="canCloseRight"
+        class="tab-context-menu__item"
+        @click="$emit('close-right')"
+      >
+        Close Tabs to the Right
+      </div>
+      <div
         v-if="canCloseAll"
         class="tab-context-menu__item"
         @click="$emit('close-all')"
@@ -34,12 +48,16 @@ defineProps<{
   x: number
   y: number
   canCloseOthers: boolean
+  canCloseLeft: boolean
+  canCloseRight: boolean
   canCloseAll: boolean
 }>()
 
 defineEmits<{
   'close': []
   'close-others': []
+  'close-left': []
+  'close-right': []
   'close-all': []
   'close-menu': []
 }>()

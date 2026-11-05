@@ -11,6 +11,7 @@
         v-for="node in tree"
         :key="node.slug"
         :node="node"
+        :active-line="activeLine"
         @navigate="onNavigate"
       />
     </div>
@@ -22,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import OutlineNode from './OutlineNode.vue'
 
@@ -38,6 +39,8 @@ const store = useMarkdownStore()
 
 const tree = ref<OutlineItem[]>([])
 const flatItems = ref<OutlineItem[]>([])
+/** 当前滚动位置所在的标题（行号），用于高亮；-1 表示没有 */
+const activeLine = ref(-1)
 
 function parseTree() {
   const id = store.activeId
@@ -87,11 +90,64 @@ let stopSubscription: (() => void) | null = null
 onMounted(() => {
   parseTree()
   stopSubscription = store.$subscribe(() => parseTree(), { flush: 'sync' })
+  // scroll 不冒泡，用捕获阶段接住编辑器/源码框的滚动
+  document.addEventListener('scroll', onScroll, true)
+  nextTick(syncActive)
 })
 
 onBeforeUnmount(() => {
   stopSubscription?.()
+  document.removeEventListener('scroll', onScroll, true)
+  if (scrollRaf) cancelAnimationFrame(scrollRaf)
 })
+
+let scrollRaf = 0
+
+function onScroll() {
+  if (scrollRaf) return
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = 0
+    syncActive()
+  })
+}
+
+/** 用可视区顶部所在的那一段标题作为当前标题 */
+function syncActive() {
+  const items = flatItems.value
+  if (items.length === 0) {
+    activeLine.value = -1
+    return
+  }
+
+  if (store.sourceMode) {
+    const ta = document.querySelector<HTMLTextAreaElement>('.source-editor__ta')
+    if (!ta) return
+    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 24
+    pickByLine(Math.floor(ta.scrollTop / lineHeight))
+    return
+  }
+
+  const root = document.querySelector<HTMLElement>('.milkdown-editor__scroll')
+  if (!root) return
+  const headings = root.querySelectorAll('h1, h2, h3, h4, h5, h6')
+  if (headings.length === 0) return
+  const top = root.getBoundingClientRect().top
+  let idx = 0
+  for (let i = 0; i < headings.length; i++) {
+    if (headings[i]!.getBoundingClientRect().top - top <= 8) idx = i
+    else break
+  }
+  if (idx < items.length) activeLine.value = items[idx]!.line
+}
+
+function pickByLine(line: number) {
+  let found = flatItems.value[0]!
+  for (const item of flatItems.value) {
+    if (item.line <= line) found = item
+    else break
+  }
+  activeLine.value = found.line
+}
 
 function buildTree(items: { level: number; text: string; slug: string; line: number }[]): OutlineItem[] {
   const root: OutlineItem[] = []
@@ -124,6 +180,7 @@ function slugify(text: string): string {
 }
 
 function onNavigate(node: OutlineItem) {
+  activeLine.value = node.line
   // 源码模式：textarea 无法 scrollIntoView 内部行，按行高定位
   if (store.sourceMode) {
     const ta = document.querySelector<HTMLTextAreaElement>('.source-editor__ta')

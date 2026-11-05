@@ -5,8 +5,13 @@
       class="tree-node__row"
       :class="{
         'tree-node__row--active': props.node.type === 'file' && norm(props.node.path) === norm(props.activeFilePath),
+        'tree-node__row--selected': norm(props.node.path) === props.selectedPath,
         'tree-node__row--revealed': revealed,
       }"
+      :data-path="norm(props.node.path)"
+      :data-type="props.node.type"
+      :data-depth="props.depth"
+      :data-expanded="expanded ? '1' : '0'"
       :style="{ paddingLeft: `${props.depth * 12 + 8}px` }"
       @click="handleClick"
       @dblclick="startRename"
@@ -56,7 +61,9 @@
           :renaming-path="props.renamingPath"
           :reveal="props.reveal"
           :expand-all-dirs="props.expandAllDirs"
+          :selected-path="props.selectedPath"
           @open-file="(path: string) => $emit('openFile', path)"
+          @select="(path: string) => emit('select', path)"
           @node-contextmenu="(e: MouseEvent, n: FileTreeNodeType) => emit('nodeContextmenu', e, n)"
           @start-rename="(p: string) => emit('startRename', p)"
           @renamed="() => emit('renamed')"
@@ -81,10 +88,12 @@ const props = defineProps<{
   renamingPath: string
   reveal: { path: string; seq: number } | null
   expandAllDirs: Set<string>
+  selectedPath: string
 }>()
 
 const emit = defineEmits<{
   openFile: [path: string]
+  select: [path: string]
   nodeContextmenu: [event: MouseEvent, node: FileTreeNodeType]
   startRename: [path: string]
   renamed: []
@@ -231,6 +240,7 @@ watch(
 )
 
 async function handleClick() {
+  emit('select', norm(props.node.path))
   if (props.node.type === 'directory') {
     if (!expanded.value) await ensureExpanded()
     else expanded.value = false
@@ -261,6 +271,12 @@ async function handleClick() {
     &--active {
       background: var(--bg-active);
       color: var(--accent-color);
+    }
+
+    /* 键盘 ←/→ 操作的当前行（目录也能选中） */
+    &--selected {
+      background: var(--bg-active);
+      color: var(--text-primary);
     }
 
     /* 定位到的节点：短暂高亮，1.6s 后由脚本移除 */

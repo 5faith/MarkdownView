@@ -1,5 +1,5 @@
 import { InitReady, remarkPluginsCtx } from '@milkdown/kit/core'
-import { htmlBlockNodeView, htmlBlockSchema, remarkHtmlBlocks, remarkInlineHtmlToText } from './html'
+import { htmlBlockNodeView, htmlBlockSchema, htmlInlineSchema, remarkHtmlBlocks, remarkInlineHtml } from './html'
 import {
   detailsContentSchema,
   detailsNodeView,
@@ -29,7 +29,7 @@ function prependRemarkSyntax(): (ctx: any) => () => Promise<() => void> {
     await ctx.wait(InitReady)
     const entry = {
       plugin: () => (tree: any) => {
-        remarkInlineHtmlToText(tree)
+        remarkInlineHtml(tree)
         remarkDetails(tree)
         remarkHtmlBlocks(tree)
         remarkAlerts(tree)
@@ -48,6 +48,7 @@ export const milkdownSyntaxPlugins: any[] = [
   remarkDefinitionListPlugin,
   htmlBlockSchema,
   htmlBlockNodeView,
+  htmlInlineSchema,
   detailsSchema,
   detailsSummarySchema,
   detailsContentSchema,

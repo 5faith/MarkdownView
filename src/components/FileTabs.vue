@@ -48,9 +48,13 @@
     :x="menuX"
     :y="menuY"
     :can-close-others="store.tabs.length > 1"
+    :can-close-left="menuTargetIndex > 0"
+    :can-close-right="menuTargetIndex !== -1 && menuTargetIndex < store.tabs.length - 1"
     :can-close-all="store.tabs.length > 0"
     @close="handleMenuClose"
     @close-others="handleMenuCloseOthers"
+    @close-left="handleMenuCloseLeft"
+    @close-right="handleMenuCloseRight"
     @close-all="handleMenuCloseAll"
     @close-menu="closeMenu"
   />
@@ -69,6 +73,9 @@ const menuVisible = ref(false)
 const menuX = ref(0)
 const menuY = ref(0)
 const menuTargetId = ref('')
+const menuTargetIndex = computed(() =>
+  store.tabs.findIndex((t) => t.id === menuTargetId.value),
+)
 
 // 标签拖拽排序：Tauri 在 Windows 上默认 dragDropEnabled 会吞掉 HTML5 拖拽事件，
 // 这里用指针事件自己实现（松手前移动超过 4px 才算拖拽，单纯点击仍切换标签）
@@ -209,6 +216,36 @@ async function handleMenuCloseOthers() {
     if (!confirmed) return
   }
   store.closeOtherTabs(id)
+}
+
+/** 关闭某一侧的全部标签，有未保存的先确认 */
+async function confirmAndCloseSide(id: string, side: 'left' | 'right') {
+  const idx = store.tabs.findIndex((t) => t.id === id)
+  if (idx === -1) return
+  const sideTabs = side === 'left' ? store.tabs.slice(0, idx) : store.tabs.slice(idx + 1)
+  closeMenu()
+  const unsaved = sideTabs.filter((t) => !t.saved)
+  if (unsaved.length > 0) {
+    const names = unsaved.map((t) => t.name).join(', ')
+    const where = side === 'left' ? 'left' : 'right'
+    const confirmed = await showConfirm({
+      title: 'Unsaved Changes',
+      message: `${names} has unsaved changes. Are you sure you want to close tabs to the ${where}?`,
+      confirmLabel: 'Quit',
+      cancelLabel: 'Stay',
+    })
+    if (!confirmed) return
+  }
+  if (side === 'left') store.closeTabsToLeft(id)
+  else store.closeTabsToRight(id)
+}
+
+function handleMenuCloseLeft() {
+  void confirmAndCloseSide(menuTargetId.value, 'left')
+}
+
+function handleMenuCloseRight() {
+  void confirmAndCloseSide(menuTargetId.value, 'right')
 }
 
 async function handleMenuCloseAll() {

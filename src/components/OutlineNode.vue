@@ -2,7 +2,10 @@
   <div class="outline-node">
     <div
       class="outline-node__item"
-      :class="`outline-node__item--h${node.level}`"
+      :class="[
+        `outline-node__item--h${node.level}`,
+        { 'outline-node__item--active': node.line === activeLine },
+      ]"
       :style="{ paddingLeft: `${(node.level - 1) * 16 + 8}px` }"
       @click="$emit('navigate', node)"
     >
@@ -26,6 +29,7 @@
         v-for="child in node.children"
         :key="child.slug"
         :node="child"
+        :active-line="activeLine"
         @navigate="(child: OutlineItem) => $emit('navigate', child)"
       />
     </div>
@@ -36,7 +40,7 @@
 import { ref } from 'vue'
 import type { OutlineItem } from './OutlinePane.vue'
 
-defineProps<{ node: OutlineItem }>()
+defineProps<{ node: OutlineItem; activeLine: number }>()
 defineEmits<{ navigate: [node: OutlineItem] }>()
 
 const expanded = ref(true)
@@ -66,6 +70,13 @@ const expanded = ref(true)
     &--h4,
     &--h5,
     &--h6 { font-weight: 400; font-size: calc(var(--toc-text-size) - 0.071rem); color: var(--text-secondary); }
+
+    /* 当前滚动位置所在的标题（放在 h 级规则之后，靠顺序覆盖 h4–h6 的灰色） */
+    &--active {
+      background: var(--bg-active);
+      color: var(--accent-color);
+      font-weight: 600;
+    }
   }
 
   &__arrow {

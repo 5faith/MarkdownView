@@ -46,6 +46,15 @@ export function renderRawHtml(raw: string): HTMLElement {
   return box
 }
 
+/** 行内 HTML 的容器：包一层 span 让 ProseMirror 的原子节点有落脚点 */
+function renderInlineRawHtml(raw: string): HTMLElement {
+  const box = document.createElement('span')
+  box.className = 'mdv-html__inline'
+  box.dataset.raw = raw
+  fillRawHtml(box, raw)
+  return box
+}
+
 export const htmlBlockSchema = $node('html_block', () => ({
   group: 'block',
   content: 'text*',
@@ -125,6 +134,34 @@ export const htmlBlockNodeView = $view(htmlBlockSchema, () => {
   return (node: any) => new RawHtmlView(node)
 })
 
+/** 行内 HTML（`<a id>`、`<kbd>…</kbd>`、`<br>` 等）：渲染成原子节点，原文放在 attrs 里回写 */
+export const htmlInlineSchema = $node('html_inline', () => ({
+  inline: true,
+  group: 'inline',
+  atom: true,
+  selectable: false,
+  attrs: { value: { default: '' } },
+  toDOM: (node: any) => renderInlineRawHtml(String(node.attrs.value ?? '')),
+  parseDOM: [
+    {
+      tag: 'span.mdv-html__inline',
+      getAttrs: (dom: any) => ({ value: dom.dataset?.raw ?? dom.textContent ?? '' }),
+    },
+  ],
+  parseMarkdown: {
+    match: (node: { type: string }) => node.type === 'mdvHtmlInline',
+    runner: (state: any, node: any, type: any) => {
+      state.addNode(type, { value: node.value })
+    },
+  },
+  toMarkdown: {
+    match: (node: any) => node.type.name === 'html_inline',
+    runner: (state: any, node: any) => {
+      state.addNode('html', undefined, node.attrs.value)
+    },
+  },
+}))
+
 /** 块级 HTML 的父节点：只有这些位置的 html 才当成独立块渲染 */
 const BLOCK_PARENTS = new Set(['root', 'blockquote', 'listItem', 'footnoteDefinition'])
 /** `<br>` 独立成行是「空行占位」，预设的 remark-preserve-empty-line 要把它变成空段落，别抢 */
@@ -152,7 +189,7 @@ export function remarkHtmlBlocks(tree: any): void {
   walk(tree)
 }
 
-/** 行内 HTML 没有块级节点可用，降级成普通文本（`<br>`、`<kbd>` 等至少不丢字） */
+/** 行内 HTML 的父节点（这些位置上的 html 才按行内处理） */
 const INLINE_PARENTS = new Set([
   'paragraph',
   'heading',
@@ -163,17 +200,64 @@ const INLINE_PARENTS = new Set([
   'delete',
 ])
 
-/** remark 转换：把行内 html 节点替换成文本节点 */
-export function remarkInlineHtmlToText(tree: any): void {
+/** 不需要闭合的标签：单个节点即可渲染 */
+const VOID_TAGS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'param', 'source', 'track', 'wbr',
+])
+
+/**
+ * 尝试把一个行内 html 节点（可能连同后面的文本、闭合标签）合成一次完整渲染。
+ * remark 把 `<kbd>Ctrl</kbd>` 拆成 `<kbd>` + 文本 + `</kbd>` 三个节点，
+ * 逐个渲染会得到空的 `<kbd>`，所以这里按标签配对合并。
+ */
+function mergeInlineHtml(kids: any[], start: number): { value: string; end: number } | null {
+  const raw = String(kids[start]?.value ?? '')
+  const lead = /^<([a-zA-Z][\w:-]*)/.exec(raw.trim())
+  if (!lead) return null
+  const tag = lead[1]!.toLowerCase()
+  const closeRe = new RegExp(`^</${tag}\\s*>$`, 'i')
+  const endRe = new RegExp(`</${tag}\\s*>$`, 'i')
+
+  // 单节点就完整：`<a id="x"></a>`、`<img … />`、`<br>`
+  if (/\/>$/.test(raw.trim()) || VOID_TAGS.has(tag) || endRe.test(raw.trim())) {
+    return { value: raw, end: start }
+  }
+
+  let value = raw
+  for (let i = start + 1; i < kids.length; i++) {
+    const child = kids[i]!
+    if (child.type !== 'text' && child.type !== 'html') return null
+    value += String(child.value ?? '')
+    if (child.type === 'html' && closeRe.test(String(child.value).trim())) {
+      return { value, end: i }
+    }
+  }
+  return null
+}
+
+/** remark 转换：行内 html → mdvHtmlInline（配对失败时退回文本，避免丢字） */
+export function remarkInlineHtml(tree: any): void {
   const walk = (node: any) => {
     if (!Array.isArray(node.children)) return
-    node.children = node.children.flatMap((child: any) => {
+    const kids = node.children
+    const next: any[] = []
+    for (let i = 0; i < kids.length; i++) {
+      const child = kids[i]
       if (child.type === 'html' && INLINE_PARENTS.has(node.type)) {
-        return child.value ? [{ type: 'text', value: child.value }] : []
+        const merged = mergeInlineHtml(kids, i)
+        if (merged) {
+          next.push({ type: 'mdvHtmlInline', value: merged.value })
+          i = merged.end
+          continue
+        }
+        if (child.value) next.push({ type: 'text', value: child.value })
+        continue
       }
-      walk(child)
-      return [child]
-    })
+      if (Array.isArray(child.children)) walk(child)
+      next.push(child)
+    }
+    node.children = next
   }
   walk(tree)
 }
