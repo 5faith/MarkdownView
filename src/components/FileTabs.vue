@@ -26,7 +26,7 @@
           title="Close (Ctrl+W)"
         >
           <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
+            <path d="M3 3l10 10M13 3L3 13" />
           </svg>
         </button>
       </div>
@@ -281,7 +281,8 @@ async function handleMenuCloseAll() {
     display: flex;
     align-items: center;
     gap: 0.429rem;
-    padding: 0 0.857rem;
+    /* 右侧只留一点空隙：关闭按钮自身有 22px 命中区，再留 12px 会显得空 */
+    padding: 0 0.429rem 0 0.857rem;
     height: 100%;
     font-size: 0.857rem;
     color: var(--text-secondary);
@@ -347,8 +348,8 @@ async function handleMenuCloseAll() {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 1.571rem;
-    height: 1.571rem;
+    width: 1.714rem;
+    height: 1.714rem;
     border: none;
     border-radius: 50%;
     background: transparent;
@@ -358,11 +359,11 @@ async function handleMenuCloseAll() {
     transition: background 0.15s, color 0.15s;
 
     svg {
-      width: 1rem;
-      height: 1rem;
+      width: 1.286rem;
+      height: 1.286rem;
       fill: none;
       stroke: currentColor;
-      stroke-width: 1.6;
+      stroke-width: 1.5;
       stroke-linecap: round;
     }
 
