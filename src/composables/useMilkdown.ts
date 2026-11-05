@@ -8,6 +8,7 @@ import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { currentEditor } from '../shared/editor'
 import { milkdownSyntaxPlugins } from '../shared/milkdown'
 import { cmThemeExtension } from '../shared/cmTheme'
+import { openMarkdownLink } from '../shared/openLink'
 import { saveImageFile } from '../utils/imageStore'
 import { toDisplayUrl } from '../utils/localImage'
 
@@ -21,6 +22,8 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
   let crepe: Crepe | null = null
   let lastSynced = store.content
   let disposed = false
+
+  root.addEventListener('click', onEditorClick, true)
 
   function getView(): EditorView | null {
     if (!crepe) return null
@@ -52,6 +55,16 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
   function onSelectionChange() {
     if (store.readingMode || store.sourceMode) return
     updateCaretFromView()
+  }
+
+  function onEditorClick(e: MouseEvent) {
+    const a = (e.target as HTMLElement | null)?.closest?.('a')
+    const href = a?.getAttribute('href')?.trim()
+    if (!href || href.startsWith('#')) return
+    // 阅读模式下 <a> 可激活，不拦会把整个应用导航走
+    e.preventDefault()
+    if (!e.ctrlKey && !e.metaKey) return
+    void openMarkdownLink(href, store.activeFile?.path ?? null)
   }
 
   async function createEditor() {
@@ -131,6 +144,7 @@ export function useMilkdown(root: HTMLElement, scrollEl: HTMLElement | null) {
 
   onBeforeUnmount(async () => {
     disposed = true
+    root.removeEventListener('click', onEditorClick, true)
     document.removeEventListener('selectionchange', onSelectionChange)
     currentEditor.value = null
     if (crepe) {
