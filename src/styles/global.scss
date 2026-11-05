@@ -247,7 +247,8 @@ html {
   }
 }
 
-.milkdown .mdv-mermaid__source {
+.milkdown .mdv-mermaid__source,
+.milkdown .mdv-html__source {
   display: none;
   margin: 0;
   padding: 0.857rem 1rem;
@@ -259,15 +260,18 @@ html {
   overflow-x: auto;
 }
 
-.milkdown .mdv-mermaid--edit .mdv-mermaid__view {
+.milkdown .mdv-mermaid--edit .mdv-mermaid__view,
+.milkdown .mdv-html--edit .mdv-html__view {
   display: none;
 }
 
-.milkdown .mdv-mermaid--edit .mdv-mermaid__source {
+.milkdown .mdv-mermaid--edit .mdv-mermaid__source,
+.milkdown .mdv-html--edit .mdv-html__source {
   display: block;
 }
 
-.milkdown .mdv-mermaid__bar {
+.milkdown .mdv-mermaid__bar,
+.milkdown .mdv-html__bar {
   display: flex;
   justify-content: flex-end;
   padding: 0.286rem 0.571rem;
@@ -275,7 +279,8 @@ html {
   background: var(--bg-secondary);
 }
 
-.milkdown .mdv-mermaid__toggle {
+.milkdown .mdv-mermaid__toggle,
+.milkdown .mdv-html__toggle {
   border: none;
   border-radius: 0.357rem;
   background: transparent;
@@ -297,6 +302,28 @@ html {
   font-family: var(--monospace);
   font-size: 0.857rem;
   white-space: pre-wrap;
+}
+
+/* 原始 HTML 块：默认显示渲染结果，点「源码」切回文本编辑（与 Mermaid 同构） */
+.milkdown .mdv-html {
+  margin: var(--p-spacing) 0;
+  border: 1px solid var(--border-color);
+  border-radius: 0.571rem;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.milkdown .mdv-html__view {
+  padding: 0.857rem 1rem;
+
+  /* README 常用 <p align="center">：Chrome 已不认 align 属性，按 GitHub 的做法补回来 */
+  [align='center'] {
+    text-align: center;
+  }
+
+  [align='right'] {
+    text-align: right;
+  }
 }
 
 /* 未识别的原始 HTML 兜底：等宽文本，不执行 */
