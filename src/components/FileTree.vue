@@ -16,11 +16,20 @@
         </svg>
       </button>
       <button
-        ref="treeMenuBtn"
         class="file-tree__act"
-        title="全部折叠 / 全部展开"
-        aria-label="全部折叠或全部展开"
-        @click="toggleTreeMenu"
+        title="全部折叠"
+        aria-label="全部折叠"
+        @click="collapseAll"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 10l4-4 4 4" />
+        </svg>
+      </button>
+      <button
+        class="file-tree__act"
+        title="全部展开"
+        aria-label="全部展开"
+        @click="expandAll"
       >
         <svg viewBox="0 0 16 16" aria-hidden="true">
           <path d="M4 6l4 4 4-4" />
@@ -124,18 +133,6 @@
 
     <div class="file-tree__resize" @mousedown.prevent="onResizeStart" />
 
-    <Teleport to="body">
-      <div
-        v-if="treeMenuVisible"
-        class="file-tree__menu"
-        :style="{ left: `${treeMenuX}px`, top: `${treeMenuY}px` }"
-        @mousedown.stop
-      >
-        <div class="file-tree__menu-item" @click="collapseAll">全部折叠</div>
-        <div class="file-tree__menu-item" @click="expandAll">全部展开</div>
-      </div>
-    </Teleport>
-
     <FileTreeContextMenu
       :visible="menuVisible"
       :x="menuX"
@@ -175,11 +172,9 @@ const menuX = ref(0)
 const menuY = ref(0)
 const menuNode = ref<FileTreeNodeType | null>(null)
 
-const treeMenuVisible = ref(false)
-const treeMenuX = ref(0)
-const treeMenuY = ref(0)
-const treeMenuBtn = ref<HTMLElement | null>(null)
-/** 「全部展开」命中的目录集合：节点按成员身份展开，刷新/折叠时清空，避免旧状态继续级联 */
+/**
+ * 「全部展开」命中的目录集合：节点按成员身份展开，刷新/折叠时清空，避免旧状态继续级联
+ */
 const expandAllDirs = ref<Set<string>>(new Set())
 
 /** 路径分隔符统一成 `/`：Rust 命令返回 `\`，树里自己拼的是 `/` */
@@ -199,45 +194,13 @@ function revealActiveFile() {
   store.revealInFileTree(store.activeFile?.path ?? '')
 }
 
-function toggleTreeMenu() {
-  if (treeMenuVisible.value) {
-    closeTreeMenu()
-    return
-  }
-  const rect = treeMenuBtn.value?.getBoundingClientRect()
-  if (rect) {
-    treeMenuX.value = rect.left
-    treeMenuY.value = rect.bottom + 4
-  }
-  treeMenuVisible.value = true
-  document.addEventListener('mousedown', onTreeMenuOutside)
-  document.addEventListener('keydown', onTreeMenuEscape)
-}
-
-function closeTreeMenu() {
-  treeMenuVisible.value = false
-  document.removeEventListener('mousedown', onTreeMenuOutside)
-  document.removeEventListener('keydown', onTreeMenuEscape)
-}
-
-function onTreeMenuOutside(e: MouseEvent) {
-  const menu = document.querySelector('.file-tree__menu')
-  if (menu && !menu.contains(e.target as Node)) closeTreeMenu()
-}
-
-function onTreeMenuEscape(e: KeyboardEvent) {
-  if (e.key === 'Escape') closeTreeMenu()
-}
-
 function collapseAll() {
-  closeTreeMenu()
   // fileTreeVersion 变化会让 FileTreeNode 清空子树并折叠
   store.refreshFileTree()
 }
 
 /** 全部展开：一次 IPC 取回工作区条目，铺成完整子树后逐级展开，避免逐目录 IPC 扇出 */
 async function expandAll() {
-  closeTreeMenu()
   if (!store.workspacePath) return
   try {
     const { invoke } = await import('@tauri-apps/api/core')
@@ -308,7 +271,6 @@ onBeforeUnmount(() => {
     document.body.style.userSelect = ''
   }
   if (searchTimer) clearTimeout(searchTimer)
-  closeTreeMenu()
   searchSeq++
 })
 
@@ -775,33 +737,6 @@ watch(() => store.fileTreeVersion, () => {
 
     &:hover {
       background: var(--accent-color);
-    }
-  }
-}
-
-/* 全部折叠 / 全部展开 下拉（Teleport 到 body，仍属本组件作用域） */
-.file-tree__menu {
-  position: fixed;
-  z-index: 10000;
-  min-width: 6.5rem;
-  padding: 0.286rem 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 0.571rem;
-  box-shadow: 0 0.571rem 2.143rem rgba(0, 0, 0, 0.18),
-              0 2px 0.571rem rgba(0, 0, 0, 0.08);
-  user-select: none;
-
-  &-item {
-    padding: 0.5rem 1.143rem;
-    font-size: 0.929rem;
-    color: var(--text-primary);
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.1s;
-
-    &:hover {
-      background: var(--bg-hover);
     }
   }
 }
