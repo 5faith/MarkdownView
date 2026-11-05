@@ -213,21 +213,37 @@ function focusTree(e: MouseEvent) {
   treeRoot.value?.focus()
 }
 
-/** ← 折叠当前目录/所在目录，→ 展开目录（选中行为由行元素上的 data-* 决定） */
+/** ←/→ 折叠展开，↑/↓ 在可见行之间移动选中（data-* 由行元素提供） */
 function onTreeKeydown(e: KeyboardEvent) {
-  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-  if (!selectedPath.value || !treeRoot.value) return
+  const key = e.key
+  if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'ArrowUp' && key !== 'ArrowDown') return
+  if (!treeRoot.value) return
   if ((e.target as HTMLElement).closest('input, textarea')) return
 
-  const rows = Array.from(treeRoot.value.querySelectorAll<HTMLElement>('.tree-node__row'))
+  // 跳过「Loading...」这类没有 data-path 的占位行
+  const rows = Array.from(treeRoot.value.querySelectorAll<HTMLElement>('.tree-node__row[data-path]'))
+  if (rows.length === 0) return
   const idx = rows.findIndex((row) => row.dataset.path === selectedPath.value)
+
+  if (key === 'ArrowUp' || key === 'ArrowDown') {
+    e.preventDefault()
+    const step = key === 'ArrowDown' ? 1 : -1
+    const next = idx === -1
+      ? (step > 0 ? 0 : rows.length - 1)
+      : Math.min(rows.length - 1, Math.max(0, idx + step))
+    const target = rows[next]!
+    selectedPath.value = target.dataset.path ?? ''
+    target.scrollIntoView({ block: 'nearest' })
+    return
+  }
+
   if (idx === -1) return
   const row = rows[idx]!
   const isDir = row.dataset.type === 'directory'
   const isOpen = row.dataset.expanded === '1'
 
   e.preventDefault()
-  if (e.key === 'ArrowRight') {
+  if (key === 'ArrowRight') {
     if (isDir && !isOpen) row.click()
     return
   }
