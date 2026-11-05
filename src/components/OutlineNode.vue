@@ -4,19 +4,20 @@
       class="outline-node__item"
       :class="`outline-node__item--h${node.level}`"
       :style="{ paddingLeft: `${(node.level - 1) * 16 + 8}px` }"
+      @click="$emit('navigate', node)"
     >
       <span
         v-if="node.children.length > 0"
         class="outline-node__arrow"
         :class="{ 'outline-node__arrow--open': expanded }"
-        @click="expanded = !expanded"
+        @click.stop="expanded = !expanded"
       >
         <svg width="12" height="12" viewBox="0 0 12 12">
           <path d="M4 2 L8 6 L4 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <span v-else class="outline-node__dot" />
-      <span class="outline-node__text" @click="$emit('navigate', node)">
+      <span class="outline-node__text">
         {{ node.text }}
       </span>
     </div>
