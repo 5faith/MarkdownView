@@ -3,6 +3,7 @@ import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { useFileOperation } from './useFileOperation'
 import { runFormat } from '../shared/editor'
 import { isMarkdownFile } from '../utils/fileType'
+import { closeTabWithConfirm } from './closeTabWithConfirm'
 
 export function useKeyboardShortcuts() {
   const store = useMarkdownStore()
@@ -42,6 +43,11 @@ export function useKeyboardShortcuts() {
       case shift && e.key === 'T':
         e.preventDefault()
         store.loadDefaultContent()
+        break
+      case !shift && e.key.toLowerCase() === 'w':
+        // Ctrl+W 关闭当前标签（与标签上的 x 同一套未保存确认）
+        e.preventDefault()
+        if (store.activeId) void closeTabWithConfirm(store.activeId)
         break
       case e.key === 'n':
         e.preventDefault()

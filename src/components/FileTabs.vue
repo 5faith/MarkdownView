@@ -23,9 +23,11 @@
         <button
           class="file-tabs__close"
           @click.stop="handleClose(tab.id)"
-          title="Close"
+          title="Close (Ctrl+W)"
         >
-          x
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
+          </svg>
         </button>
       </div>
     </div>
@@ -63,6 +65,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
+import { closeTabWithConfirm } from '../composables/closeTabWithConfirm'
 import { showConfirm } from '../composables/showConfirm'
 import FileIcon from './FileIcon.vue'
 import TabContextMenu from './TabContextMenu.vue'
@@ -180,17 +183,7 @@ function onEscape(e: KeyboardEvent) {
 }
 
 async function handleClose(id: string) {
-  const tab = store.tabs.find((t) => t.id === id)
-  if (tab && !tab.saved) {
-    const confirmed = await showConfirm({
-      title: 'Unsaved Changes',
-      message: `"${tab.name}" has unsaved changes. Are you sure you want to close it?`,
-      confirmLabel: 'Quit',
-      cancelLabel: 'Stay',
-    })
-    if (!confirmed) return
-  }
-  store.closeTab(id)
+  await closeTabWithConfirm(id)
 }
 
 async function handleMenuClose() {
@@ -354,16 +347,24 @@ async function handleMenuCloseAll() {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 1.143rem;
-    height: 1.143rem;
+    width: 1.571rem;
+    height: 1.571rem;
     border: none;
-    border-radius: 0.214rem;
+    border-radius: 50%;
     background: transparent;
     color: var(--text-secondary);
-    font-size: 0.786rem;
     cursor: pointer;
-    line-height: 1;
-    transition: background 0.15s;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+    }
 
     &:hover {
       background: rgba(255, 0, 0, 0.15);
