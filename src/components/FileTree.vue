@@ -213,10 +213,13 @@ function focusTree(e: MouseEvent) {
   treeRoot.value?.focus()
 }
 
-/** ←/→ 折叠展开，↑/↓ 在可见行之间移动选中（data-* 由行元素提供） */
+/** ←/→ 折叠展开，↑/↓ 在可见行之间移动选中，Enter 展开目录/打开文件（data-* 由行元素提供） */
 function onTreeKeydown(e: KeyboardEvent) {
   const key = e.key
-  if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'ArrowUp' && key !== 'ArrowDown') return
+  if (
+    key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'ArrowUp' &&
+    key !== 'ArrowDown' && key !== 'Enter'
+  ) return
   if (!treeRoot.value) return
   if ((e.target as HTMLElement).closest('input, textarea')) return
 
@@ -224,6 +227,15 @@ function onTreeKeydown(e: KeyboardEvent) {
   const rows = Array.from(treeRoot.value.querySelectorAll<HTMLElement>('.tree-node__row[data-path]'))
   if (rows.length === 0) return
   const idx = rows.findIndex((row) => row.dataset.path === selectedPath.value)
+
+  if (key === 'Enter') {
+    e.preventDefault()
+    const row = rows[idx === -1 ? 0 : idx]
+    if (!row) return
+    // 目录只负责展开（已展开的保持原样）；文件交给点击逻辑打开
+    if (row.dataset.type !== 'directory' || row.dataset.expanded !== '1') row.click()
+    return
+  }
 
   if (key === 'ArrowUp' || key === 'ArrowDown') {
     e.preventDefault()
