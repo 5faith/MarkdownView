@@ -2,6 +2,9 @@
   MessageBox MB_YESNO|MB_ICONQUESTION "Do you want to delete all cache data?$\n$\nThis will remove your application data and cannot be undone." IDYES delete_cache IDNO skip_cache
 
   delete_cache:
+    RMDir /r "$APPDATA\com.markdownview"
+    RMDir /r "$LOCALAPPDATA\com.markdownview"
+    ; 旧 identifier（1.2.0 及以前）留下的缓存
     RMDir /r "$APPDATA\com.markdownview.app"
     RMDir /r "$LOCALAPPDATA\com.markdownview.app"
     DetailPrint "Cache data has been removed."
