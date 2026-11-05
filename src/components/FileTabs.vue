@@ -29,6 +29,18 @@
         </button>
       </div>
     </div>
+
+    <!-- 拖拽中的跟随标签：pointer-events:none，否则 elementFromPoint 会一直命中它 -->
+    <div
+      v-if="dragId"
+      class="file-tabs__ghost"
+      :style="{ left: `${ghostX}px`, top: `${ghostY}px` }"
+    >
+      <span class="file-tabs__icon">
+        <FileIcon :name="dragName" :size="14" />
+      </span>
+      <span class="file-tabs__name">{{ dragName }}</span>
+    </div>
   </div>
 
   <TabContextMenu
@@ -45,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { showConfirm } from '../composables/showConfirm'
 import FileIcon from './FileIcon.vue'
@@ -61,6 +73,10 @@ const menuTargetId = ref('')
 // 标签拖拽排序：Tauri 在 Windows 上默认 dragDropEnabled 会吞掉 HTML5 拖拽事件，
 // 这里用指针事件自己实现（松手前移动超过 4px 才算拖拽，单纯点击仍切换标签）
 const dragId = ref('')
+const dragName = computed(() => store.tabs.find((t) => t.id === dragId.value)?.name ?? '')
+// 跟随光标的拖拽提示，右下偏移一点避免挡住鼠标
+const ghostX = ref(0)
+const ghostY = ref(0)
 let pendingId = ''
 let pressed = false
 /** 本次按下是否已经变成拖拽：拖完松手时浏览器仍会补一个 click，不能当成切换标签 */
@@ -99,6 +115,8 @@ function onPointerMove(e: PointerEvent) {
     document.body.style.userSelect = 'none'
     document.body.style.cursor = 'grabbing'
   }
+  ghostX.value = e.clientX + 14
+  ghostY.value = e.clientY + 10
   const hit = document
     .elementFromPoint(e.clientX, e.clientY)
     ?.closest<HTMLElement>('.file-tabs__item')
@@ -237,7 +255,7 @@ async function handleMenuCloseAll() {
     height: 100%;
     font-size: 0.857rem;
     color: var(--text-secondary);
-    cursor: pointer;
+    cursor: grab;
     border-right: 1px solid var(--border-color);
     white-space: nowrap;
     user-select: none;
@@ -247,6 +265,10 @@ async function handleMenuCloseAll() {
       background: var(--bg-hover);
     }
 
+    &:active {
+      cursor: grabbing;
+    }
+
     &--active {
       color: var(--text-primary);
       background: var(--bg-secondary);
@@ -254,8 +276,29 @@ async function handleMenuCloseAll() {
     }
 
     &--dragging {
-      opacity: 0.45;
+      opacity: 0.4;
+      background: var(--bg-active);
+      box-shadow: inset 0 0 0 1px var(--accent-color);
     }
+  }
+
+  /* 拖拽时跟随光标的标签副本，让「正在拖动」一眼可见 */
+  &__ghost {
+    position: fixed;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    gap: 0.429rem;
+    padding: 0.286rem 0.714rem;
+    font-size: 0.857rem;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent-color);
+    border-radius: 0.429rem;
+    box-shadow: 0 0.286rem 0.857rem rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0.9;
   }
 
   &__icon {
