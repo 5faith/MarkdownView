@@ -9,13 +9,10 @@
           'file-tabs__item--active': tab.id === store.activeId,
           'file-tabs__item--dragging': tab.id === dragId,
         }"
-        draggable="true"
-        @click="store.switchTab(tab.id)"
+        :data-tab-id="tab.id"
+        @click="onClick(tab.id)"
         @contextmenu.prevent="onContextMenu($event, tab.id)"
-        @dragstart="onDragStart($event, tab.id)"
-        @dragover.prevent
-        @drop.prevent="onDrop(tab.id)"
-        @dragend="onDragEnd"
+        @pointerdown="onPointerDown($event, tab.id)"
       >
         <span class="file-tabs__icon">
           <FileIcon :name="tab.name" :size="14" />
@@ -61,24 +58,70 @@ const menuX = ref(0)
 const menuY = ref(0)
 const menuTargetId = ref('')
 
-// 标签拖拽排序：拖动中的 id 记下来，drop 时交给 store 移动位置
+// 标签拖拽排序：Tauri 在 Windows 上默认 dragDropEnabled 会吞掉 HTML5 拖拽事件，
+// 这里用指针事件自己实现（松手前移动超过 4px 才算拖拽，单纯点击仍切换标签）
 const dragId = ref('')
+let pendingId = ''
+let pressed = false
+/** 本次按下是否已经变成拖拽：拖完松手时浏览器仍会补一个 click，不能当成切换标签 */
+let dragged = false
+let startX = 0
+let startY = 0
 
-function onDragStart(e: DragEvent, id: string) {
-  dragId.value = id
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', id)
+function onClick(id: string) {
+  if (dragged) {
+    dragged = false
+    return
   }
+  store.switchTab(id)
 }
 
-function onDrop(targetId: string) {
-  if (dragId.value) store.moveTab(dragId.value, targetId)
-  dragId.value = ''
+function onPointerDown(e: PointerEvent, id: string) {
+  if (e.button !== 0) return
+  // 关闭按钮上按下不启动拖拽
+  if ((e.target as HTMLElement).closest('.file-tabs__close')) return
+  pressed = true
+  dragged = false
+  pendingId = id
+  startX = e.clientX
+  startY = e.clientY
+  document.addEventListener('pointermove', onPointerMove)
+  document.addEventListener('pointerup', onPointerUp)
+  document.addEventListener('pointercancel', onPointerUp)
 }
 
-function onDragEnd() {
+function onPointerMove(e: PointerEvent) {
+  if (!pressed) return
+  if (!dragId.value) {
+    if (Math.abs(e.clientX - startX) < 4 && Math.abs(e.clientY - startY) < 4) return
+    dragged = true
+    dragId.value = pendingId
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'grabbing'
+  }
+  const hit = document
+    .elementFromPoint(e.clientX, e.clientY)
+    ?.closest<HTMLElement>('.file-tabs__item')
+  const targetId = hit?.dataset.tabId
+  if (!targetId || targetId === dragId.value) return
+  const from = store.tabs.findIndex((t) => t.id === dragId.value)
+  const to = store.tabs.findIndex((t) => t.id === targetId)
+  if (from === -1 || to === -1) return
+  // 越过目标标签中线才换位，否则窄标签会被光标反复顶回去（抖动）
+  const rect = hit!.getBoundingClientRect()
+  const mid = rect.left + rect.width / 2
+  if (from < to ? e.clientX > mid : e.clientX < mid) store.moveTab(dragId.value, targetId)
+}
+
+function onPointerUp() {
+  pressed = false
   dragId.value = ''
+  pendingId = ''
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+  document.removeEventListener('pointermove', onPointerMove)
+  document.removeEventListener('pointerup', onPointerUp)
+  document.removeEventListener('pointercancel', onPointerUp)
 }
 
 function onContextMenu(e: MouseEvent, id: string) {
