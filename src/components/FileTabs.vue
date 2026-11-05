@@ -359,8 +359,8 @@ async function handleMenuCloseAll() {
     transition: background 0.15s, color 0.15s;
 
     svg {
-      width: 1.286rem;
-      height: 1.286rem;
+      width: 1rem;
+      height: 1rem;
       fill: none;
       stroke: currentColor;
       stroke-width: 1.5;
