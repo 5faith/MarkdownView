@@ -315,6 +315,9 @@ html {
 
 .milkdown .mdv-html__view {
   padding: 0.857rem 1rem;
+  /* ProseMirror 在 .ProseMirror 上设了 white-space: pre-wrap，会继承进来把 HTML 里的换行当硬换行
+     （README 的 `<a><img></a>\n<a><img></a>` 徽章会各占一行），这里必须还原 */
+  white-space: normal;
 
   /* README 常用 <p align="center">：Chrome 已不认 align 属性，按 GitHub 的做法补回来 */
   [align='center'] {
