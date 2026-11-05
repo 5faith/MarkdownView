@@ -14,7 +14,7 @@
 
           <div class="app__editwrap">
             <OutlinePane
-              v-if="store.showOutline && activeIsMarkdown && !store.sourceMode && !store.readingMode"
+              v-if="store.showOutline && activeIsMarkdown && !store.readingMode"
             />
             <div class="app__editorcol">
               <EditorToolbar v-if="activeIsMarkdown && !store.readingMode" />

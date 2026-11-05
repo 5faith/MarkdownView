@@ -30,6 +30,7 @@ export interface OutlineItem {
   level: number
   text: string
   slug: string
+  line: number
   children: OutlineItem[]
 }
 
@@ -43,7 +44,7 @@ function parseTree() {
   const file = store.tabs.find((t) => t.id === id)
   const content = file?.content ?? ''
   const lines = content.split('\n')
-  const items: { level: number; text: string; slug: string }[] = []
+  const items: { level: number; text: string; slug: string; line: number }[] = []
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!.replace(/\r/g, '')
@@ -53,7 +54,7 @@ function parseTree() {
     if (atxMatch) {
       const level = atxMatch[1]!.length
       const text = atxMatch[2]!.trim()
-      items.push({ level, text, slug: slugify(text) })
+      items.push({ level, text, slug: slugify(text), line: i })
       continue
     }
 
@@ -61,9 +62,9 @@ function parseTree() {
     if (i + 1 < lines.length && line.trim().length > 0) {
       const nextLine = lines[i + 1]!.replace(/\r/g, '')
       if (/^={3,}\s*$/.test(nextLine)) {
-        items.push({ level: 1, text: line.trim(), slug: slugify(line.trim()) })
+        items.push({ level: 1, text: line.trim(), slug: slugify(line.trim()), line: i })
       } else if (/^-{3,}\s*$/.test(nextLine)) {
-        items.push({ level: 2, text: line.trim(), slug: slugify(line.trim()) })
+        items.push({ level: 2, text: line.trim(), slug: slugify(line.trim()), line: i })
       }
     }
   }
@@ -92,7 +93,7 @@ onBeforeUnmount(() => {
   stopSubscription?.()
 })
 
-function buildTree(items: { level: number; text: string; slug: string }[]): OutlineItem[] {
+function buildTree(items: { level: number; text: string; slug: string; line: number }[]): OutlineItem[] {
   const root: OutlineItem[] = []
   const stack: OutlineItem[] = []
 
@@ -123,6 +124,18 @@ function slugify(text: string): string {
 }
 
 function onNavigate(node: OutlineItem) {
+  // 源码模式：textarea 无法 scrollIntoView 内部行，按行高定位
+  if (store.sourceMode) {
+    const ta = document.querySelector<HTMLTextAreaElement>('.source-editor__ta')
+    if (!ta) return
+    ta.focus()
+    const pos = store.content.split('\n').slice(0, node.line).join('\n').length + (node.line > 0 ? 1 : 0)
+    ta.setSelectionRange(pos, pos)
+    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 24
+    ta.scrollTop = Math.max(0, node.line * lineHeight)
+    return
+  }
+
   const root = document.querySelector('.milkdown-editor__scroll')
   if (!root) return
 
