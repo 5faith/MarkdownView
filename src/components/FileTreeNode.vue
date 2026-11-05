@@ -1,9 +1,11 @@
 <template>
   <div>
     <div
+      ref="rowRef"
       class="tree-node__row"
       :class="{
-        'tree-node__row--active': props.node.type === 'file' && props.node.path === props.activeFilePath,
+        'tree-node__row--active': props.node.type === 'file' && norm(props.node.path) === norm(props.activeFilePath),
+        'tree-node__row--revealed': revealed,
       }"
       :style="{ paddingLeft: `${props.depth * 12 + 8}px` }"
       @click="handleClick"
@@ -52,6 +54,8 @@
           :active-file-path="props.activeFilePath"
           :refresh-key="props.refreshKey"
           :renaming-path="props.renamingPath"
+          :reveal="props.reveal"
+          :expand-all-dirs="props.expandAllDirs"
           @open-file="(path: string) => $emit('openFile', path)"
           @node-contextmenu="(e: MouseEvent, n: FileTreeNodeType) => emit('nodeContextmenu', e, n)"
           @start-rename="(p: string) => emit('startRename', p)"
@@ -63,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { readDir, rename } from '@tauri-apps/plugin-fs'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import type { FileTreeNode as FileTreeNodeType } from '../types'
@@ -75,6 +79,8 @@ const props = defineProps<{
   activeFilePath: string
   refreshKey: number
   renamingPath: string
+  reveal: { path: string; seq: number } | null
+  expandAllDirs: Set<string>
 }>()
 
 const emit = defineEmits<{
@@ -93,6 +99,17 @@ const children = ref<FileTreeNodeType[]>([])
 const renaming = ref(false)
 const renameValue = ref('')
 const renameInput = ref<HTMLInputElement | null>(null)
+
+const rowRef = ref<HTMLElement | null>(null)
+const revealed = ref(false)
+let revealTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 路径分隔符统一成 `/`：Rust 命令返回的是 `\`，树里自己拼的是 `/` */
+const norm = (path: string) => path.replace(/\\/g, '/')
+
+onBeforeUnmount(() => {
+  if (revealTimer) clearTimeout(revealTimer)
+})
 
 watch(() => props.refreshKey, () => {
   expanded.value = false
@@ -151,29 +168,72 @@ async function commitRename() {
   }
 }
 
+async function loadChildren() {
+  if (children.value.length > 0 || loading.value) return
+  loading.value = true
+  try {
+    // 「全部展开」一次性取回的子树优先，避免逐目录 IPC 扇出
+    const entries: FileTreeNodeType[] = props.node.children
+      ?? (await readDir(props.node.path)).map((entry) => ({
+        name: entry.name ?? '',
+        path: `${norm(props.node.path)}/${entry.name}`,
+        type: (entry.isDirectory ? 'directory' : 'file') as 'file' | 'directory',
+      }))
+    children.value = entries
+      .filter((node) => node.name !== '')
+      .sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
+        return a.name.localeCompare(b.name)
+      })
+  } catch {
+    children.value = []
+  }
+  loading.value = false
+}
+
+async function ensureExpanded() {
+  if (props.node.type !== 'directory') return
+  await loadChildren()
+  expanded.value = true
+}
+
+function highlight() {
+  nextTick(() => {
+    rowRef.value?.scrollIntoView({ block: 'center' })
+    revealed.value = true
+    if (revealTimer) clearTimeout(revealTimer)
+    revealTimer = setTimeout(() => { revealed.value = false }, 1600)
+  })
+}
+
+// 「定位当前文件」：目标高亮并滚动到可视区，祖先目录逐级展开（子节点靠 immediate 继续递归）
+watch(
+  () => props.reveal,
+  async (req) => {
+    if (!req) return
+    const me = norm(props.node.path)
+    if (me === req.path) {
+      highlight()
+    } else if (props.node.type === 'directory' && req.path.startsWith(`${me}/`)) {
+      await ensureExpanded()
+    }
+  },
+  { immediate: true },
+)
+
+// 「全部展开」：命中集合里的目录展开，新挂载的子节点靠 immediate 继续
+watch(
+  () => props.expandAllDirs,
+  (dirs) => {
+    if (dirs.has(norm(props.node.path))) void ensureExpanded()
+  },
+  { immediate: true },
+)
+
 async function handleClick() {
   if (props.node.type === 'directory') {
-    if (!expanded.value && children.value.length === 0) {
-      loading.value = true
-      try {
-        const entries = await readDir(props.node.path)
-        children.value = entries
-          .map((entry) => ({
-            name: entry.name ?? '',
-            path: `${props.node.path}/${entry.name}`,
-            type: (entry.isDirectory ? 'directory' : 'file') as 'file' | 'directory',
-          }))
-          .filter((node) => node.name !== '')
-          .sort((a, b) => {
-            if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
-            return a.name.localeCompare(b.name)
-          })
-      } catch {
-        children.value = []
-      }
-      loading.value = false
-    }
-    expanded.value = !expanded.value
+    if (!expanded.value) await ensureExpanded()
+    else expanded.value = false
   } else {
     emit('openFile', props.node.path)
   }
@@ -200,6 +260,13 @@ async function handleClick() {
 
     &--active {
       background: var(--bg-active);
+      color: var(--accent-color);
+    }
+
+    /* 定位到的节点：短暂高亮，1.6s 后由脚本移除 */
+    &--revealed {
+      background: var(--bg-active);
+      box-shadow: inset 2px 0 0 var(--accent-color);
       color: var(--accent-color);
     }
 

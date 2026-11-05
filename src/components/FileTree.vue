@@ -3,6 +3,29 @@
     <div class="file-tree__header">
       <span class="file-tree__header-label">目录</span>
       <span class="file-tree__header-name" :title="store.workspacePath">{{ folderName }}</span>
+      <button
+        class="file-tree__act"
+        title="定位当前文件"
+        aria-label="定位当前文件"
+        :disabled="!canReveal"
+        @click="revealActiveFile"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" />
+          <path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
+        </svg>
+      </button>
+      <button
+        ref="treeMenuBtn"
+        class="file-tree__act"
+        title="全部折叠 / 全部展开"
+        aria-label="全部折叠或全部展开"
+        @click="toggleTreeMenu"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 6l4 4 4-4" />
+        </svg>
+      </button>
       <button class="file-tree__act" title="新建文件" aria-label="新建文件" @click="createFile">＋</button>
       <button class="file-tree__act" title="新建文件夹" aria-label="新建文件夹" @click="createFolder">
         <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -89,6 +112,8 @@
           :active-file-path="store.activeFile?.path ?? ''"
           :refresh-key="store.fileTreeVersion"
           :renaming-path="renamingPath"
+          :reveal="store.revealRequest"
+          :expand-all-dirs="expandAllDirs"
           @open-file="openFile"
           @node-contextmenu="onNodeContextmenu"
           @start-rename="renamingPath = $event"
@@ -98,6 +123,18 @@
     </div>
 
     <div class="file-tree__resize" @mousedown.prevent="onResizeStart" />
+
+    <Teleport to="body">
+      <div
+        v-if="treeMenuVisible"
+        class="file-tree__menu"
+        :style="{ left: `${treeMenuX}px`, top: `${treeMenuY}px` }"
+        @mousedown.stop
+      >
+        <div class="file-tree__menu-item" @click="collapseAll">全部折叠</div>
+        <div class="file-tree__menu-item" @click="expandAll">全部展开</div>
+      </div>
+    </Teleport>
 
     <FileTreeContextMenu
       :visible="menuVisible"
@@ -138,6 +175,103 @@ const menuX = ref(0)
 const menuY = ref(0)
 const menuNode = ref<FileTreeNodeType | null>(null)
 
+const treeMenuVisible = ref(false)
+const treeMenuX = ref(0)
+const treeMenuY = ref(0)
+const treeMenuBtn = ref<HTMLElement | null>(null)
+/** 「全部展开」命中的目录集合：节点按成员身份展开，刷新/折叠时清空，避免旧状态继续级联 */
+const expandAllDirs = ref<Set<string>>(new Set())
+
+/** 路径分隔符统一成 `/`：Rust 命令返回 `\`，树里自己拼的是 `/` */
+const normPath = (path: string) => path.replace(/\\/g, '/')
+
+/** 树里只有工作区内的文件，工作区外的标签没法定位 */
+const canReveal = computed(() => {
+  const file = normPath(store.activeFile?.path ?? '')
+  const ws = normPath(store.workspacePath)
+  return !!file && !!ws && file.startsWith(`${ws}/`)
+})
+
+function revealActiveFile() {
+  if (!canReveal.value) return
+  // 搜索模式下树被结果列表替换，先退出搜索才能看到定位结果
+  query.value = ''
+  store.revealInFileTree(store.activeFile?.path ?? '')
+}
+
+function toggleTreeMenu() {
+  if (treeMenuVisible.value) {
+    closeTreeMenu()
+    return
+  }
+  const rect = treeMenuBtn.value?.getBoundingClientRect()
+  if (rect) {
+    treeMenuX.value = rect.left
+    treeMenuY.value = rect.bottom + 4
+  }
+  treeMenuVisible.value = true
+  document.addEventListener('mousedown', onTreeMenuOutside)
+  document.addEventListener('keydown', onTreeMenuEscape)
+}
+
+function closeTreeMenu() {
+  treeMenuVisible.value = false
+  document.removeEventListener('mousedown', onTreeMenuOutside)
+  document.removeEventListener('keydown', onTreeMenuEscape)
+}
+
+function onTreeMenuOutside(e: MouseEvent) {
+  const menu = document.querySelector('.file-tree__menu')
+  if (menu && !menu.contains(e.target as Node)) closeTreeMenu()
+}
+
+function onTreeMenuEscape(e: KeyboardEvent) {
+  if (e.key === 'Escape') closeTreeMenu()
+}
+
+function collapseAll() {
+  closeTreeMenu()
+  // fileTreeVersion 变化会让 FileTreeNode 清空子树并折叠
+  store.refreshFileTree()
+}
+
+/** 全部展开：一次 IPC 取回工作区条目，铺成完整子树后逐级展开，避免逐目录 IPC 扇出 */
+async function expandAll() {
+  closeTreeMenu()
+  if (!store.workspacePath) return
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    const hits: Array<{ name: string; path: string; isDir: boolean }> = await invoke(
+      'list_workspace_entries',
+      { root: store.workspacePath, limit: 2000 },
+    )
+    const byParent = new Map<string, FileTreeNodeType[]>()
+    for (const hit of hits) {
+      const path = normPath(hit.path)
+      const parent = path.slice(0, path.lastIndexOf('/'))
+      const node: FileTreeNodeType = {
+        name: hit.name,
+        path,
+        type: hit.isDir ? 'directory' : 'file',
+      }
+      const siblings = byParent.get(parent)
+      if (siblings) siblings.push(node)
+      else byParent.set(parent, [node])
+    }
+    const attach = (node: FileTreeNodeType) => {
+      if (node.type !== 'directory') return
+      const kids = byParent.get(node.path)
+      if (!kids) return
+      node.children = kids
+      kids.forEach(attach)
+    }
+    rootNodes.value.forEach(attach)
+    expandAllDirs.value = new Set(byParent.keys())
+  } catch {
+    // 读取失败保持原状
+  }
+}
+
 let resizing = false
 
 function onResizeStart(e: MouseEvent) {
@@ -174,6 +308,7 @@ onBeforeUnmount(() => {
     document.body.style.userSelect = ''
   }
   if (searchTimer) clearTimeout(searchTimer)
+  closeTreeMenu()
   searchSeq++
 })
 
@@ -189,12 +324,14 @@ async function loadRoot() {
     return
   }
 
+  // 根节点重建后旧子树与展开集合都失效，否则新挂载的节点会沿用上次「全部展开」
+  expandAllDirs.value = new Set()
   try {
     const entries = await readDir(store.workspacePath)
     rootNodes.value = entries
       .map((entry) => ({
         name: entry.name ?? '',
-        path: `${store.workspacePath}/${entry.name}`,
+        path: `${normPath(store.workspacePath)}/${entry.name}`,
         type: (entry.isDirectory ? 'directory' : 'file') as 'file' | 'directory',
       }))
       .filter((node) => node.name !== '')
@@ -265,7 +402,7 @@ async function runSearch() {
     })
     searchResults.value = hits
       .slice(0, 200)
-      .map((h) => ({ name: h.name, path: h.path, type: h.isDir ? 'directory' : 'file' }))
+      .map((h) => ({ name: h.name, path: normPath(h.path), type: h.isDir ? 'directory' : 'file' }))
   } catch {
     if (token !== searchSeq) return
     searching.value = false
@@ -319,7 +456,7 @@ async function createFile() {
   if (!store.workspacePath) return
   const names = rootNodes.value.map((n) => n.name)
   const name = uniqueName('未命名', 'md', names)
-  const path = `${store.workspacePath}/${name}`
+  const path = `${normPath(store.workspacePath)}/${name}`
   try {
     await writeTextFile(path, '')
     store.refreshFileTree()
@@ -336,9 +473,9 @@ async function createFolder() {
   const names = rootNodes.value.map((n) => n.name)
   const name = uniqueName('新建文件夹', '', names)
   try {
-    await mkdir(`${store.workspacePath}/${name}`)
+    await mkdir(`${normPath(store.workspacePath)}/${name}`)
     store.refreshFileTree()
-    renamingPath.value = `${store.workspacePath}/${name}`
+    renamingPath.value = `${normPath(store.workspacePath)}/${name}`
   } catch {
     // ignore
   }
@@ -495,6 +632,16 @@ watch(() => store.fileTreeVersion, () => {
       background: var(--bg-hover);
       color: var(--text-primary);
     }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+
+      &:hover {
+        background: transparent;
+        color: var(--text-secondary);
+      }
+    }
   }
 
   &__search {
@@ -628,6 +775,33 @@ watch(() => store.fileTreeVersion, () => {
 
     &:hover {
       background: var(--accent-color);
+    }
+  }
+}
+
+/* 全部折叠 / 全部展开 下拉（Teleport 到 body，仍属本组件作用域） */
+.file-tree__menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 6.5rem;
+  padding: 0.286rem 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.571rem;
+  box-shadow: 0 0.571rem 2.143rem rgba(0, 0, 0, 0.18),
+              0 2px 0.571rem rgba(0, 0, 0, 0.08);
+  user-select: none;
+
+  &-item {
+    padding: 0.5rem 1.143rem;
+    font-size: 0.929rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.1s;
+
+    &:hover {
+      background: var(--bg-hover);
     }
   }
 }

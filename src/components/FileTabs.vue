@@ -5,9 +5,17 @@
         v-for="tab in store.tabs"
         :key="tab.id"
         class="file-tabs__item"
-        :class="{ 'file-tabs__item--active': tab.id === store.activeId }"
+        :class="{
+          'file-tabs__item--active': tab.id === store.activeId,
+          'file-tabs__item--dragging': tab.id === dragId,
+        }"
+        draggable="true"
         @click="store.switchTab(tab.id)"
         @contextmenu.prevent="onContextMenu($event, tab.id)"
+        @dragstart="onDragStart($event, tab.id)"
+        @dragover.prevent
+        @drop.prevent="onDrop(tab.id)"
+        @dragend="onDragEnd"
       >
         <span class="file-tabs__icon">
           <FileIcon :name="tab.name" :size="14" />
@@ -52,6 +60,26 @@ const menuVisible = ref(false)
 const menuX = ref(0)
 const menuY = ref(0)
 const menuTargetId = ref('')
+
+// 标签拖拽排序：拖动中的 id 记下来，drop 时交给 store 移动位置
+const dragId = ref('')
+
+function onDragStart(e: DragEvent, id: string) {
+  dragId.value = id
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', id)
+  }
+}
+
+function onDrop(targetId: string) {
+  if (dragId.value) store.moveTab(dragId.value, targetId)
+  dragId.value = ''
+}
+
+function onDragEnd() {
+  dragId.value = ''
+}
 
 function onContextMenu(e: MouseEvent, id: string) {
   closeMenu()
@@ -180,6 +208,10 @@ async function handleMenuCloseAll() {
       color: var(--text-primary);
       background: var(--bg-secondary);
       border-bottom: 2px solid var(--accent-color);
+    }
+
+    &--dragging {
+      opacity: 0.45;
     }
   }
 

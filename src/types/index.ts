@@ -55,6 +55,8 @@ export interface FileTreeNode {
   name: string
   path: string
   type: 'file' | 'directory'
+  /** 「全部展开」时一次性取回的子树，有值时节点不再逐目录 readDir */
+  children?: FileTreeNode[]
 }
 
 export interface CaretPosition {

@@ -33,6 +33,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
   const readingMode = ref(false)
   const fileTreeWidth = ref(prefs.fileTreeWidth)
   const fileTreeVersion = ref(0)
+  /** 文件树「定位当前文件」请求：每次点按钮都换新对象，同名文件也能重新触发展开/滚动 */
+  const revealRequest = ref<{ path: string; seq: number } | null>(null)
   const searchDebounceMs = ref(prefs.searchDebounceMs)
   const searchIntervalMs = ref(prefs.searchIntervalMs)
   const imageDir = ref(prefs.imageDir)
@@ -236,6 +238,21 @@ export const useMarkdownStore = defineStore('markdown', () => {
     activeId.value = id
   }
 
+  /** 标签拖拽排序：把 fromId 移到 toId 的位置（toId 之后的标签后移一位） */
+  function moveTab(fromId: string, toId: string) {
+    if (fromId === toId) return
+    const from = tabs.value.findIndex((t) => t.id === fromId)
+    const to = tabs.value.findIndex((t) => t.id === toId)
+    if (from === -1 || to === -1) return
+    const [tab] = tabs.value.splice(from, 1)
+    if (tab) tabs.value.splice(to, 0, tab)
+  }
+
+  function revealInFileTree(path: string) {
+    if (!path) return
+    revealRequest.value = { path: path.replace(/\\/g, '/'), seq: (revealRequest.value?.seq ?? 0) + 1 }
+  }
+
   watchEffect(async () => {
     const file = activeFile.value
     if (file?.path) {
@@ -365,6 +382,7 @@ export const useMarkdownStore = defineStore('markdown', () => {
     readingMode,
     fileTreeWidth,
     fileTreeVersion,
+    revealRequest,
     searchDebounceMs,
     searchIntervalMs,
     imageDir,
@@ -379,6 +397,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
     closeTabsUnderPath,
     hasUnsavedInWorkspace,
     switchTab,
+    moveTab,
+    revealInFileTree,
     setContent,
     setCaret,
     toggleOutline,

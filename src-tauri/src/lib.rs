@@ -297,9 +297,10 @@ fn walk_search(
     matcher: &dyn Fn(&str) -> bool,
     want_dirs: Option<bool>,
     depth: usize,
+    limit: usize,
     out: &mut Vec<SearchHit>,
 ) {
-    if depth > SEARCH_MAX_DEPTH || out.len() >= SEARCH_MAX_HITS {
+    if depth > SEARCH_MAX_DEPTH || out.len() >= limit {
         return;
     }
     let Ok(entries) = std::fs::read_dir(dir) else {
@@ -321,7 +322,7 @@ fn walk_search(
                 path: dir.join(&name).to_string_lossy().into_owned(),
                 is_dir,
             });
-            if out.len() >= SEARCH_MAX_HITS {
+            if out.len() >= limit {
                 return;
             }
         }
@@ -330,8 +331,8 @@ fn walk_search(
         }
     }
     for sub in sub_dirs {
-        walk_search(&sub, matcher, want_dirs, depth + 1, out);
-        if out.len() >= SEARCH_MAX_HITS {
+        walk_search(&sub, matcher, want_dirs, depth + 1, limit, out);
+        if out.len() >= limit {
             return;
         }
     }
@@ -365,8 +366,31 @@ fn search_workspace(
         _ => None,
     };
     let mut hits = Vec::new();
-    walk_search(Path::new(&root), matcher.as_ref(), want_dirs, 0, &mut hits);
+    walk_search(
+        Path::new(&root),
+        matcher.as_ref(),
+        want_dirs,
+        0,
+        SEARCH_MAX_HITS,
+        &mut hits,
+    );
     Ok(hits)
+}
+
+/// 文件树「全部展开」：一次取回工作区全部条目（跳过生成目录，深度与条数有上限）。
+/// 逐目录 readDir 会在展开瞬间扇出成百上千个 IPC，把 WebView 消息桥挤崩。
+#[tauri::command]
+fn list_workspace_entries(root: String, limit: usize) -> Vec<SearchHit> {
+    let mut hits = Vec::new();
+    walk_search(
+        Path::new(&root),
+        &|_name: &str| true,
+        None,
+        0,
+        limit.clamp(1, 5000),
+        &mut hits,
+    );
+    hits
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -402,6 +426,7 @@ pub fn run() {
             set_data_dir,
             set_file_icon,
             search_workspace,
+            list_workspace_entries,
             list_system_fonts
         ])
         .setup(|app| {
