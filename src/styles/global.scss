@@ -377,6 +377,19 @@ html {
   margin: var(--p-spacing) 0;
 }
 
+/* 列表符号垂直对齐：Crepe 的符号盒写死 32px 高，而正文行高是 1.6（约 22px），
+   圆点会比文字高约 9px。盒高改成一行，并让出段落的 margin-top；+0.2em 补的是
+   字形在行框里的下沉量（行框居中≠字形居中），否则圆点仍会偏高约 3px。 */
+.milkdown .milkdown-list-item-block li > .label-wrapper {
+  height: calc(1em * var(--text-line-height));
+  margin-top: calc(var(--p-spacing) + 0.2em);
+}
+
+.milkdown .milkdown-list-item-block li .label-wrapper .label {
+  height: 100%;
+  padding: 0;
+}
+
 .milkdown hr {
   border: none;
   border-top: 0.1em solid var(--horizontal-divider-color);
