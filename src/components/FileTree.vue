@@ -132,6 +132,7 @@
           :expand-all-dirs="expandAllDirs"
           :selected-path="selectedPath"
           :removed="removedRequest"
+          :added="addedRequest"
           @open-file="openFile"
           @select="selectedPath = $event"
           @node-contextmenu="onNodeContextmenu"
@@ -195,6 +196,11 @@ const regexInvalid = ref(false)
 const renamingPath = ref('')
 /** 刚被删除的路径（带 seq 以便同一路径再次删除时也能触发）：逐层从 children 里摘掉，避免整树重建 */
 const removedRequest = ref<{ path: string; seq: number } | null>(null)
+/** 刚粘贴出来的节点：只插进目标目录的 children，同样不重建整树 */
+const addedRequest = ref<{ dir: string; node: FileTreeNodeType; seq: number } | null>(null)
+
+/** 树内剪贴板（Ctrl+C 记下源节点）：只在本应用内生效，不走系统剪贴板 */
+let copied: { path: string; name: string; type: 'file' | 'directory' } | null = null
 
 const menuVisible = ref(false)
 const menuX = ref(0)
@@ -349,6 +355,18 @@ async function moveNode(source: string, targetDir: string) {
 
 /** ←/→ 折叠展开，↑/↓ 在可见行之间移动选中，Enter 展开目录/打开文件（data-* 由行元素提供） */
 function onTreeKeydown(e: KeyboardEvent) {
+  // Ctrl+C / Ctrl+V：树内复制、粘贴（重命名输入框里交给浏览器做文本复制）
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+    if ((e.target as HTMLElement).closest('input, textarea')) return
+    const hotkey = e.key.toLowerCase()
+    if (hotkey === 'c' || hotkey === 'v') {
+      e.preventDefault()
+      if (hotkey === 'c') copySelected()
+      else void pasteCopied()
+      return
+    }
+  }
+
   const key = e.key
   if (
     key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'ArrowUp' &&
@@ -516,10 +534,7 @@ async function loadRoot() {
         type: (entry.isDirectory ? 'directory' : 'file') as 'file' | 'directory',
       }))
       .filter((node) => node.name !== '')
-      .sort((a, b) => {
-        if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
-        return a.name.localeCompare(b.name)
-      })
+      .sort(sortNodes)
   } catch {
     rootNodes.value = []
   }
@@ -639,13 +654,73 @@ function uniqueName(base: string, ext: string, names: string[]): string {
   return candidate
 }
 
+/** 当前选中的行元素（目录/文件都算）；选中路径已不可见时返回 null */
+function selectedRow(): HTMLElement | null {
+  const rows = treeRoot.value?.querySelectorAll<HTMLElement>('.tree-node__row[data-path]') ?? []
+  return Array.from(rows).find((r) => r.dataset.path === selectedPath.value) ?? null
+}
+
 /** 顶部新建按钮的落点：选中目录就是它本身，选中文件则是它的父目录，没选中落到工作区根 */
 function selectedDir(): string {
-  const rows = treeRoot.value?.querySelectorAll<HTMLElement>('.tree-node__row[data-path]') ?? []
-  const row = Array.from(rows).find((r) => r.dataset.path === selectedPath.value)
+  const row = selectedRow()
   const path = row?.dataset.path
   if (!path) return normPath(store.workspacePath)
   return row!.dataset.type === 'directory' ? path : path.slice(0, path.lastIndexOf('/'))
+}
+
+/** 目录在前、同级按名字排序（loadRoot / 粘贴插入共用） */
+function sortNodes(a: FileTreeNodeType, b: FileTreeNodeType) {
+  if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
+  return a.name.localeCompare(b.name)
+}
+
+/** Ctrl+C：记下选中节点，等 Ctrl+V 用 */
+function copySelected() {
+  const row = selectedRow()
+  const path = row?.dataset.path
+  if (!path) return
+  copied = {
+    path,
+    name: path.slice(path.lastIndexOf('/') + 1),
+    type: row!.dataset.type === 'directory' ? 'directory' : 'file',
+  }
+}
+
+/** Ctrl+V：复制到选中目录（或选中文件所在目录），重名自动加「- 副本」 */
+async function pasteCopied() {
+  const clip = copied
+  if (!clip) return
+  const dir = selectedDir()
+  if (!dir) return
+  const src = normPath(clip.path)
+  // 目录不能被复制进它自己的子孙，否则递归复制会把自己套进去
+  if (dir.startsWith(`${src}/`)) return
+
+  const dot = clip.type === 'file' ? clip.name.lastIndexOf('.') : -1
+  const ext = dot > 0 ? clip.name.slice(dot + 1) : ''
+  const stem = dot > 0 ? clip.name.slice(0, dot) : clip.name
+  const name = uniqueName(`${stem} - 副本`, ext, await namesIn(dir))
+  const dest = `${dir}/${name}`
+
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    // shortcut: 只复制节点本身，md 里的相对图片路径不跟着走（同 moveNode）
+    await invoke('copy_entry', { src: clip.path, dest })
+  } catch {
+    return
+  }
+
+  addedRequest.value = {
+    dir,
+    node: { name, path: dest, type: clip.type },
+    seq: (addedRequest.value?.seq ?? 0) + 1,
+  }
+  selectedPath.value = dest
+  await nextTick()
+  // 目标目录没展开时这一行还不存在，滚动自然跳过
+  const row = Array.from(treeRoot.value?.querySelectorAll<HTMLElement>('.tree-node__row[data-path]') ?? [])
+    .find((r) => r.dataset.path === dest)
+  row?.scrollIntoView({ block: 'nearest' })
 }
 
 /** 目标目录已有的名字（新建时用来避开重名）；读不到就当空目录 */
@@ -789,6 +864,12 @@ async function removeNode() {
 
 watch(removedRequest, (req) => {
   if (req) rootNodes.value = rootNodes.value.filter((n) => n.path !== req.path)
+})
+
+watch(addedRequest, (req) => {
+  if (!req || req.dir !== normPath(store.workspacePath)) return
+  if (rootNodes.value.some((n) => n.path === req.node.path)) return
+  rootNodes.value = [...rootNodes.value, req.node].sort(sortNodes)
 })
 
 watch(() => store.workspacePath, () => {

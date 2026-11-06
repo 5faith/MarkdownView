@@ -63,6 +63,7 @@
           :expand-all-dirs="props.expandAllDirs"
           :selected-path="props.selectedPath"
           :removed="props.removed"
+          :added="props.added"
           @open-file="(path: string) => $emit('openFile', path)"
           @select="(path: string) => emit('select', path)"
           @node-contextmenu="(e: MouseEvent, n: FileTreeNodeType) => emit('nodeContextmenu', e, n)"
@@ -92,6 +93,7 @@ const props = defineProps<{
   expandAllDirs: Set<string>
   selectedPath: string
   removed: { path: string; seq: number } | null
+  added: { dir: string; node: FileTreeNodeType; seq: number } | null
 }>()
 
 const emit = defineEmits<{
@@ -108,6 +110,8 @@ const store = useMarkdownStore()
 const expanded = ref(false)
 const loading = ref(false)
 const children = ref<FileTreeNodeType[]>([])
+/** 这一级的目录内容是否已经读过（区分「空目录」和「还没读」） */
+const loaded = ref(false)
 
 const renaming = ref(false)
 const renameValue = ref('')
@@ -127,6 +131,7 @@ onBeforeUnmount(() => {
 watch(() => props.refreshKey, () => {
   expanded.value = false
   children.value = []
+  loaded.value = false
 })
 
 // 删除一棵子树：只从自己的 children 里摘掉对应节点，不重载整棵树（否则展开状态全丢）
@@ -134,6 +139,17 @@ watch(() => props.removed, (req) => {
   if (!req) return
   const next = children.value.filter((node) => node.path !== req.path)
   if (next.length !== children.value.length) children.value = next
+})
+
+// 粘贴出来的节点：只插进目标目录（已读过内容的那些）的 children，不重载整棵树
+watch(() => props.added, (req) => {
+  if (!req || !loaded.value) return
+  if (norm(props.node.path) !== req.dir) return
+  if (children.value.some((node) => node.path === req.node.path)) return
+  children.value = [...children.value, req.node].sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
 })
 
 // 右键菜单"重命名"经由 renamingPath 传导到对应节点（immediate 覆盖新建后挂载的场景）
@@ -211,6 +227,7 @@ async function loadChildren() {
   } catch {
     children.value = []
   }
+  loaded.value = true
   loading.value = false
 }
 

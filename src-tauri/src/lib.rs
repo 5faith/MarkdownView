@@ -393,6 +393,43 @@ fn list_workspace_entries(root: String, limit: usize) -> Vec<SearchHit> {
     hits
 }
 
+/// 文件树「复制粘贴」：递归复制文件或目录（plugin-fs 只有 copyFile，没有整目录复制）。
+/// 目标重名由前端先算好，这里只负责写。
+#[tauri::command]
+fn copy_entry(src: String, dest: String) -> Result<(), String> {
+    let src_path = Path::new(&src);
+    let dest_path = Path::new(&dest);
+    if src_path.is_dir() {
+        copy_dir_all(src_path, dest_path)
+    } else {
+        std::fs::copy(src_path, dest_path)
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+}
+
+fn copy_dir_all(src: &Path, dest: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(dest).map_err(|e| e.to_string())?;
+    for entry in std::fs::read_dir(src).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let from = entry.path();
+        let to = dest.join(entry.file_name());
+        // file_type() 不跟随符号链接：跳过软链，避免自引用目录无限递归
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if file_type.is_symlink() {
+            continue;
+        }
+        if file_type.is_dir() {
+            copy_dir_all(&from, &to)?;
+        } else {
+            std::fs::copy(&from, &to).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -427,6 +464,7 @@ pub fn run() {
             set_file_icon,
             search_workspace,
             list_workspace_entries,
+            copy_entry,
             list_system_fonts
         ])
         .setup(|app| {
