@@ -164,6 +164,7 @@
       @open-file-location="handleOpenFileLocation"
       @create-file="createFileInMenuDir"
       @create-folder="createFolderInMenuDir"
+      @copy="copyFromMenu"
       @rename="startRename"
       @delete="removeSelection"
     />
@@ -916,6 +917,12 @@ async function handleOpenFileLocation() {
   } catch {
     // ignore errors
   }
+}
+
+// 右键菜单 → 复制当前选择（和 Ctrl+C 同一套逻辑）
+function copyFromMenu() {
+  closeMenu()
+  copySelected()
 }
 
 // 右键菜单 → 让对应节点进入行内重命名态
