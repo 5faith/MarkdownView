@@ -130,11 +130,11 @@
           :renaming-path="renamingPath"
           :reveal="store.revealRequest"
           :expand-all-dirs="expandAllDirs"
-          :selected-path="selectedPath"
+          :selected-paths="selectedPaths"
           :removed="removedRequest"
           :added="addedRequest"
           @open-file="openFile"
-          @select="selectedPath = $event"
+          @select="onSelect"
           @node-contextmenu="onNodeContextmenu"
           @start-rename="renamingPath = $event"
           @renamed="onRenamed"
@@ -160,11 +160,12 @@
       :x="menuX"
       :y="menuY"
       :is-directory="menuNode?.type === 'directory'"
+      :selection-count="selectedPaths.size"
       @open-file-location="handleOpenFileLocation"
       @create-file="createFileInMenuDir"
       @create-folder="createFolderInMenuDir"
       @rename="startRename"
-      @delete="removeNode"
+      @delete="removeSelection"
     />
   </div>
 </template>
@@ -182,8 +183,14 @@ import FileIcon from './FileIcon.vue'
 const store = useMarkdownStore()
 
 const treeRoot = ref<HTMLElement | null>(null)
-/** 树里当前选中的行（键盘 ←/→ 的作用对象），与「活动文件」分开：目录也能选中 */
+/** 树里当前的主选中行（键盘 ←/→、Enter、新建/粘贴落点都看它），与「活动文件」分开：目录也能选中 */
 const selectedPath = ref('')
+/** 多选集合（Ctrl 点选 / Shift 范围选），视觉高亮和批量删除都用它 */
+const selectedPaths = ref<Set<string>>(new Set())
+/** 主选中行的类型：行被折叠隐藏时 DOM 里查不到，新建/粘贴的落点仍要靠它 */
+const selectedType = ref<'file' | 'directory' | ''>('')
+/** Shift 范围选择的起点 */
+let anchorPath = ''
 
 const rootNodes = ref<FileTreeNodeType[]>([])
 const query = ref('')
@@ -195,7 +202,7 @@ const caseSensitive = ref(false)
 const regexInvalid = ref(false)
 const renamingPath = ref('')
 /** 刚被删除的路径（带 seq 以便同一路径再次删除时也能触发）：逐层从 children 里摘掉，避免整树重建 */
-const removedRequest = ref<{ path: string; seq: number } | null>(null)
+const removedRequest = ref<{ paths: string[]; seq: number } | null>(null)
 /** 刚粘贴出来的节点：只插进目标目录的 children，同样不重建整树 */
 const addedRequest = ref<{ dir: string; node: FileTreeNodeType; seq: number } | null>(null)
 
@@ -235,6 +242,59 @@ function focusTree(e: MouseEvent) {
   treeRoot.value?.focus()
 }
 
+/** 当前可见的行路径（Shift 范围选择按 DOM 顺序算） */
+function visibleRowPaths() {
+  return Array.from(treeRoot.value?.querySelectorAll<HTMLElement>('.tree-node__row[data-path]') ?? [])
+    .map((row) => row.dataset.path ?? '')
+    .filter(Boolean)
+}
+
+/** 行元素的类型（目录/文件）；行不在 DOM 里时按文件算 */
+function typeOf(path: string): 'file' | 'directory' {
+  const rows = treeRoot.value?.querySelectorAll<HTMLElement>('.tree-node__row[data-path]') ?? []
+  const row = Array.from(rows).find((r) => r.dataset.path === path)
+  return row?.dataset.type === 'directory' ? 'directory' : 'file'
+}
+
+/** 只选一行（普通点击、方向键、切换标签时用） */
+function setSingleSelection(path: string, type: 'file' | 'directory' = 'file') {
+  selectedPath.value = path
+  selectedType.value = path ? type : ''
+  selectedPaths.value = path ? new Set([path]) : new Set()
+  anchorPath = path
+}
+
+/** 行点击：普通点击单选，Ctrl 切换单个，Shift 按可见行范围选 */
+function onSelect(path: string, e: MouseEvent) {
+  const rows = visibleRowPaths()
+  if (e.shiftKey && anchorPath) {
+    const from = rows.indexOf(anchorPath)
+    const to = rows.indexOf(path)
+    if (from !== -1 && to !== -1) {
+      const [start, end] = from <= to ? [from, to] : [to, from]
+      const range = rows.slice(start, end + 1)
+      selectedPaths.value = new Set(
+        e.ctrlKey || e.metaKey ? [...selectedPaths.value, ...range] : range,
+      )
+      selectedPath.value = path
+      selectedType.value = typeOf(path)
+      return
+    }
+  }
+  if (e.ctrlKey || e.metaKey) {
+    const next = new Set(selectedPaths.value)
+    if (next.has(path)) next.delete(path)
+    else next.add(path)
+    selectedPaths.value = next
+    // 取消的正是主行时，把主行让给剩下的最后一个
+    selectedPath.value = next.has(path) ? path : ([...next].pop() ?? '')
+    selectedType.value = selectedPath.value ? typeOf(selectedPath.value) : ''
+    anchorPath = path
+    return
+  }
+  setSingleSelection(path, typeOf(path))
+}
+
 // 拖拽移动：Tauri 在 Windows 上默认 dragDropEnabled 会吞掉 HTML5 拖拽事件，
 // 这里仍用指针事件自己实现（移动超过 4px 才算拖拽，单纯点击仍展开/打开）
 const dragSource = ref('')
@@ -248,6 +308,8 @@ let suppressClick = false
 let startX = 0
 let startY = 0
 let pendingSource = ''
+/** 被拖行的类型：移动成功后选中新位置时要用（行重建后就查不到了） */
+let pendingType: 'file' | 'directory' = 'file'
 let dropTarget = ''
 let dropEl: HTMLElement | null = null
 
@@ -275,6 +337,7 @@ function onRowPointerDown(e: PointerEvent) {
   pressed = true
   dragged = false
   pendingSource = row.dataset.path ?? ''
+  pendingType = row.dataset.type === 'directory' ? 'directory' : 'file'
   startX = e.clientX
   startY = e.clientY
   document.addEventListener('pointermove', onRowPointerMove)
@@ -320,7 +383,7 @@ function onRowPointerUp() {
     setTimeout(() => { suppressClick = false }, 0)
   }
   dragged = false
-  if (source && target) void moveNode(source, target)
+  if (source && target) void moveNode(source, target, pendingType)
 }
 
 function onTreeClickCapture(e: MouseEvent) {
@@ -329,7 +392,7 @@ function onTreeClickCapture(e: MouseEvent) {
   e.preventDefault()
 }
 
-async function moveNode(source: string, targetDir: string) {
+async function moveNode(source: string, targetDir: string, type: 'file' | 'directory') {
   const name = source.slice(source.lastIndexOf('/') + 1)
   if (!name) return
   const newPath = `${targetDir}/${name}`
@@ -345,7 +408,7 @@ async function moveNode(source: string, targetDir: string) {
     if (path === source) tab.path = newPath
     else if (path.startsWith(`${source}/`)) tab.path = newPath + path.slice(source.length)
   }
-  selectedPath.value = newPath
+  setSingleSelection(newPath, type)
   // shortcut: 只挪节点本身，正文里的相对图片路径不跟着挪（需要时参考 saveFileAs 的 copyReferencedImages）
   store.refreshFileTree()
   // 刷新会重建整棵树；等新节点挂载后定位到新位置，否则目标目录会被收起、看不出挪到哪了
@@ -355,9 +418,17 @@ async function moveNode(source: string, targetDir: string) {
 
 /** ←/→ 折叠展开，↑/↓ 在可见行之间移动选中，Enter 展开目录/打开文件（data-* 由行元素提供） */
 function onTreeKeydown(e: KeyboardEvent) {
-  // Ctrl+C / Ctrl+V：树内复制、粘贴（重命名输入框里交给浏览器做文本复制）
+  // 重命名输入框里的按键（含 Delete、复制粘贴）都归输入框自己处理
+  if ((e.target as HTMLElement).closest('input, textarea')) return
+
+  if (e.key === 'Delete') {
+    e.preventDefault()
+    void removeSelection()
+    return
+  }
+
+  // Ctrl+C / Ctrl+V：树内复制、粘贴
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
-    if ((e.target as HTMLElement).closest('input, textarea')) return
     const hotkey = e.key.toLowerCase()
     if (hotkey === 'c' || hotkey === 'v') {
       e.preventDefault()
@@ -373,7 +444,6 @@ function onTreeKeydown(e: KeyboardEvent) {
     key !== 'ArrowDown' && key !== 'Enter'
   ) return
   if (!treeRoot.value) return
-  if ((e.target as HTMLElement).closest('input, textarea')) return
 
   // 跳过「Loading...」这类没有 data-path 的占位行
   const rows = Array.from(treeRoot.value.querySelectorAll<HTMLElement>('.tree-node__row[data-path]'))
@@ -396,7 +466,10 @@ function onTreeKeydown(e: KeyboardEvent) {
       ? (step > 0 ? 0 : rows.length - 1)
       : Math.min(rows.length - 1, Math.max(0, idx + step))
     const target = rows[next]!
-    selectedPath.value = target.dataset.path ?? ''
+    setSingleSelection(
+      target.dataset.path ?? '',
+      target.dataset.type === 'directory' ? 'directory' : 'file',
+    )
     target.scrollIntoView({ block: 'nearest' })
     return
   }
@@ -654,18 +727,11 @@ function uniqueName(base: string, ext: string, names: string[]): string {
   return candidate
 }
 
-/** 当前选中的行元素（目录/文件都算）；选中路径已不可见时返回 null */
-function selectedRow(): HTMLElement | null {
-  const rows = treeRoot.value?.querySelectorAll<HTMLElement>('.tree-node__row[data-path]') ?? []
-  return Array.from(rows).find((r) => r.dataset.path === selectedPath.value) ?? null
-}
-
-/** 顶部新建按钮的落点：选中目录就是它本身，选中文件则是它的父目录，没选中落到工作区根 */
+/** 顶部新建/粘贴的落点：选中目录就是它本身，选中文件则是它的父目录，没选中落到工作区根 */
 function selectedDir(): string {
-  const row = selectedRow()
-  const path = row?.dataset.path
+  const path = selectedPath.value
   if (!path) return normPath(store.workspacePath)
-  return row!.dataset.type === 'directory' ? path : path.slice(0, path.lastIndexOf('/'))
+  return selectedType.value === 'directory' ? path : path.slice(0, path.lastIndexOf('/'))
 }
 
 /** 目录在前、同级按名字排序（loadRoot / 粘贴插入共用） */
@@ -674,15 +740,14 @@ function sortNodes(a: FileTreeNodeType, b: FileTreeNodeType) {
   return a.name.localeCompare(b.name)
 }
 
-/** Ctrl+C：记下选中节点，等 Ctrl+V 用 */
+/** Ctrl+C：记下选中节点，等 Ctrl+V 用（不依赖行是否还在 DOM 里） */
 function copySelected() {
-  const row = selectedRow()
-  const path = row?.dataset.path
+  const path = selectedPath.value
   if (!path) return
   copied = {
     path,
     name: path.slice(path.lastIndexOf('/') + 1),
-    type: row!.dataset.type === 'directory' ? 'directory' : 'file',
+    type: selectedType.value === 'directory' ? 'directory' : 'file',
   }
 }
 
@@ -696,10 +761,14 @@ async function pasteCopied() {
   // 目录不能被复制进它自己的子孙，否则递归复制会把自己套进去
   if (dir.startsWith(`${src}/`)) return
 
+  const names = await namesIn(dir)
+  // 目标目录没有同名文件就沿用原名；有冲突才加「- 副本」
   const dot = clip.type === 'file' ? clip.name.lastIndexOf('.') : -1
   const ext = dot > 0 ? clip.name.slice(dot + 1) : ''
   const stem = dot > 0 ? clip.name.slice(0, dot) : clip.name
-  const name = uniqueName(`${stem} - 副本`, ext, await namesIn(dir))
+  const name = names.includes(clip.name)
+    ? uniqueName(`${stem} - 副本`, ext, names)
+    : clip.name
   const dest = `${dir}/${name}`
 
   try {
@@ -715,12 +784,16 @@ async function pasteCopied() {
     node: { name, path: dest, type: clip.type },
     seq: (addedRequest.value?.seq ?? 0) + 1,
   }
-  selectedPath.value = dest
   await nextTick()
-  // 目标目录没展开时这一行还不存在，滚动自然跳过
+  // 目标目录没展开时这一行还不存在：改选中目标目录本身，连续粘贴才不会跑回工作区根
   const row = Array.from(treeRoot.value?.querySelectorAll<HTMLElement>('.tree-node__row[data-path]') ?? [])
     .find((r) => r.dataset.path === dest)
-  row?.scrollIntoView({ block: 'nearest' })
+  if (row) {
+    setSingleSelection(dest, clip.type)
+    row.scrollIntoView({ block: 'nearest' })
+  } else {
+    setSingleSelection(dir, 'directory')
+  }
 }
 
 /** 目标目录已有的名字（新建时用来避开重名）；读不到就当空目录 */
@@ -785,6 +858,10 @@ function createFolderInMenuDir() {
 
 function onNodeContextmenu(e: MouseEvent, node: FileTreeNodeType) {
   closeMenu()
+  // 右键点在多选之外的行 → 回到单选；点在选中的行 → 保留多选，菜单删除整批
+  if (!selectedPaths.value.has(normPath(node.path))) {
+    setSingleSelection(normPath(node.path), node.type)
+  }
   menuNode.value = node
   menuX.value = e.clientX
   menuY.value = e.clientY
@@ -833,37 +910,53 @@ function startRename() {
   renamingPath.value = node.path
 }
 
-async function removeNode() {
+/** 删除选中的行（右键菜单或 Delete 键），多选时一次确认、逐个删除 */
+async function removeSelection() {
   const node = menuNode.value
   closeMenu()
-  if (!node) return
+  const paths = [...selectedPaths.value]
+  if (paths.length === 0 && node) paths.push(normPath(node.path))
+  if (paths.length === 0) return
+
+  const names = paths.map((path) => path.slice(path.lastIndexOf('/') + 1))
+  const message = paths.length === 1
+    ? (node?.type === 'directory'
+      ? `确定删除文件夹 "${names[0]}" 及其全部内容？`
+      : `确定删除文件 "${names[0]}"？`)
+    : `确定删除选中的 ${paths.length} 项（${names.slice(0, 3).join('、')}${names.length > 3 ? ' 等' : ''}）？`
 
   const confirmed = await showConfirm({
     title: '删除',
-    message: node.type === 'directory'
-      ? `确定删除文件夹 "${node.name}" 及其全部内容？`
-      : `确定删除文件 "${node.name}"？`,
+    message,
     confirmLabel: '删除',
     cancelLabel: '取消',
   })
   if (!confirmed) return
 
-  try {
-    await remove(node.path, { recursive: true })
-    store.closeTabsUnderPath(node.path)
-    // 只把这一行从树里摘掉，不重建整棵树：其它目录的展开状态得留着
-    const path = normPath(node.path)
-    if (selectedPath.value === path || selectedPath.value.startsWith(`${path}/`)) {
-      selectedPath.value = ''
+  const removed: string[] = []
+  for (const path of paths) {
+    try {
+      await remove(path, { recursive: true })
+      store.closeTabsUnderPath(path)
+      removed.push(normPath(path))
+    } catch {
+      // 父子同时选中时，子项会随父目录一起消失，这里的失败直接跳过
     }
-    removedRequest.value = { path, seq: (removedRequest.value?.seq ?? 0) + 1 }
-  } catch {
-    // ignore
   }
+  if (removed.length === 0) return
+
+  selectedPath.value = ''
+  selectedType.value = ''
+  selectedPaths.value = new Set()
+  anchorPath = ''
+  // 只把这些行从树里摘掉，不重建整棵树：其它目录的展开状态得留着
+  removedRequest.value = { paths: removed, seq: (removedRequest.value?.seq ?? 0) + 1 }
 }
 
 watch(removedRequest, (req) => {
-  if (req) rootNodes.value = rootNodes.value.filter((n) => n.path !== req.path)
+  if (!req) return
+  const gone = new Set(req.paths)
+  rootNodes.value = rootNodes.value.filter((n) => !gone.has(n.path))
 })
 
 watch(addedRequest, (req) => {
@@ -883,7 +976,7 @@ watch(() => store.fileTreeVersion, () => {
 
 // 从标签/文件树打开文件时，让选中行跟着走，←/→ 立刻可用
 watch(() => store.activeFile?.path, (path) => {
-  if (path) selectedPath.value = normPath(path)
+  if (path) setSingleSelection(normPath(path), 'file')
 }, { immediate: true })
 </script>
 

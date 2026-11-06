@@ -8,31 +8,31 @@
       @mousedown.stop
     >
       <div
-        v-if="isDirectory"
+        v-if="isDirectory && selectionCount <= 1"
         class="file-tree-context-menu__item"
         @click="$emit('create-file')"
       >
         新建文件
       </div>
       <div
-        v-if="isDirectory"
+        v-if="isDirectory && selectionCount <= 1"
         class="file-tree-context-menu__item"
         @click="$emit('create-folder')"
       >
         新建文件夹
       </div>
       <div
-        v-if="!isDirectory"
+        v-if="!isDirectory && selectionCount <= 1"
         class="file-tree-context-menu__item"
         @click="$emit('open-file-location')"
       >
         在文件管理器中显示
       </div>
-      <div class="file-tree-context-menu__item" @click="$emit('rename')">
+      <div v-if="selectionCount <= 1" class="file-tree-context-menu__item" @click="$emit('rename')">
         重命名
       </div>
       <div class="file-tree-context-menu__item file-tree-context-menu__item--danger" @click="$emit('delete')">
-        删除
+        {{ selectionCount > 1 ? `删除 ${selectionCount} 项` : '删除' }}
       </div>
     </div>
   </Teleport>
@@ -44,6 +44,7 @@ defineProps<{
   x: number
   y: number
   isDirectory: boolean
+  selectionCount: number
 }>()
 
 defineEmits<{

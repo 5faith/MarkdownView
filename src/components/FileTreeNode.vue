@@ -5,7 +5,7 @@
       class="tree-node__row"
       :class="{
         'tree-node__row--active': props.node.type === 'file' && norm(props.node.path) === norm(props.activeFilePath),
-        'tree-node__row--selected': norm(props.node.path) === props.selectedPath,
+        'tree-node__row--selected': props.selectedPaths.has(norm(props.node.path)),
         'tree-node__row--revealed': revealed,
       }"
       :data-path="norm(props.node.path)"
@@ -61,11 +61,11 @@
           :renaming-path="props.renamingPath"
           :reveal="props.reveal"
           :expand-all-dirs="props.expandAllDirs"
-          :selected-path="props.selectedPath"
+          :selected-paths="props.selectedPaths"
           :removed="props.removed"
           :added="props.added"
           @open-file="(path: string) => $emit('openFile', path)"
-          @select="(path: string) => emit('select', path)"
+          @select="(path: string, e: MouseEvent) => emit('select', path, e)"
           @node-contextmenu="(e: MouseEvent, n: FileTreeNodeType) => emit('nodeContextmenu', e, n)"
           @start-rename="(p: string) => emit('startRename', p)"
           @renamed="() => emit('renamed')"
@@ -91,14 +91,14 @@ const props = defineProps<{
   renamingPath: string
   reveal: { path: string; seq: number } | null
   expandAllDirs: Set<string>
-  selectedPath: string
-  removed: { path: string; seq: number } | null
+  selectedPaths: Set<string>
+  removed: { paths: string[]; seq: number } | null
   added: { dir: string; node: FileTreeNodeType; seq: number } | null
 }>()
 
 const emit = defineEmits<{
   openFile: [path: string]
-  select: [path: string]
+  select: [path: string, event: MouseEvent]
   nodeContextmenu: [event: MouseEvent, node: FileTreeNodeType]
   startRename: [path: string]
   renamed: []
@@ -134,10 +134,11 @@ watch(() => props.refreshKey, () => {
   loaded.value = false
 })
 
-// 删除一棵子树：只从自己的 children 里摘掉对应节点，不重载整棵树（否则展开状态全丢）
+// 删除一棵/多棵子树：只从自己的 children 里摘掉对应节点，不重载整棵树（否则展开状态全丢）
 watch(() => props.removed, (req) => {
   if (!req) return
-  const next = children.value.filter((node) => node.path !== req.path)
+  const gone = new Set(req.paths)
+  const next = children.value.filter((node) => !gone.has(node.path))
   if (next.length !== children.value.length) children.value = next
 })
 
@@ -270,8 +271,10 @@ watch(
   { immediate: true },
 )
 
-async function handleClick() {
-  emit('select', norm(props.node.path))
+async function handleClick(e: MouseEvent) {
+  emit('select', norm(props.node.path), e)
+  // Ctrl/Shift 点选只改变选择，不展开目录、也不打开文件（和资源管理器一致）
+  if (e.ctrlKey || e.metaKey || e.shiftKey) return
   if (props.node.type === 'directory') {
     if (!expanded.value) await ensureExpanded()
     else expanded.value = false
