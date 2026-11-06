@@ -99,7 +99,7 @@
       </div>
     </div>
 
-    <div class="file-tree__body">
+    <div class="file-tree__body" @pointerdown="onRowPointerDown" @click.capture="onTreeClickCapture">
       <template v-if="query">
         <div
           v-for="node in searchResults"
@@ -140,6 +140,16 @@
       </template>
     </div>
 
+    <!-- 拖拽中的跟随标签：pointer-events:none，否则 elementFromPoint 会一直命中它 -->
+    <div
+      v-if="dragSource"
+      class="file-tree__ghost"
+      :style="{ left: `${ghostX}px`, top: `${ghostY}px` }"
+    >
+      <FileIcon :name="dragName" :size="14" />
+      <span>{{ dragName }}</span>
+    </div>
+
     <div class="file-tree__resize" @mousedown.prevent="onResizeStart" />
 
     <FileTreeContextMenu
@@ -155,8 +165,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { readDir, writeTextFile, mkdir, remove } from '@tauri-apps/plugin-fs'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { readDir, writeTextFile, mkdir, remove, rename } from '@tauri-apps/plugin-fs'
 import { useMarkdownStore } from '../stores/useMarkdownStore'
 import { showConfirm } from '../composables/showConfirm'
 import type { FileTreeNode as FileTreeNodeType, MarkdownFile } from '../types'
@@ -211,6 +221,124 @@ function revealActiveFile() {
 function focusTree(e: MouseEvent) {
   if ((e.target as HTMLElement).closest('input, textarea')) return
   treeRoot.value?.focus()
+}
+
+// 拖拽移动：Tauri 在 Windows 上默认 dragDropEnabled 会吞掉 HTML5 拖拽事件，
+// 这里仍用指针事件自己实现（移动超过 4px 才算拖拽，单纯点击仍展开/打开）
+const dragSource = ref('')
+const ghostX = ref(0)
+const ghostY = ref(0)
+const dragName = computed(() => dragSource.value.split('/').pop() ?? '')
+let pressed = false
+let dragged = false
+/** 拖拽松手后浏览器仍会补一个 click，不能让它触发展开/打开 */
+let suppressClick = false
+let startX = 0
+let startY = 0
+let pendingSource = ''
+let dropTarget = ''
+let dropEl: HTMLElement | null = null
+
+function setDropEl(el: HTMLElement | null) {
+  if (dropEl === el) return
+  dropEl?.classList.remove('tree-node__row--drop')
+  dropEl = el
+  el?.classList.add('tree-node__row--drop')
+}
+
+/** 目标必须是目录、不能是自己、不能是自己的子孙，也不能原地不动 */
+function canDropInto(source: string, target: string) {
+  if (!source || !target || target === source) return false
+  if (target.startsWith(`${source}/`)) return false
+  return source.slice(0, source.lastIndexOf('/')) !== target
+}
+
+function onRowPointerDown(e: PointerEvent) {
+  if (e.button !== 0) return
+  const target = e.target as HTMLElement
+  // 重命名输入框里按下不启动拖拽，否则选不中文字
+  if (target.closest('input, textarea')) return
+  const row = target.closest<HTMLElement>('.tree-node__row[data-path]')
+  if (!row) return
+  pressed = true
+  dragged = false
+  pendingSource = row.dataset.path ?? ''
+  startX = e.clientX
+  startY = e.clientY
+  document.addEventListener('pointermove', onRowPointerMove)
+  document.addEventListener('pointerup', onRowPointerUp)
+  document.addEventListener('pointercancel', onRowPointerUp)
+}
+
+function onRowPointerMove(e: PointerEvent) {
+  if (!pressed) return
+  if (!dragSource.value) {
+    if (Math.abs(e.clientX - startX) < 4 && Math.abs(e.clientY - startY) < 4) return
+    dragged = true
+    dragSource.value = pendingSource
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'grabbing'
+  }
+  ghostX.value = e.clientX + 14
+  ghostY.value = e.clientY + 10
+  const hit = document
+    .elementFromPoint(e.clientX, e.clientY)
+    ?.closest<HTMLElement>('.tree-node__row[data-path]')
+  const valid = hit?.dataset.type === 'directory' && canDropInto(dragSource.value, hit.dataset.path ?? '')
+  dropTarget = valid ? (hit!.dataset.path ?? '') : ''
+  setDropEl(valid ? hit! : null)
+}
+
+function onRowPointerUp() {
+  const source = dragSource.value
+  const target = dropTarget
+  pressed = false
+  dragSource.value = ''
+  pendingSource = ''
+  dropTarget = ''
+  setDropEl(null)
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+  document.removeEventListener('pointermove', onRowPointerMove)
+  document.removeEventListener('pointerup', onRowPointerUp)
+  document.removeEventListener('pointercancel', onRowPointerUp)
+  if (dragged) {
+    suppressClick = true
+    // click 在同一次手势里同步派发，等它过去再恢复
+    setTimeout(() => { suppressClick = false }, 0)
+  }
+  dragged = false
+  if (source && target) void moveNode(source, target)
+}
+
+function onTreeClickCapture(e: MouseEvent) {
+  if (!suppressClick) return
+  e.stopPropagation()
+  e.preventDefault()
+}
+
+async function moveNode(source: string, targetDir: string) {
+  const name = source.slice(source.lastIndexOf('/') + 1)
+  if (!name) return
+  const newPath = `${targetDir}/${name}`
+  try {
+    await rename(source, newPath)
+  } catch {
+    // 目标已有同名文件时失败；和行内重命名一样保持原状、不弹错
+    return
+  }
+  // 已打开的标签跟着换路径；整目录移动时其子树内的标签也要跟
+  for (const tab of store.tabs) {
+    const path = normPath(tab.path)
+    if (path === source) tab.path = newPath
+    else if (path.startsWith(`${source}/`)) tab.path = newPath + path.slice(source.length)
+  }
+  selectedPath.value = newPath
+  // shortcut: 只挪节点本身，正文里的相对图片路径不跟着挪（需要时参考 saveFileAs 的 copyReferencedImages）
+  store.refreshFileTree()
+  // 刷新会重建整棵树；等新节点挂载后定位到新位置，否则目标目录会被收起、看不出挪到哪了
+  await nextTick()
+  store.revealInFileTree(newPath)
 }
 
 /** ←/→ 折叠展开，↑/↓ 在可见行之间移动选中，Enter 展开目录/打开文件（data-* 由行元素提供） */
@@ -349,6 +477,12 @@ onBeforeUnmount(() => {
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
   }
+  // 拖拽途中关掉目录树：别把监听器和光标状态留在 document 上
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+  document.removeEventListener('pointermove', onRowPointerMove)
+  document.removeEventListener('pointerup', onRowPointerUp)
+  document.removeEventListener('pointercancel', onRowPointerUp)
   if (searchTimer) clearTimeout(searchTimer)
   searchSeq++
 })
@@ -770,6 +904,31 @@ watch(() => store.activeFile?.path, (path) => {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  /* 拖拽落点（节点行的类由脚本手动加，跨组件需要 :deep） */
+  &__body :deep(.tree-node__row--drop) {
+    background: var(--bg-active);
+    box-shadow: inset 0 0 0 1px var(--accent-color);
+    color: var(--accent-color);
+  }
+
+  &__ghost {
+    position: fixed;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 0.357rem;
+    padding: 0.214rem 0.571rem;
+    font-size: var(--file-tree-text-size);
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.357rem;
+    box-shadow: 0 0.286rem 0.857rem rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0.9;
   }
 
   &__hit {
