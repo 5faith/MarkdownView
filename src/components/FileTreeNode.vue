@@ -62,11 +62,13 @@
           :reveal="props.reveal"
           :expand-all-dirs="props.expandAllDirs"
           :selected-path="props.selectedPath"
+          :removed="props.removed"
           @open-file="(path: string) => $emit('openFile', path)"
           @select="(path: string) => emit('select', path)"
           @node-contextmenu="(e: MouseEvent, n: FileTreeNodeType) => emit('nodeContextmenu', e, n)"
           @start-rename="(p: string) => emit('startRename', p)"
           @renamed="() => emit('renamed')"
+          @rename-end="() => emit('renameEnd')"
         />
       </template>
     </div>
@@ -89,6 +91,7 @@ const props = defineProps<{
   reveal: { path: string; seq: number } | null
   expandAllDirs: Set<string>
   selectedPath: string
+  removed: { path: string; seq: number } | null
 }>()
 
 const emit = defineEmits<{
@@ -97,6 +100,7 @@ const emit = defineEmits<{
   nodeContextmenu: [event: MouseEvent, node: FileTreeNodeType]
   startRename: [path: string]
   renamed: []
+  renameEnd: []
 }>()
 
 const store = useMarkdownStore()
@@ -125,6 +129,13 @@ watch(() => props.refreshKey, () => {
   children.value = []
 })
 
+// 删除一棵子树：只从自己的 children 里摘掉对应节点，不重载整棵树（否则展开状态全丢）
+watch(() => props.removed, (req) => {
+  if (!req) return
+  const next = children.value.filter((node) => node.path !== req.path)
+  if (next.length !== children.value.length) children.value = next
+})
+
 // 右键菜单"重命名"经由 renamingPath 传导到对应节点（immediate 覆盖新建后挂载的场景）
 watch(() => props.renamingPath, (path) => {
   if (path === props.node.path) beginRename()
@@ -148,11 +159,14 @@ function beginRename() {
 
 function cancelRename() {
   renaming.value = false
+  // 通知父级清掉「待重命名路径」，否则以后刷新时这一行会自己又跳进重命名态
+  emit('renameEnd')
 }
 
 async function commitRename() {
   if (!renaming.value) return
   renaming.value = false
+  emit('renameEnd')
   const newName = renameValue.value.trim()
   if (!newName || newName === props.node.name) return
 

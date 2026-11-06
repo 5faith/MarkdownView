@@ -8,6 +8,20 @@
       @mousedown.stop
     >
       <div
+        v-if="isDirectory"
+        class="file-tree-context-menu__item"
+        @click="$emit('create-file')"
+      >
+        新建文件
+      </div>
+      <div
+        v-if="isDirectory"
+        class="file-tree-context-menu__item"
+        @click="$emit('create-folder')"
+      >
+        新建文件夹
+      </div>
+      <div
         v-if="!isDirectory"
         class="file-tree-context-menu__item"
         @click="$emit('open-file-location')"
@@ -34,6 +48,8 @@ defineProps<{
 
 defineEmits<{
   'open-file-location': []
+  'create-file': []
+  'create-folder': []
   rename: []
   delete: []
 }>()

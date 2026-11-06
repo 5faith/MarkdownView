@@ -42,8 +42,8 @@
           <path d="M4 6l4 4 4-4" />
         </svg>
       </button>
-      <button class="file-tree__act" title="新建文件" aria-label="新建文件" @click="createFile">＋</button>
-      <button class="file-tree__act" title="新建文件夹" aria-label="新建文件夹" @click="createFolder">
+      <button class="file-tree__act" title="新建文件" aria-label="新建文件" @click="createFile()">＋</button>
+      <button class="file-tree__act" title="新建文件夹" aria-label="新建文件夹" @click="createFolder()">
         <svg viewBox="0 0 16 16" aria-hidden="true">
           <path d="M2 4h4l1.5 1.5H14V12H2z" />
           <path d="M8 7.2v3.2M6.4 8.8h3.2" />
@@ -131,11 +131,13 @@
           :reveal="store.revealRequest"
           :expand-all-dirs="expandAllDirs"
           :selected-path="selectedPath"
+          :removed="removedRequest"
           @open-file="openFile"
           @select="selectedPath = $event"
           @node-contextmenu="onNodeContextmenu"
           @start-rename="renamingPath = $event"
-          @renamed="loadRoot"
+          @renamed="onRenamed"
+          @rename-end="renamingPath = ''"
         />
       </template>
     </div>
@@ -158,6 +160,8 @@
       :y="menuY"
       :is-directory="menuNode?.type === 'directory'"
       @open-file-location="handleOpenFileLocation"
+      @create-file="createFileInMenuDir"
+      @create-folder="createFolderInMenuDir"
       @rename="startRename"
       @delete="removeNode"
     />
@@ -189,6 +193,8 @@ const useRegex = ref(false)
 const caseSensitive = ref(false)
 const regexInvalid = ref(false)
 const renamingPath = ref('')
+/** 刚被删除的路径（带 seq 以便同一路径再次删除时也能触发）：逐层从 children 里摘掉，避免整树重建 */
+const removedRequest = ref<{ path: string; seq: number } | null>(null)
 
 const menuVisible = ref(false)
 const menuX = ref(0)
@@ -519,6 +525,12 @@ async function loadRoot() {
   }
 }
 
+// 重命名成功后重读根目录；同时清掉待重命名路径，避免同一行在下次刷新时又进入重命名
+function onRenamed() {
+  renamingPath.value = ''
+  loadRoot()
+}
+
 // 搜索在 Rust 侧遍历（search_workspace 命令），前端一次 IPC 拿全部命中。
 // 不要改回前端逐目录 readDir：数千次并发 IPC 会把 WebView 消息桥挤崩。
 // 输入防抖 + 节流：连续输入时最多每 searchIntervalMs 发起一次请求（设置中可调）。
@@ -616,7 +628,7 @@ async function openFile(path: string) {
   }
 }
 
-/** 生成不冲突的根目录名：未命名.md / 未命名-2.md … */
+/** 生成不冲突的名字：未命名.md / 未命名-2.md … */
 function uniqueName(base: string, ext: string, names: string[]): string {
   let candidate = ext ? `${base}.${ext}` : base
   let i = 2
@@ -627,33 +639,73 @@ function uniqueName(base: string, ext: string, names: string[]): string {
   return candidate
 }
 
-async function createFile() {
-  if (!store.workspacePath) return
-  const names = rootNodes.value.map((n) => n.name)
-  const name = uniqueName('未命名', 'md', names)
-  const path = `${normPath(store.workspacePath)}/${name}`
+/** 顶部新建按钮的落点：选中目录就是它本身，选中文件则是它的父目录，没选中落到工作区根 */
+function selectedDir(): string {
+  const rows = treeRoot.value?.querySelectorAll<HTMLElement>('.tree-node__row[data-path]') ?? []
+  const row = Array.from(rows).find((r) => r.dataset.path === selectedPath.value)
+  const path = row?.dataset.path
+  if (!path) return normPath(store.workspacePath)
+  return row!.dataset.type === 'directory' ? path : path.slice(0, path.lastIndexOf('/'))
+}
+
+/** 目标目录已有的名字（新建时用来避开重名）；读不到就当空目录 */
+async function namesIn(dir: string): Promise<string[]> {
+  try {
+    return (await readDir(dir)).map((entry) => entry.name ?? '')
+  } catch {
+    return []
+  }
+}
+
+/** 刷新后定位到新节点，祖先目录才会展开、新行才看得见 */
+async function revealNew(path: string) {
+  await nextTick()
+  store.revealInFileTree(path)
+}
+
+async function createFile(dir?: string) {
+  const base = dir ?? selectedDir()
+  if (!base) return
+  const name = uniqueName('未命名', 'md', await namesIn(base))
+  const path = `${base}/${name}`
   try {
     await writeTextFile(path, '')
     store.refreshFileTree()
     await openFile(path)
     // 新文件直接进入重命名态（与 Typora 一致）
     renamingPath.value = path
+    await revealNew(path)
   } catch {
     // ignore
   }
 }
 
-async function createFolder() {
-  if (!store.workspacePath) return
-  const names = rootNodes.value.map((n) => n.name)
-  const name = uniqueName('新建文件夹', '', names)
+async function createFolder(dir?: string) {
+  const base = dir ?? selectedDir()
+  if (!base) return
+  const name = uniqueName('新建文件夹', '', await namesIn(base))
+  const path = `${base}/${name}`
   try {
-    await mkdir(`${normPath(store.workspacePath)}/${name}`)
+    await mkdir(path)
     store.refreshFileTree()
-    renamingPath.value = `${normPath(store.workspacePath)}/${name}`
+    renamingPath.value = path
+    await revealNew(path)
   } catch {
     // ignore
   }
+}
+
+/** 右键目录 → 在它下面新建 */
+function createFileInMenuDir() {
+  const node = menuNode.value
+  closeMenu()
+  if (node) void createFile(normPath(node.path))
+}
+
+function createFolderInMenuDir() {
+  const node = menuNode.value
+  closeMenu()
+  if (node) void createFolder(normPath(node.path))
 }
 
 function onNodeContextmenu(e: MouseEvent, node: FileTreeNodeType) {
@@ -724,11 +776,20 @@ async function removeNode() {
   try {
     await remove(node.path, { recursive: true })
     store.closeTabsUnderPath(node.path)
-    store.refreshFileTree()
+    // 只把这一行从树里摘掉，不重建整棵树：其它目录的展开状态得留着
+    const path = normPath(node.path)
+    if (selectedPath.value === path || selectedPath.value.startsWith(`${path}/`)) {
+      selectedPath.value = ''
+    }
+    removedRequest.value = { path, seq: (removedRequest.value?.seq ?? 0) + 1 }
   } catch {
     // ignore
   }
 }
+
+watch(removedRequest, (req) => {
+  if (req) rootNodes.value = rootNodes.value.filter((n) => n.path !== req.path)
+})
 
 watch(() => store.workspacePath, () => {
   loadRoot()
