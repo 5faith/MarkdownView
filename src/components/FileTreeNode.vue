@@ -93,7 +93,7 @@ const props = defineProps<{
   expandAllDirs: Set<string>
   selectedPaths: Set<string>
   removed: { paths: string[]; seq: number } | null
-  added: { dir: string; node: FileTreeNodeType; seq: number } | null
+  added: { dir: string; nodes: FileTreeNodeType[]; seq: number } | null
 }>()
 
 const emit = defineEmits<{
@@ -146,8 +146,10 @@ watch(() => props.removed, (req) => {
 watch(() => props.added, (req) => {
   if (!req || !loaded.value) return
   if (norm(props.node.path) !== req.dir) return
-  if (children.value.some((node) => node.path === req.node.path)) return
-  children.value = [...children.value, req.node].sort((a, b) => {
+  const known = new Set(children.value.map((node) => node.path))
+  const fresh = req.nodes.filter((node) => !known.has(node.path))
+  if (fresh.length === 0) return
+  children.value = [...children.value, ...fresh].sort((a, b) => {
     if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
     return a.name.localeCompare(b.name)
   })
