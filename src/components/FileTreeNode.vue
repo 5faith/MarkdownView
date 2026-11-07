@@ -304,15 +304,15 @@ async function handleClick(e: MouseEvent) {
       background: var(--bg-hover);
     }
 
-    &--active {
-      background: var(--bg-active);
-      color: var(--accent-color);
-    }
-
-    /* 键盘 ←/→ 操作的当前行（目录也能选中） */
+    /* 键盘 ←/→ 操作的当前行（目录也能选中）；先于 --active 声明，激活态颜色才能盖过选中态 */
     &--selected {
       background: var(--bg-active);
       color: var(--text-primary);
+    }
+
+    &--active {
+      background: var(--bg-active);
+      color: var(--accent-color);
     }
 
     /* 定位到的节点：短暂高亮，1.6s 后由脚本移除 */
