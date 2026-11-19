@@ -10,7 +10,7 @@
  *
  * 段序按 style.md §5 固定；英文标记与规范一致，中文仅作说明。
  * 不变式：全站 rem 缩放（html { font-size: var(--text-size) }），
- *         标题尺度固定 h1=2rem / h2=1.8rem / h3=1.4rem / h4=1.2rem / h5,h6=1rem，
+ *         标题尺度固定 h1=2.25rem / h2=1.75rem / h3=1.5rem / h4=1.25rem / h5,h6=1rem，
  *         一处改 --text-size 全站等比生效。
  * ═══════════════════════════════════════════════════════════════════════ */
 
@@ -357,12 +357,40 @@ html {
 }
 
 /* ─────────── 12 标题与段落节奏 ─────────── */
-.milkdown h1 { font-size: 2rem;   color: var(--title-color); font-family: var(--title-font); line-height: 1.25; }
-.milkdown h2 { font-size: 1.8rem; color: var(--title-color); font-family: var(--title-font); line-height: 1.3; }
-.milkdown h3 { font-size: 1.4rem; color: var(--title-color); font-family: var(--title-font); }
-.milkdown h4 { font-size: 1.2rem; color: var(--title-color); font-family: var(--title-font); }
-.milkdown h5,
-.milkdown h6 { font-size: 1rem;  color: var(--title-color); font-family: var(--title-font); }
+/* 选择器必须带 .ProseMirror：Crepe reset.css 用 `.milkdown .ProseMirror hN`，
+   只写 `.milkdown hN` 特异性不足会被它的 2.625em/2.25em… 覆盖 */
+/* 标题尺度对齐 Typora 默认主题：2.25 / 1.75 / 1.5 / 1.25 / 1 / 1 rem */
+.milkdown .ProseMirror h1 { font-size: 2.25rem; color: var(--title-color); font-family: var(--title-font); line-height: 1.25; }
+.milkdown .ProseMirror h2 { font-size: 1.75rem; color: var(--title-color); font-family: var(--title-font); line-height: 1.3; }
+.milkdown .ProseMirror h3 { font-size: 1.5rem;  color: var(--title-color); font-family: var(--title-font); }
+.milkdown .ProseMirror h4 { font-size: 1.25rem; color: var(--title-color); font-family: var(--title-font); }
+.milkdown .ProseMirror h5,
+.milkdown .ProseMirror h6 { font-size: 1rem;    color: var(--title-color); font-family: var(--title-font); }
+
+/* 标题级别角标：行首小字显示 H1–H6，便于识别当前标题层级（阅读模式不显示） */
+.milkdown :is(h1, h2, h3, h4, h5, h6)::before {
+  display: inline-block;
+  margin-right: 0.571rem;
+  padding: 0 0.357rem;
+  border-radius: 0.286rem;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-family: var(--monospace);
+  font-size: 0.714rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.milkdown h1::before { content: 'H1'; }
+.milkdown h2::before { content: 'H2'; }
+.milkdown h3::before { content: 'H3'; }
+.milkdown h4::before { content: 'H4'; }
+.milkdown h5::before { content: 'H5'; }
+.milkdown h6::before { content: 'H6'; }
+
+.app--reading .milkdown :is(h1, h2, h3, h4, h5, h6)::before { display: none; }
 
 .milkdown strong {
   color: var(--strong-color);

@@ -36,7 +36,7 @@ import { basename, dirname, encodeMdPath, joinPath, sanitizeImageDir } from '../
 
 export type FormatKind =
   | 'undo' | 'redo'
-  | 'h1' | 'h2' | 'h3'
+  | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
   | 'bold' | 'italic' | 'strike' | 'code'
   | 'quote' | 'ul' | 'ol' | 'task' | 'table' | 'codeblock' | 'hr' | 'details'
   | 'footnote' | 'deflist' | 'emoji' | 'alert' | 'mermaid'
@@ -405,6 +405,9 @@ const BLOCK_PREFIX: Partial<Record<FormatKind, string>> = {
   h1: '# ',
   h2: '## ',
   h3: '### ',
+  h4: '#### ',
+  h5: '##### ',
+  h6: '###### ',
   quote: '> ',
   ul: '- ',
   ol: '1. ',
@@ -560,6 +563,15 @@ export function runFormat(kind: FormatKind, payload?: FormatPayload): void {
       break
     case 'h3':
       withSelection(crepe, () => act(crepe, wrapInHeadingCommand.key, 3))
+      break
+    case 'h4':
+      withSelection(crepe, () => act(crepe, wrapInHeadingCommand.key, 4))
+      break
+    case 'h5':
+      withSelection(crepe, () => act(crepe, wrapInHeadingCommand.key, 5))
+      break
+    case 'h6':
+      withSelection(crepe, () => act(crepe, wrapInHeadingCommand.key, 6))
       break
     case 'bold':
       withSelection(crepe, () => act(crepe, toggleStrongCommand.key))

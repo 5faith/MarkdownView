@@ -125,7 +125,7 @@ DrakeTyporaTheme/
 | `--toc-text-size` | 大纲字号 | `1rem` |
 | `--text-size` | 根字号，`html { font-size: var(--text-size) }` | `14px` |
 
-> **关键约定**：全主题使用 `rem`（间距为 `rem`，边框为 `.1em`）。改字号只需改 `--text-size`，全站等比缩放。标题尺度固定为 `h1 = 2rem / h2 = 1.8rem / h3 = 1.4rem / h4 = 1.2rem / h5、h6 = 1rem`，不允许用 px 硬编码字号。
+> **关键约定**：全主题使用 `rem`（间距为 `rem`，边框为 `.1em`）。改字号只需改 `--text-size`，全站等比缩放。标题尺度固定为 `h1 = 2.25rem / h2 = 1.75rem / h3 = 1.5rem / h4 = 1.25rem / h5、h6 = 1rem`（对齐 Typora 默认主题），不允许用 px 硬编码字号。
 
 ---
 

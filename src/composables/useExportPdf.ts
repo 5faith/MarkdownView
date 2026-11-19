@@ -83,10 +83,10 @@ export async function exportPdf(): Promise<void> {
       .prose p, .prose blockquote, .prose ul, .prose ol, .prose table { margin: ${v('--p-spacing', '0.8rem')} 0; }
       .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
         color: ${v('--title-color', '#273849')}; font-family: ${v('--title-font', 'monospace')}; line-height: 1.3; }
-      .prose h1 { font-size: 2rem; }
-      .prose h2 { font-size: 1.8rem; }
-      .prose h3 { font-size: 1.4rem; }
-      .prose h4 { font-size: 1.2rem; }
+      .prose h1 { font-size: 2.25rem; }
+      .prose h2 { font-size: 1.75rem; }
+      .prose h3 { font-size: 1.5rem; }
+      .prose h4 { font-size: 1.25rem; }
       .prose h5, .prose h6 { font-size: 1rem; }
       .prose strong { color: ${v('--strong-color', '#273849')}; }
       .prose :not(pre) > code { font-family: ${v('--monospace', 'monospace')}; font-size: 0.95em;

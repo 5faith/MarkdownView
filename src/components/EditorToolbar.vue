@@ -1,15 +1,18 @@
 <template>
   <div class="editor-toolbar" role="toolbar" aria-label="Markdown 格式工具栏">
+    <button class="editor-toolbar__btn" title="标题 1" @click="runFormat('h1')">H1</button>
+    <button class="editor-toolbar__btn" title="标题 2" @click="runFormat('h2')">H2</button>
+    <button class="editor-toolbar__btn" title="标题 3" @click="runFormat('h3')">H3</button>
+    <button class="editor-toolbar__btn" title="标题 4" @click="runFormat('h4')">H4</button>
+    <button class="editor-toolbar__btn" title="标题 5" @click="runFormat('h5')">H5</button>
+    <button class="editor-toolbar__btn" title="标题 6" @click="runFormat('h6')">H6</button>
+    <span class="editor-toolbar__sep" />
     <button class="editor-toolbar__btn" title="撤销" @click="runFormat('undo')">
       <svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></svg>
     </button>
     <button class="editor-toolbar__btn" title="重做" @click="runFormat('redo')">
       <svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5" /><path d="M20 9H10a6 6 0 0 0 0 12h3" /></svg>
     </button>
-    <span class="editor-toolbar__sep" />
-    <button class="editor-toolbar__btn editor-toolbar__btn--wide" title="标题 1" @click="runFormat('h1')">H1</button>
-    <button class="editor-toolbar__btn editor-toolbar__btn--wide" title="标题 2" @click="runFormat('h2')">H2</button>
-    <button class="editor-toolbar__btn editor-toolbar__btn--wide" title="标题 3" @click="runFormat('h3')">H3</button>
     <span class="editor-toolbar__sep" />
     <button class="editor-toolbar__btn" title="加粗 (Ctrl+B)" @click="runFormat('bold')"><b>B</b></button>
     <button class="editor-toolbar__btn" title="斜体 (Ctrl+I)" @click="runFormat('italic')"><i>I</i></button>

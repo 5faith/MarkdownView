@@ -73,7 +73,7 @@ Tauri 2（Rust）+ Vue 3 `<script setup>` + Pinia + Milkdown Crepe 的桌面 Mar
 - `html { font-size: var(--text-size) }` 是唯一缩放入口；`--text-size` 是全仓库唯一允许的 px 字号，默认 14px，`帮助 → 设置…` 弹窗可选 13/14/15/16px（写入根元素内联变量）。
 - 字号、间距、内边距、圆角、图标尺寸、行高**一律 rem**（1rem = 14px；13px → `0.929rem`，8px → `0.571rem`）。组件 `<style>` 里出现 `font-size: 13px` 即不合规。
 - 例外：1px 发丝线边框、`--window-border: 1px solid #282828`、用户拖拽产生的像素宽度（`store.fileTreeWidth` 等 JS 内联值）、`data:` URI 内的像素尺寸。
-- 标题尺度固定 `h1 2rem / h2 1.8rem / h3 1.4rem / h4 1.2rem / h5,h6 1rem`，不得改写。
+- 标题尺度固定 `h1 2.25rem / h2 1.75rem / h3 1.5rem / h4 1.25rem / h5,h6 1rem`（对齐 Typora 默认主题），不得改写。
 - 任何依赖字号的计算（如打字机行高）必须读实际样式（`getComputedStyle`），不能写死 `14px`。
 
 ### 新增主题清单
