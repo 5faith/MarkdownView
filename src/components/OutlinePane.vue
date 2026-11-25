@@ -48,9 +48,24 @@ function parseTree() {
   const content = file?.content ?? ''
   const lines = content.split('\n')
   const items: { level: number; text: string; slug: string; line: number }[] = []
+  /** 当前所在围栏代码块的围栏串（如 ``` 或 ~~~），null 表示不在代码块内 */
+  let fence: string | null = null
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!.replace(/\r/g, '')
+    const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})/)
+
+    // 围栏代码块内的 # 是注释，不是标题，整段跳过
+    if (fence) {
+      if (fenceMatch && fenceMatch[1]![0] === fence[0] && fenceMatch[1]!.length >= fence.length) {
+        fence = null
+      }
+      continue
+    }
+    if (fenceMatch) {
+      fence = fenceMatch[1]!
+      continue
+    }
 
     // ATX heading: # heading ... ######
     const atxMatch = line.match(/^(#{1,6})\s+(.+)$/)
